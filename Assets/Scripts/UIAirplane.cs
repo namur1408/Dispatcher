@@ -1,44 +1,47 @@
 using UnityEngine;
+using TMPro;
 
 public class UIAirplane : MonoBehaviour
 {
     [Header("Settings")]
     public float speed = 20f;
     public float fadeSpeed = 0.5f;
+    public float minAlpha = 0.3f;
 
     [Header("References")]
     public RectTransform directionLine;
+    public TextMeshProUGUI callsignText;
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
     private Transform sweepLine;
 
     private Vector2 targetPosition = Vector2.zero;
+    private Vector2 logicalPosition;
 
     void Start()
     {
         rectTransform = GetComponent<RectTransform>();
         canvasGroup = GetComponent<CanvasGroup>();
+        logicalPosition = rectTransform.anchoredPosition;
         GameObject foundScanner = GameObject.Find("SweepLine");
         if (foundScanner != null)
         {
             sweepLine = foundScanner.transform;
         }
+        string letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        string randomID = "" + letters[Random.Range(0, letters.Length)] + letters[Random.Range(0, letters.Length)];
+        callsignText.text = randomID + "-" + Random.Range(100, 999);
     }
 
     void Update()
     {
-        HandlePing();
-        FadeOut();
-        Vector2 direction = (targetPosition - rectTransform.anchoredPosition).normalized;
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        rectTransform.rotation = Quaternion.Euler(0, 0, angle - 90f);
-        float calculatedLength = speed / 2f;
-        SetLineLength(calculatedLength);
-        rectTransform.anchoredPosition = Vector2.MoveTowards(
-            rectTransform.anchoredPosition,
+        logicalPosition = Vector2.MoveTowards(
+            logicalPosition,
             targetPosition,
             speed * Time.deltaTime
         );
+        HandlePing();
+        FadeOut();
         if (rectTransform.anchoredPosition == targetPosition)
         {
             Debug.Log("Flight landed!");
@@ -56,22 +59,42 @@ public class UIAirplane : MonoBehaviour
 
     void HandlePing()
     {
-        if (sweepLine == null || canvasGroup == null) return;
-        float planeAngle = Mathf.Atan2(rectTransform.anchoredPosition.y, rectTransform.anchoredPosition.x) * Mathf.Rad2Deg;
-        if (planeAngle < 0) planeAngle += 360f;
-        float sweepAngle = (-sweepLine.eulerAngles.z) % 360f;
-        if (sweepAngle < 0) sweepAngle += 360f;
-        if (Mathf.Abs(sweepAngle - planeAngle) < 0.5f)
+        Vector2 planeDir = logicalPosition;
+        float planeAngle = Mathf.Atan2(planeDir.y, planeDir.x) * Mathf.Rad2Deg;
+        Vector2 sweepDir = sweepLine.up;
+        float sweepAngle = Mathf.Atan2(sweepDir.y, sweepDir.x) * Mathf.Rad2Deg;
+        float angleDiff = Mathf.Abs(Mathf.DeltaAngle(sweepAngle, planeAngle));
+
+        if (angleDiff < 3f)
         {
+            rectTransform.anchoredPosition = logicalPosition;
+            UpdateVisualRotation();
             canvasGroup.alpha = 1f;
         }
     }
 
+    void UpdateVisualRotation()
+    {
+        Vector2 direction = (targetPosition - logicalPosition).normalized;
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        rectTransform.rotation = Quaternion.Euler(0, 0, angle - 90f);
+
+        if (callsignText != null)
+        {
+            callsignText.transform.rotation = Quaternion.identity;
+        }
+
+        if (directionLine != null)
+        {
+            float calculatedLength = speed*1.5f;
+            directionLine.sizeDelta = new Vector2(directionLine.sizeDelta.x, calculatedLength);
+        }
+    }
     void FadeOut()
     {
         if (canvasGroup == null) return;
 
-        if (canvasGroup.alpha > 0)
+        if (canvasGroup.alpha > minAlpha)
         {
             canvasGroup.alpha -= fadeSpeed * Time.deltaTime;
         }
