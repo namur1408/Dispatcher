@@ -4,7 +4,8 @@ using TMPro;
 public class UIAirplane : MonoBehaviour
 {
     [Header("Settings")]
-    public float speed = 20f;
+    public float speed = 1f;
+    private float _actualSpeed;
     public float fadeSpeed = 0.5f;
     public float minAlpha = 0.3f;
 
@@ -17,7 +18,7 @@ public class UIAirplane : MonoBehaviour
 
     private Vector2 targetPosition = Vector2.zero;
     private Vector2 logicalPosition;
-
+    
     void Start()
     {
         rectTransform = GetComponent<RectTransform>();
@@ -31,6 +32,7 @@ public class UIAirplane : MonoBehaviour
         string letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         string randomID = "" + letters[Random.Range(0, letters.Length)] + letters[Random.Range(0, letters.Length)];
         callsignText.text = randomID + "-" + Random.Range(100, 999);
+        UpdateInternalSpeed();
     }
 
     void Update()
@@ -38,7 +40,7 @@ public class UIAirplane : MonoBehaviour
         logicalPosition = Vector2.MoveTowards(
             logicalPosition,
             targetPosition,
-            speed * Time.deltaTime
+            _actualSpeed * Time.deltaTime
         );
         HandlePing();
         FadeOut();
@@ -55,6 +57,16 @@ public class UIAirplane : MonoBehaviour
         {
             directionLine.sizeDelta = new Vector2(directionLine.sizeDelta.x, length);
         }
+    }
+
+    public void UpdateInternalSpeed()
+    {
+        _actualSpeed = speed / 100f;
+    }
+
+    public void SetActualSpeed(float speed)
+    {
+        float actualSpeed = speed / 100f;
     }
 
     void HandlePing()
@@ -86,8 +98,7 @@ public class UIAirplane : MonoBehaviour
 
         if (directionLine != null)
         {
-            float calculatedLength = speed*1.5f;
-            directionLine.sizeDelta = new Vector2(directionLine.sizeDelta.x, calculatedLength);
+            SetLineLength(speed / 2f);
         }
     }
     void FadeOut()
@@ -99,4 +110,5 @@ public class UIAirplane : MonoBehaviour
             canvasGroup.alpha -= fadeSpeed * Time.deltaTime;
         }
     }
+
 }
