@@ -5,16 +5,18 @@ public class UIAirplane : MonoBehaviour
 {
     [Header("Settings")]
     public float speed = 1f;
-    private float _actualSpeed;
     public float fadeSpeed = 0.5f;
     public float minAlpha = 0.3f;
+    private float _actualSpeed;
 
     [Header("References")]
     public RectTransform directionLine;
     public TextMeshProUGUI callsignText;
+
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
     private Transform sweepLine;
+    private bool isSelected = false;
 
     private Vector2 targetPosition = Vector2.zero;
     private Vector2 logicalPosition;
@@ -33,6 +35,8 @@ public class UIAirplane : MonoBehaviour
         string randomID = "" + letters[Random.Range(0, letters.Length)] + letters[Random.Range(0, letters.Length)];
         callsignText.text = randomID + "-" + Random.Range(100, 999);
         UpdateInternalSpeed();
+        if (RadarManager.Instance != null)
+            RadarManager.Instance.RegisterAirplane(this);
     }
 
     void Update()
@@ -101,6 +105,7 @@ public class UIAirplane : MonoBehaviour
             SetLineLength(speed / 2f);
         }
     }
+
     void FadeOut()
     {
         if (canvasGroup == null) return;
@@ -111,4 +116,24 @@ public class UIAirplane : MonoBehaviour
         }
     }
 
+    void OnDestroy()
+    {
+        if (RadarManager.Instance != null)
+            RadarManager.Instance.UnregisterAirplane(this);
+    }
+
+    public void SetHighlight(bool highlight)
+    {
+        isSelected = highlight;
+        if (isSelected)
+        {
+            callsignText.color = Color.yellow; 
+            rectTransform.localScale = Vector3.one * 1.1f; 
+        }
+        else
+        {
+            callsignText.color = Color.white;
+            rectTransform.localScale = Vector3.one;
+        }
+    }
 }
