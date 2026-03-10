@@ -48,6 +48,11 @@ public class UIAirplane : MonoBehaviour
         );
         HandlePing();
         FadeOut();
+        if (transform.parent != null)
+        {
+            float currentZoom = transform.parent.localScale.x;
+            transform.localScale = new Vector3(1f / currentZoom, 1f / currentZoom, 1f);
+        }
         if (rectTransform.anchoredPosition == targetPosition)
         {
             Debug.Log("Flight landed!");
@@ -65,12 +70,7 @@ public class UIAirplane : MonoBehaviour
 
     public void UpdateInternalSpeed()
     {
-        _actualSpeed = speed / 100f;
-    }
-
-    public void SetActualSpeed(float speed)
-    {
-        float actualSpeed = speed / 100f;
+        _actualSpeed = speed / 10f;
     }
 
     void HandlePing()
@@ -98,11 +98,13 @@ public class UIAirplane : MonoBehaviour
         if (callsignText != null)
         {
             callsignText.transform.rotation = Quaternion.identity;
+            float yOffset = -35f;
+            callsignText.rectTransform.localPosition = Quaternion.Inverse(rectTransform.localRotation) * new Vector3(0, yOffset, 0);
         }
 
         if (directionLine != null)
         {
-            SetLineLength(speed / 2f);
+            SetLineLength(speed / 1f);
         }
     }
 
