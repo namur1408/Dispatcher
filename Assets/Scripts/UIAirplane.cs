@@ -8,6 +8,7 @@ public class UIAirplane : MonoBehaviour
     public float fadeSpeed = 0.5f;
     public float minAlpha = 0.3f;
     private float _actualSpeed;
+    public float despawnRadius = 1350f;
 
     [Header("References")]
     public RectTransform directionLine;
@@ -58,9 +59,14 @@ public class UIAirplane : MonoBehaviour
             float currentZoom = transform.parent.localScale.x;
             transform.localScale = new Vector3(1f / currentZoom, 1f / currentZoom, 1f);
         }
+        if (Vector2.Distance(Vector2.zero, logicalPosition) > despawnRadius)
+        {
+            Debug.Log("Plane " + callsignText.text + " left radar zone");
+            Destroy(gameObject); 
+        }
         if (rectTransform.anchoredPosition == targetPosition)
         {
-            Debug.Log("Flight landed!");
+            Debug.Log("Flight " + callsignText.text + " landed!");
             Destroy(gameObject);
         }
     }

@@ -51,7 +51,7 @@ public class AirplaneSpawner: MonoBehaviour
         else
         {
             float endAngle = startAngle + Random.Range(120f, 240f) * Mathf.Deg2Rad;
-            targetPos = new Vector2(Mathf.Cos(endAngle), Mathf.Sin(endAngle)) * spawnRadius;
+            targetPos = new Vector2(Mathf.Cos(endAngle), Mathf.Sin(endAngle)) * (spawnRadius + 200f);
         }
         GameObject newPlane = Instantiate(airplanePrefab, radarContent);
         UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
