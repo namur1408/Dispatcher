@@ -10,6 +10,7 @@ public class RadarZoomManager : MonoBehaviour
     public float maxZoom = 2.0f;
 
     public float panSpeed = 1f;
+    public float maxPanRadius = 4000f;
 
     void Update()
     {
@@ -19,6 +20,7 @@ public class RadarZoomManager : MonoBehaviour
             HandleZoom();
             HandlePan();
             HandleResetView();
+            ClampPosition();
         }
     }
 
@@ -40,6 +42,17 @@ public class RadarZoomManager : MonoBehaviour
             Vector2 mouseDelta = Mouse.current.delta.ReadValue();
 
             radarContent.anchoredPosition += mouseDelta * panSpeed;
+        }
+    }
+
+    void ClampPosition()
+    {
+        float zoomRatio = Mathf.InverseLerp(minZoom, maxZoom, radarContent.localScale.x);
+        float currentLimit = Mathf.Lerp(0f, maxPanRadius, zoomRatio);
+        Vector2 currentPos = radarContent.anchoredPosition;
+        if (currentPos.magnitude > currentLimit)
+        {
+            radarContent.anchoredPosition = currentPos.normalized * currentLimit;
         }
     }
 
