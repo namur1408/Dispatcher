@@ -35,4 +35,9 @@ public class RadarManager : MonoBehaviour
             plane.SetHighlight(plane == selectedPlane);
         }
     }
+
+    public int GetPlanesCount()
+    {
+        return activeAirplanes.Count;
+    }
 }

@@ -69,7 +69,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -2413806693520163455, guid: ebe73ca9363db456bacf42c025bb4847, type: 3}
+  m_Sprite: {fileID: 9200328658351448018, guid: ef84fac40e5b7cb4f9602e37f46483d4, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -91,11 +91,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9ba75acf317f624da4f937207f02dff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIAirplane
-  speed: 20
+  speed: 35
   fadeSpeed: 0.5
   minAlpha: 0.3
   directionLine: {fileID: 6641779659690895175}
   callsignText: {fileID: 7721111432679918824}
+  targetPosition: {x: 0, y: 0}
 --- !u!225 &-132890971376957439
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -143,8 +144,8 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 5, y: 20}
-  m_Pivot: {x: 0.5, y: -0.7}
+  m_SizeDelta: {x: 3, y: 20}
+  m_Pivot: {x: 0.5, y: 0}
 --- !u!222 &8078481805350675322
 CanvasRenderer:
   m_ObjectHideFlags: 0
