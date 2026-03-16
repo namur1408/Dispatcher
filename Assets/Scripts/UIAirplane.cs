@@ -18,23 +18,28 @@ public class UIAirplane : MonoBehaviour
     private Transform sweepLine;
     private bool isSelected = false;
 
-    private Vector2 targetPosition = Vector2.zero;
+    public Vector2 targetPosition = Vector2.zero;
     private Vector2 logicalPosition;
-    
-    void Start()
+
+    void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
         canvasGroup = GetComponent<CanvasGroup>();
-        logicalPosition = rectTransform.anchoredPosition;
+
         GameObject foundScanner = GameObject.Find("SweepLine");
         if (foundScanner != null)
         {
             sweepLine = foundScanner.transform;
         }
+    }
+
+    void Start()
+    {
         string letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         string randomID = "" + letters[Random.Range(0, letters.Length)] + letters[Random.Range(0, letters.Length)];
         callsignText.text = randomID + "-" + Random.Range(100, 999);
         UpdateInternalSpeed();
+
         if (RadarManager.Instance != null)
             RadarManager.Instance.RegisterAirplane(this);
     }
@@ -104,7 +109,7 @@ public class UIAirplane : MonoBehaviour
 
         if (directionLine != null)
         {
-            SetLineLength(speed / 1f);
+            SetLineLength(speed * 1f);
         }
     }
 
@@ -137,5 +142,12 @@ public class UIAirplane : MonoBehaviour
             callsignText.color = Color.white;
             rectTransform.localScale = Vector3.one;
         }
+    }
+
+    public void SetFlightPath(Vector2 start, Vector2 target)
+    {
+        rectTransform.anchoredPosition = start;
+        logicalPosition = start;
+        targetPosition = target;
     }
 }
