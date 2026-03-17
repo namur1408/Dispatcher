@@ -280,6 +280,7 @@ GameObject:
   - component: {fileID: 674907415}
   - component: {fileID: 674907417}
   - component: {fileID: 674907416}
+  - component: {fileID: 674907418}
   m_Layer: 5
   m_Name: Book
   m_TagString: Untagged
@@ -344,6 +345,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 674907414}
   m_CullTransparentMesh: 1
+--- !u!114 &674907418
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 674907414}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45453aaa848341b438c9ad1282c440e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BookHoverHandler
+  normalSprite: {fileID: -4573677606954114036, guid: 91adfeefff1084c48b2b7eb04a7f79c9, type: 3}
+  highlightSprite: {fileID: 3234906489603568262, guid: 14e13c3dc7f03dc4da85df77a00b19d8, type: 3}
 --- !u!1 &942239674
 GameObject:
   m_ObjectHideFlags: 0
