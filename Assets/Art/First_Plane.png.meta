@@ -103,10 +103,10 @@ TextureImporter:
       name: First_Plane_0
       rect:
         serializedVersion: 2
-        x: 59
-        y: 299
-        width: 1931
-        height: 1450
+        x: 0
+        y: 0
+        width: 2348
+        height: 1321
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

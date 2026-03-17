@@ -1,39 +1,26 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 
-public class BookHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class BookHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
-    [Header("Book Sprite Settings")]
-    [SerializeField] private Sprite normalSprite;      // The default book sprite
-    [SerializeField] private Sprite highlightSprite;   // The highlighted book sprite
+    [SerializeField] private Sprite normalSprite;
+    [SerializeField] private Sprite highlightSprite;
+    [SerializeField] private string sceneToLoad = "ManualScene";
 
     private Image _bookImage;
 
     private void Awake()
     {
         _bookImage = GetComponent<Image>();
-
-        if (_bookImage == null)
-        {
-            Debug.LogError($"Missing Image component on {gameObject.name}!");
-            enabled = false; 
-        }
     }
 
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        if (_bookImage != null && highlightSprite != null)
-        {
-            _bookImage.sprite = highlightSprite; 
-        }
-    }
+    public void OnPointerEnter(PointerEventData eventData) => _bookImage.sprite = highlightSprite;
+    public void OnPointerExit(PointerEventData eventData) => _bookImage.sprite = normalSprite;
 
-    public void OnPointerExit(PointerEventData eventData)
+    public void OnPointerClick(PointerEventData eventData)
     {
-        if (_bookImage != null && normalSprite != null)
-        {
-            _bookImage.sprite = normalSprite; 
-        }
+        SceneManager.LoadScene(sceneToLoad);
     }
 }
