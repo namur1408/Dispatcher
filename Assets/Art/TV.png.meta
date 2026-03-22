@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: cb5cd7e1729b9f44da7811636b768a88
+guid: 06c676aa65504eb46a778b9d22ac8cf5
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5509753353421974763
-    second: TV_0
+      213: -3357879352890511814
+    second: Gemini_Generated_Image_tw8xaktw8xaktw8x-remove-background.com (13)_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -100,13 +100,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: TV_0
+      name: Gemini_Generated_Image_tw8xaktw8xaktw8x-remove-background.com (13)_0
       rect:
         serializedVersion: 2
-        x: 193
-        y: 14
-        width: 314
-        height: 341
+        x: 169
+        y: 16
+        width: 296
+        height: 317
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5131449548c6983b0800000000000000
-      internalID: -5509753353421974763
+      spriteID: a3ea754f48a6661d0800000000000000
+      internalID: -3357879352890511814
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      TV_0: -5509753353421974763
+      Gemini_Generated_Image_tw8xaktw8xaktw8x-remove-background.com (13)_0: -3357879352890511814
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
