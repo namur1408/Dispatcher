@@ -19,11 +19,15 @@ public class SceneTransition : MonoBehaviour, IPointerClickHandler, IPointerEnte
         if (spriteRenderer != null) originalColor = spriteRenderer.color;
     }
 
-    // Method called when the object is clicked
     public void OnPointerClick(PointerEventData eventData)
     {
         if (!string.IsNullOrEmpty(sceneName))
         {
+            if (RadarManager.Instance != null)
+            {
+                RadarManager.Instance.SaveToGlobalManager();
+            }
+
             Debug.Log($"Switching to scene: {sceneName}");
             SceneManager.LoadScene(sceneName);
         }
@@ -33,13 +37,11 @@ public class SceneTransition : MonoBehaviour, IPointerClickHandler, IPointerEnte
         }
     }
 
-    // Visual feedback when mouse enters
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (spriteRenderer != null) spriteRenderer.color = hoverColor;
     }
 
-    // Visual feedback when mouse exits
     public void OnPointerExit(PointerEventData eventData)
     {
         if (spriteRenderer != null) spriteRenderer.color = originalColor;

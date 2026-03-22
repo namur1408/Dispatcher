@@ -6,22 +6,34 @@ public class FlightListEntry : MonoBehaviour
 {
     public TextMeshProUGUI callsignText;
     private UIAirplane linkedPlane;
+    public bool isStaticEntry = false;
 
     public void Setup(UIAirplane plane)
     {
         linkedPlane = plane;
-        callsignText.text = plane.callsignText.text;
+        if (plane != null && plane.callsignText != null)
+        {
+            callsignText.text = plane.callsignText.text;
+        }
 
-        GetComponent<Button>().onClick.AddListener(OnButtonClick);
+        Button btn = GetComponent<Button>();
+        if (btn != null)
+        {
+            btn.onClick.AddListener(OnButtonClick);
+        }
     }
 
     void OnButtonClick()
     {
-        RadarManager.Instance.SelectAirplane(linkedPlane);
+        if (RadarManager.Instance != null && linkedPlane != null)
+        {
+            RadarManager.Instance.SelectAirplane(linkedPlane);
+        }
     }
 
     void Update()
     {
+        if (isStaticEntry) return;
         if (linkedPlane == null)
         {
             Destroy(gameObject);
