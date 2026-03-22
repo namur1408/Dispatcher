@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: d622af4e42ae73c4a994c6833b0086c2
+guid: ff27bdd97a974764db375a5be92927a2
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 6330969168363139030
-    second: Radar_0
+      213: -3589521708318571224
+    second: Gemini_Generated_Image_naaynenaaynenaay-remove-background.com (11)_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -48,7 +48,7 @@ TextureImporter:
   compressionQuality: 50
   spriteMode: 2
   spriteExtrude: 1
-  spriteMeshType: 0
+  spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
@@ -100,23 +100,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Radar_0
+      name: Gemini_Generated_Image_naaynenaaynenaay-remove-background.com (11)_0
       rect:
         serializedVersion: 2
-        x: 205
-        y: 36
-        width: 267
-        height: 304
+        x: 0
+        y: 0
+        width: 439
+        height: 317
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 6df2c3c6aee1cd750800000000000000
-      internalID: 6330969168363139030
+      spriteID: 8254e1e36057f2ec0800000000000000
+      internalID: -3589521708318571224
       vertices: []
       indices: 
       edges: []
@@ -125,7 +125,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 83d1bf2f8b22fad40b4c7467bcfbf485
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -133,11 +133,9 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
-      Radar_0: 6330969168363139030
+      Gemini_Generated_Image_naaynenaaynenaay-remove-background.com (11)_0: -3589521708318571224
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
