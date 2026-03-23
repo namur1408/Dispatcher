@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class FlightDataManager : MonoBehaviour
 {
     public static FlightDataManager Instance;
+
     public List<FlightData> savedFlights = new List<FlightData>();
 
     void Awake()
@@ -19,6 +20,7 @@ public class FlightDataManager : MonoBehaviour
         }
     }
 
+    // Вызывается из RadarManager перед переходом на другую сцену
     public void UpdateFlights(List<UIAirplane> airplanes)
     {
         savedFlights.Clear();
@@ -32,6 +34,21 @@ public class FlightDataManager : MonoBehaviour
                     plane.targetPosition,
                     plane.speed
                 ));
+            }
+        }
+    }
+
+    // Вызывается из TVDisplayInfo когда диспетчер нажал кнопку
+    public void AddDecision(string callsign, bool isApproved)
+    {
+        for (int i = 0; i < savedFlights.Count; i++)
+        {
+            if (savedFlights[i].callsign == callsign)
+            {
+                savedFlights[i].decisionMade = true;
+                savedFlights[i].approved     = isApproved;
+                Debug.Log($"[FlightDataManager] {callsign} -> {(isApproved ? "РАЗРЕШЕНО" : "ЗАПРЕЩЕНО")}");
+                return;
             }
         }
     }
