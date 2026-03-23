@@ -31,7 +31,20 @@ public class RadarZoomManager : MonoBehaviour
         {
             float currentScale = radarContent.localScale.x;
             float newScale = Mathf.Clamp(currentScale + scroll * zoomSpeed, minZoom, maxZoom);
-            radarContent.localScale = new Vector3(newScale, newScale, 1f);
+
+            // Если масштаб действительно изменился (не уперся в лимиты)
+            if (currentScale != newScale)
+            {
+                // Вычисляем разницу (коэффициент) между новым и старым масштабом
+                float scaleRatio = newScale / currentScale;
+
+                // Применяем новый масштаб
+                radarContent.localScale = new Vector3(newScale, newScale, 1f);
+
+                // МАГИЯ: Умножаем текущую позицию на этот коэффициент!
+                // Это компенсирует сдвиг и оставит центр экрана ровно на том же месте карты.
+                radarContent.anchoredPosition *= scaleRatio;
+            }
         }
     }
 
