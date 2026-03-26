@@ -20,7 +20,6 @@ public class FlightDataManager : MonoBehaviour
         }
     }
 
-    // Вызывается из RadarManager перед переходом на другую сцену
     public void UpdateFlights(List<UIAirplane> airplanes)
     {
         savedFlights.Clear();
@@ -28,12 +27,25 @@ public class FlightDataManager : MonoBehaviour
         {
             if (plane != null && plane.callsignText != null)
             {
-                savedFlights.Add(new FlightData(
+                FlightData newData = new FlightData(
                     plane.callsignText.text,
                     plane.GetLogicalPosition(),
                     plane.targetPosition,
                     plane.speed
-                ));
+                );
+
+                if (plane.dispatchStatus == UIAirplane.DispatchStatus.Approved)
+                {
+                    newData.decisionMade = true;
+                    newData.approved = true;
+                }
+                else if (plane.dispatchStatus == UIAirplane.DispatchStatus.Denied)
+                {
+                    newData.decisionMade = true;
+                    newData.approved = false;
+                }
+
+                savedFlights.Add(newData);
             }
         }
     }

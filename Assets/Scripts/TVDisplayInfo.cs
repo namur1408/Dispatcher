@@ -93,7 +93,7 @@ public class TVDisplayInfo : MonoBehaviour
 
         // Заголовок
         CreateStyledLine($"<color={COL_HEADER}><b>╔══════════════════════════════╗</b></color>", 16);
-        CreateStyledLine($"<color={COL_HEADER}><b>║   ✈  AIR TRAFFIC CONTROL  ✈  ║</b></color>", 16);
+        CreateStyledLine($"<color={COL_HEADER}><b>║      AIR TRAFFIC CONTROL     ║</b></color>", 16);
         CreateStyledLine($"<color={COL_HEADER}><b>╚══════════════════════════════╝</b></color>", 16);
         CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 13);
 
@@ -126,7 +126,7 @@ public class TVDisplayInfo : MonoBehaviour
                 {
                     // Уже принято решение
                     string decCol  = data.approved ? COL_APPROVED : COL_DENIED;
-                    string decIcon = data.approved ? "✔ ALLOWED" : "✘ DENIED ";
+                    string decIcon = data.approved ? "ALLOWED" : "DENIED ";
                     txt.text = $"<color={COL_CALLSIGN}><b>{data.callsign}</b></color>  " +
                                $"<color={decCol}>[{decIcon}]</color>";
                 }
