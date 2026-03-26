@@ -8,8 +8,8 @@ public class FlightData
     public Vector2 target;
     public float speed;
     public string status;
-    public bool decisionMade;   // было ли принято решение
-    public bool approved;       // true = разрешено, false = запрещено
+    public bool decisionMade;   
+    public bool approved;      
 
     public FlightData(string callsign, Vector2 position, Vector2 target, float speed)
     {

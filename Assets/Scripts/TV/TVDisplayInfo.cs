@@ -200,7 +200,6 @@ public class TVDisplayInfo : MonoBehaviour
         if (btn != null) btn.interactable = false;
     }
 
-    // ── Выбор рейса ───────────────────────────────────────────────────
     void SelectFlight(int index)
     {
         var flights = FlightDataManager.Instance.savedFlights;
@@ -242,7 +241,6 @@ public class TVDisplayInfo : MonoBehaviour
             selectedLabel.text = $"<color={COL_SEPARATOR}>► SELECT FLIGHT FROM LIST</color>";
     }
 
-    // ── Разрешить ─────────────────────────────────────────────────────
     void OnApproveClicked()
     {
         if (selectedIndex < 0) return;
@@ -260,7 +258,6 @@ public class TVDisplayInfo : MonoBehaviour
         DisplayFlights();
     }
 
-    // ── Запретить ─────────────────────────────────────────────────────
     void OnDenyClicked()
     {
         if (selectedIndex < 0) return;
