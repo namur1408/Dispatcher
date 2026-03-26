@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 public class TypewriterEffect : MonoBehaviour
 {
-    public string fullText; 
-    public float typingSpeed = 0.05f; 
+    public string fullText;
+    public float typingSpeed = 0.05f;
 
     private TMP_Text textComponent;
     private string currentText = "";
@@ -24,8 +24,8 @@ public class TypewriterEffect : MonoBehaviour
     public void StartTyping()
     {
         StopAllCoroutines();
-        textComponent.text = "";
-        currentText = "";
+        textComponent.text = " ";
+        currentText = " ";
         StartCoroutine(TypeText());
     }
 
