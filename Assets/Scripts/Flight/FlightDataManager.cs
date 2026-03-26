@@ -50,7 +50,6 @@ public class FlightDataManager : MonoBehaviour
         }
     }
 
-    // Вызывается из TVDisplayInfo когда диспетчер нажал кнопку
     public void AddDecision(string callsign, bool isApproved)
     {
         for (int i = 0; i < savedFlights.Count; i++)
