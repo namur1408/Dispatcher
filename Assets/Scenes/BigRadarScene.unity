@@ -556,6 +556,96 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &478510412
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 478510413}
+  - component: {fileID: 478510417}
+  - component: {fileID: 478510416}
+  - component: {fileID: 478510415}
+  m_Layer: 6
+  m_Name: RadarScreen
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &478510413
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 478510412}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1.0125, y: 1, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1026590818}
+  m_Father: {fileID: 1026364684}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.30849567, y: 0.5}
+  m_AnchorMax: {x: 0.30849567, y: 0.5}
+  m_AnchoredPosition: {x: 51.55301, y: -4}
+  m_SizeDelta: {x: 1018.9, y: 1024}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &478510415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 478510412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31a19414c41e5ae4aae2af33fee712f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Mask
+  m_ShowMaskGraphic: 1
+--- !u!114 &478510416
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 478510412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.019607844, g: 0.08627451, b: 0.019607844, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &478510417
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 478510412}
+  m_CullTransparentMesh: 1
 --- !u!1 &487123996
 GameObject:
   m_ObjectHideFlags: 0
@@ -736,6 +826,7 @@ GameObject:
   - component: {fileID: 638073211}
   - component: {fileID: 638073213}
   - component: {fileID: 638073212}
+  - component: {fileID: 638073214}
   m_Layer: 5
   m_Name: SelectedPlaneInfo
   m_TagString: Untagged
@@ -759,9 +850,9 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -341, y: -387}
+  m_AnchoredPosition: {x: -350, y: -266}
   m_SizeDelta: {x: 200, y: 50}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &638073212
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -809,15 +900,15 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 25
-  m_fontSizeBase: 25
+  m_fontSize: 18
+  m_fontSizeBase: 18
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
   m_HorizontalAlignment: 1
-  m_VerticalAlignment: 512
+  m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
@@ -862,6 +953,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 638073210}
   m_CullTransparentMesh: 1
+--- !u!114 &638073214
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 638073210}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec7064f9a2dc560439fc29d6f8aced07, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TerminalTypewriter
+  typingSpeed: 0.03
+  deletingSpeed: 0.01
 --- !u!1 &669084423
 GameObject:
   m_ObjectHideFlags: 0
@@ -896,7 +1001,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RadarZoomManager
   radarContent: {fileID: 898857637}
   zoomSpeed: 0.1
-  minZoom: 0.25
+  minZoom: 0.37
   maxZoom: 3
   panSpeed: 1
   maxPanRadius: 4000
@@ -926,7 +1031,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.019607844, g: 0.08627451, b: 0.019607844, a: 1}
+  m_Color: {r: 0.019607844, g: 0.08627451, b: 0.019607844, a: 0}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -960,17 +1065,68 @@ RectTransform:
   m_GameObject: {fileID: 669084423}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 6.875, y: 3.2875, z: 0.009261057}
+  m_LocalScale: {x: 1, y: 1, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1017060147}
-  m_Father: {fileID: 1026364684}
+  m_Father: {fileID: 724232715}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.30849567, y: 0.5}
   m_AnchorMax: {x: 0.30849567, y: 0.5}
-  m_AnchoredPosition: {x: 53, y: 0}
-  m_SizeDelta: {x: 150, y: 314.90002}
+  m_AnchoredPosition: {x: 51.54, y: 0.000015259}
+  m_SizeDelta: {x: 1287.71, y: 1080}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &697130809
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 697130811}
+  - component: {fileID: 697130810}
+  m_Layer: 0
+  m_Name: AirplaneSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &697130810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 697130809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b950b731de17801448fec019a526401b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirplaneSpawner
+  airplanePrefab: {fileID: 1222088960321891165, guid: 48c3cb7490d8ef146b5a1b533ef0049b, type: 3}
+  radarContent: {fileID: 898857637}
+  maxAirplanes: 5
+  minSpawnTime: 3
+  maxSpawnTime: 8
+  spawnRadius: 900
+  landingProbability: 0.5
+--- !u!4 &697130811
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 697130809}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -7.2066, y: -3.19267, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &724232711
 GameObject:
   m_ObjectHideFlags: 0
@@ -1066,6 +1222,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1121889815}
+  - {fileID: 669084428}
   - {fileID: 1406159261}
   - {fileID: 529750218}
   m_Father: {fileID: 0}
@@ -1132,6 +1289,7 @@ GameObject:
   - component: {fileID: 1017060147}
   - component: {fileID: 1017060149}
   - component: {fileID: 1017060148}
+  - component: {fileID: 1017060150}
   m_Layer: 6
   m_Name: RawImage
   m_TagString: Untagged
@@ -1146,17 +1304,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1017060146}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.15742216, y: 0.3141289, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 669084428}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0.5657172, y: 0.49374166}
+  m_AnchorMax: {x: 0.5657172, y: 0.49374166}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1300, y: 1300}
+  m_SizeDelta: {x: 1500, y: 1500}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1017060148
 MonoBehaviour:
@@ -1172,7 +1330,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 0
+  m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -1193,6 +1351,23 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1017060146}
   m_CullTransparentMesh: 1
+--- !u!114 &1017060150
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1017060146}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 537baa6abf49be341b8fb1c70248e8f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RadarScreenClicker
+  radarCamera: {fileID: 194027736}
+  backButton: {fileID: 1406159263}
+  airplaneLayer:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!1 &1026364680
 GameObject:
   m_ObjectHideFlags: 0
@@ -1288,10 +1463,10 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1137217823}
+  - {fileID: 478510413}
   - {fileID: 1642294548}
   - {fileID: 1188158518}
   - {fileID: 638073211}
-  - {fileID: 669084428}
   - {fileID: 1259543949}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1300,6 +1475,78 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!1 &1026590817
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1026590818}
+  - component: {fileID: 1026590821}
+  - component: {fileID: 1026590820}
+  m_Layer: 6
+  m_Name: RawImage
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1026590818
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1026590817}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 478510413}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5657172, y: 0.49374166}
+  m_AnchorMax: {x: 0.5657172, y: 0.49374166}
+  m_AnchoredPosition: {x: -3.2000008, y: 4.4}
+  m_SizeDelta: {x: 1200, y: 1200}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1026590820
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1026590817}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Texture: {fileID: 8400000, guid: 303723bbbee52bf4d888c1966a4b782d, type: 2}
+  m_UVRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+--- !u!222 &1026590821
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1026590817}
+  m_CullTransparentMesh: 1
 --- !u!1 &1121889814
 GameObject:
   m_ObjectHideFlags: 0
@@ -1311,6 +1558,7 @@ GameObject:
   - component: {fileID: 1121889815}
   - component: {fileID: 1121889817}
   - component: {fileID: 1121889816}
+  - component: {fileID: 1121889818}
   m_Layer: 5
   m_Name: RawImage
   m_TagString: Untagged
@@ -1351,7 +1599,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -1372,6 +1620,23 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1121889814}
   m_CullTransparentMesh: 1
+--- !u!114 &1121889818
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1121889814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 537baa6abf49be341b8fb1c70248e8f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RadarScreenClicker
+  radarCamera: {fileID: 383822164}
+  backButton: {fileID: 1406159263}
+  airplaneLayer:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!1 &1137217822
 GameObject:
   m_ObjectHideFlags: 0
@@ -1458,6 +1723,7 @@ GameObject:
   - component: {fileID: 1188158518}
   - component: {fileID: 1188158520}
   - component: {fileID: 1188158519}
+  - component: {fileID: 1188158521}
   m_Layer: 5
   m_Name: TopInfotext
   m_TagString: Untagged
@@ -1531,8 +1797,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24
-  m_fontSizeBase: 24
+  m_fontSize: 22
+  m_fontSizeBase: 22
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1584,6 +1850,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1188158517}
   m_CullTransparentMesh: 1
+--- !u!114 &1188158521
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1188158517}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec7064f9a2dc560439fc29d6f8aced07, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TerminalTypewriter
+  typingSpeed: 0.03
+  deletingSpeed: 0.01
 --- !u!1 &1259543948
 GameObject:
   m_ObjectHideFlags: 0
@@ -1695,7 +1975,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -424, y: 155}
+  m_AnchoredPosition: {x: -424, y: 208}
   m_SizeDelta: {x: 571.5, y: 192.32}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1406159263
@@ -1801,33 +2081,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1429812685}
-  - component: {fileID: 1429812684}
+  - component: {fileID: 1429812686}
   m_Layer: 0
-  m_Name: FlightManager
+  m_Name: FlightDataManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1429812684
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1429812683}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b950b731de17801448fec019a526401b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AirplaneSpawner
-  airplanePrefab: {fileID: 1222088960321891165, guid: 48c3cb7490d8ef146b5a1b533ef0049b, type: 3}
-  radarContent: {fileID: 898857637}
-  maxAirplanes: 5
-  minSpawnTime: 3
-  maxSpawnTime: 8
-  spawnRadius: 900
-  landingProbability: 0.5
 --- !u!4 &1429812685
 Transform:
   m_ObjectHideFlags: 0
@@ -1843,6 +2104,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1429812686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1429812683}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82c24e8dad7fb9e43b2b0ef99b91a23a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlightDataManager
+  savedFlights: []
 --- !u!1 &1455758485
 GameObject:
   m_ObjectHideFlags: 0
@@ -1903,8 +2177,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29f8dd8688996f54eac825921d6f55be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BigRadarTerminal
-  topInfoText: {fileID: 1188158519}
-  selectedPlaneText: {fileID: 638073212}
+  topInfoText: {fileID: 1188158521}
+  selectedPlaneText: {fileID: 638073214}
 --- !u!1 &1641551478
 GameObject:
   m_ObjectHideFlags: 0
@@ -2487,10 +2761,11 @@ SceneRoots:
   - {fileID: 1931121065}
   - {fileID: 194027737}
   - {fileID: 383822166}
+  - {fileID: 1026364684}
   - {fileID: 724232715}
   - {fileID: 1641551482}
-  - {fileID: 1026364684}
   - {fileID: 2069056051}
   - {fileID: 1429812685}
   - {fileID: 1455758487}
+  - {fileID: 697130811}
   - {fileID: 487123999}
