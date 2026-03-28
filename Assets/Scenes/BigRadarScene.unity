@@ -1107,11 +1107,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AirplaneSpawner
   airplanePrefab: {fileID: 1222088960321891165, guid: 48c3cb7490d8ef146b5a1b533ef0049b, type: 3}
   radarContent: {fileID: 898857637}
-  maxAirplanes: 5
+  maxAirplanes: 3
+  disableRandomSpawns: 1
   minSpawnTime: 3
   maxSpawnTime: 8
   spawnRadius: 900
   landingProbability: 0.5
+  minSpawnGap: 150
+  spawnAttempts: 10
 --- !u!4 &697130811
 Transform:
   m_ObjectHideFlags: 0
@@ -2165,6 +2168,7 @@ MonoBehaviour:
   airplanePrefab: {fileID: 1222088960321891165, guid: 48c3cb7490d8ef146b5a1b533ef0049b, type: 3}
   radarContent: {fileID: 898857637}
   mainSceneName: SampleScene
+  warningDistance: 200
 --- !u!114 &1455758489
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2179,6 +2183,51 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BigRadarTerminal
   topInfoText: {fileID: 1188158521}
   selectedPlaneText: {fileID: 638073214}
+--- !u!1 &1510750600
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1510750602}
+  - component: {fileID: 1510750601}
+  m_Layer: 0
+  m_Name: TutorialManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1510750601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1510750600}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dd0a6e164923ff4190d665d9d55e79c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialManager
+  airplanePrefab: {fileID: 1222088960321891165, guid: 48c3cb7490d8ef146b5a1b533ef0049b, type: 3}
+--- !u!4 &1510750602
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1510750600}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.05681, y: -1.61529, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1641551478
 GameObject:
   m_ObjectHideFlags: 0
@@ -2769,3 +2818,4 @@ SceneRoots:
   - {fileID: 1455758487}
   - {fileID: 697130811}
   - {fileID: 487123999}
+  - {fileID: 1510750602}

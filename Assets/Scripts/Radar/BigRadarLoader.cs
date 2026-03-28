@@ -8,6 +8,9 @@ public class BigRadarLoader : MonoBehaviour
     public Transform radarContent;
     public string mainSceneName = "SampleScene";
 
+    [Header("Conflict Alert Settings")]
+    public float warningDistance = 250f;
+
     private List<UIAirplane> activePlanes = new List<UIAirplane>();
 
     void Start()
@@ -17,12 +20,51 @@ public class BigRadarLoader : MonoBehaviour
 
     void Update()
     {
+        // 1. Собираем список всех самолетов
         UIAirplane[] allPlanesOnScene = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
         activePlanes.Clear();
         activePlanes.AddRange(allPlanesOnScene);
+
+        // 2. Обновляем счетчик на терминале
         if (BigRadarTerminal.Instance != null)
         {
             BigRadarTerminal.Instance.SetPlaneCount(activePlanes.Count);
+        }
+
+        // 3. Проверка на опасное сближение (Conflict Alert)
+        CheckForConflicts();
+    }
+
+    private void CheckForConflicts()
+    {
+        // Сбрасываем статус опасности перед новой проверкой
+        foreach (var plane in activePlanes)
+        {
+            if (plane != null) plane.SetWarning(false);
+        }
+
+        // Проверяем каждую пару
+        for (int i = 0; i < activePlanes.Count; i++)
+        {
+            for (int j = i + 1; j < activePlanes.Count; j++)
+            {
+                UIAirplane planeA = activePlanes[i];
+                UIAirplane planeB = activePlanes[j];
+
+                if (planeA == null || planeB == null) continue;
+
+                // Считаем дистанцию между иконками на экране
+                float distance = Vector2.Distance(
+                    planeA.GetComponent<RectTransform>().anchoredPosition,
+                    planeB.GetComponent<RectTransform>().anchoredPosition
+                );
+
+                if (distance < warningDistance)
+                {
+                    planeA.SetWarning(true);
+                    planeB.SetWarning(true);
+                }
+            }
         }
     }
 
@@ -44,20 +86,12 @@ public class BigRadarLoader : MonoBehaviour
 
     public void SaveAndReturnToDesk()
     {
+        // Обновляем список перед сохранением
         UIAirplane[] allPlanesOnScene = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
-        activePlanes.Clear();
-        activePlanes.AddRange(allPlanesOnScene);
-
-        Debug.Log($"[BigRadarLoader] Пытаемся сохранить {activePlanes.Count} самолетов перед выходом...");
 
         if (FlightDataManager.Instance != null)
         {
-            FlightDataManager.Instance.UpdateFlights(activePlanes);
-            Debug.Log($"[BigRadarLoader] В глобальной базе теперь: {FlightDataManager.Instance.savedFlights.Count} записей.");
-        }
-        else
-        {
-            Debug.LogError("[BigRadarLoader] ОШИБКА: FlightDataManager не найден на сцене!");
+            FlightDataManager.Instance.UpdateFlights(new List<UIAirplane>(allPlanesOnScene));
         }
 
         SceneManager.LoadScene(mainSceneName);

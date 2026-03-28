@@ -40,23 +40,20 @@ public class RadarScreenClicker : MonoBehaviour, IPointerClickHandler
             Vector3 worldClickPos = radarCamera.ViewportToWorldPoint(new Vector3(u, v, distanceToPlane));
             worldClickPos.z = 0f;
 
-            // 3. ПОИСК САМОЛЕТА
             Collider2D hit = Physics2D.OverlapPoint(worldClickPos, airplaneLayer);
 
             if (hit != null)
             {
-                UIAirplane plane = hit.GetComponent<UIAirplane>();
+                UIAirplane plane = hit.GetComponentInParent<UIAirplane>();
+
                 if (plane != null)
                 {
-                    // --- НОВАЯ ЛОГИКА ПЕРЕКЛЮЧЕНИЯ (TOGGLE) ---
                     if (selectedPlane == plane)
                     {
-                        // Если кликнули по УЖЕ выделенному самолету — снимаем выделение
                         DeselectAll();
                     }
                     else
                     {
-                        // Если это новый самолет — выделяем его
                         selectedPlane = plane;
                         plane.TriggerSelection();
                     }
@@ -64,7 +61,6 @@ public class RadarScreenClicker : MonoBehaviour, IPointerClickHandler
             }
             else
             {
-                // 4. КЛИК В ПУСТОТУ (Создание точки маршрута)
                 if (selectedPlane != null)
                 {
                     Transform radarContent = selectedPlane.transform.parent;

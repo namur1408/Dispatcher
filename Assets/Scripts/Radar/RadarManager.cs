@@ -63,7 +63,7 @@ public class RadarManager : MonoBehaviour
             if (flight.approved) target.Approve();
             else                 target.Deny();
         }
-    }
+    } 
 
     public void RegisterAirplane(UIAirplane airplane)
     {

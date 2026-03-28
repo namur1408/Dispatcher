@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class UIAirplane : MonoBehaviour
 {
@@ -13,10 +14,19 @@ public class UIAirplane : MonoBehaviour
     public float showTextZoomThreshold = 1.2f;
     public float routeLineWidth = 2f;
 
+    [Header("Holding Pattern Settings")]
+    public float holdingRadius = 80f;      // Радиус круга ожидания
+    public float maxHoldingTime = 45f;     // Сколько секунд ждать ответа (потом улетает)
+
     [Header("References")]
     public TextMeshProUGUI callsignText;
     public GameObject routeSegmentPrefab;
     public GameObject waypointMarkerPrefab;
+
+    [Header("Collision Hitbox")]
+    public Image hitboxVisual;
+    private bool isColliding = false;
+    private bool isInDanger = false;
 
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
@@ -31,9 +41,13 @@ public class UIAirplane : MonoBehaviour
     private Vector2 logicalPosition;
     private bool wasInitialized = false;
     private bool isSelected = false;
-
-    // --- НОВАЯ ПЕРЕМЕННАЯ ДЛЯ ПЕРВОГО ОБНАРУЖЕНИЯ ---
     private bool hasBeenPinged = false;
+
+    // --- Переменные для состояния ожидания ---
+    private bool isHolding = false;
+    private float holdingTimer = 0f;
+    private float currentHoldingAngle = 0f;
+    private Vector2 holdingCenter;
 
     public enum DispatchStatus { Pending, Approved, Denied }
     public DispatchStatus dispatchStatus = DispatchStatus.Pending;
@@ -43,7 +57,6 @@ public class UIAirplane : MonoBehaviour
         rectTransform = GetComponent<RectTransform>();
         canvasGroup = GetComponent<CanvasGroup>();
 
-        // Прячем самолет сразу при появлении на сцене
         if (canvasGroup != null) canvasGroup.alpha = 0f;
 
         GameObject foundScanner = GameObject.Find("SweepLine");
@@ -70,8 +83,25 @@ public class UIAirplane : MonoBehaviour
         logicalPosition = data.position;
         rectTransform.anchoredPosition = data.position;
         speed = data.speed;
-        dispatchStatus = DispatchStatus.Pending;
         SetFlightPath(data.position, data.target);
+
+        if (data.decisionMade)
+        {
+            dispatchStatus = data.approved ? DispatchStatus.Approved : DispatchStatus.Denied;
+
+            if (!data.approved)
+            {
+                waypoints.Clear();
+                waypoints.Add(logicalPosition.normalized * (despawnRadius + 300f));
+                RebuildRouteLayer();
+            }
+        }
+        else
+        {
+            dispatchStatus = DispatchStatus.Pending;
+        }
+
+        UpdateHitboxColor();
     }
 
     public Vector2 GetLogicalPosition() => logicalPosition;
@@ -80,6 +110,7 @@ public class UIAirplane : MonoBehaviour
     {
         rectTransform.anchoredPosition = start;
         logicalPosition = start;
+        isHolding = false; // Отключаем кружение, если дали новый путь
         waypoints.Clear();
         waypoints.Add(target);
         UpdateVisualRotation();
@@ -95,11 +126,15 @@ public class UIAirplane : MonoBehaviour
 
     public void RemoveWaypoint(int index)
     {
-        if (index >= 0 && index < waypoints.Count)
+        if (index >= 0 && index < waypoints.Count - 1)
         {
             waypoints.RemoveAt(index);
             RebuildRouteLayer();
             UpdateVisualRotation();
+        }
+        else
+        {
+            Debug.Log("[UIAirplane] Попытка удалить финальную точку маршрута заблокирована.");
         }
     }
 
@@ -114,37 +149,100 @@ public class UIAirplane : MonoBehaviour
 
     void Update()
     {
-        if (waypoints.Count == 0) return;
+        // ЛОГИКА ОЖИДАНИЯ (КРУЖЕНИЯ)
+        if (isHolding)
+        {
+            holdingTimer -= Time.deltaTime;
 
-        Vector2 currentTarget = waypoints[0];
-        logicalPosition = Vector2.MoveTowards(logicalPosition, currentTarget, _actualSpeed * Time.deltaTime);
+            if (holdingTimer <= 0)
+            {
+                Debug.Log($"[UIAirplane] {callsignText.text}: Время ожидания вышло. Самолет уходит.");
+                Deny(); // Автоматический отказ
+            }
+            else
+            {
+                float angularSpeed = (_actualSpeed / holdingRadius) * Mathf.Rad2Deg;
+                currentHoldingAngle += angularSpeed * Time.deltaTime;
 
+                Vector2 circleTarget = holdingCenter + new Vector2(Mathf.Cos(currentHoldingAngle * Mathf.Deg2Rad), Mathf.Sin(currentHoldingAngle * Mathf.Deg2Rad)) * holdingRadius;
+
+                // Просто двигаем логическую позицию. Визуал обновляется ТОЛЬКО при пинге радара!
+                logicalPosition = Vector2.MoveTowards(logicalPosition, circleTarget, _actualSpeed * Time.deltaTime);
+            }
+        }
+        // НОРМАЛЬНЫЙ ПОЛЕТ ПО МАРШРУТУ
+        else if (waypoints.Count > 0)
+        {
+            Vector2 currentTarget = waypoints[0];
+
+            // --- НОВАЯ ЛОГИКА: Плавный вход в зону ожидания ---
+            // Если это последняя точка и статус Pending, проверяем, подошли ли мы на дистанцию кружения
+            if (waypoints.Count == 1 && dispatchStatus == DispatchStatus.Pending)
+            {
+                if (Vector2.Distance(logicalPosition, currentTarget) <= holdingRadius)
+                {
+                    StartHolding(currentTarget);
+                    return; // Пропускаем движение в этом кадре
+                }
+            }
+
+            logicalPosition = Vector2.MoveTowards(logicalPosition, currentTarget, _actualSpeed * Time.deltaTime);
+
+            if (Vector2.Distance(logicalPosition, currentTarget) < 5f)
+            {
+                if (waypoints.Count > 1)
+                {
+                    waypoints.RemoveAt(0);
+                    RebuildRouteLayer();
+                }
+                else
+                {
+                    if (dispatchStatus == DispatchStatus.Approved && Vector2.Distance(logicalPosition, Vector2.zero) < 10f)
+                    {
+                        Debug.Log($"{callsignText.text} успешно сел.");
+                        Destroy(gameObject);
+                    }
+                    else if (dispatchStatus == DispatchStatus.Denied || dispatchStatus == DispatchStatus.Approved)
+                    {
+                        Debug.Log($"{callsignText.text} покинул зону.");
+                        Destroy(gameObject);
+                    }
+                }
+            }
+        }
+
+        // Общие обновления (радар, зум, линии)
         HandlePing();
         FadeOut();
 
         if (transform.parent != null)
         {
             float zoom = transform.parent.localScale.x;
-            transform.localScale = new Vector3(1f / zoom, 1f / zoom, 1f);
             CheckZoomVisibility(zoom);
         }
 
-        if (lineSegments.Count > 0) UpdateFirstSegment();
-
-        if (Vector2.Distance(logicalPosition, currentTarget) < 1f)
-        {
-            if (waypoints.Count > 1)
-            {
-                waypoints.RemoveAt(0);
-                RebuildRouteLayer();
-                UpdateVisualRotation();
-            }
-        }
+        if (lineSegments.Count > 0 && !isHolding) UpdateFirstSegment();
 
         if (Vector2.Distance(Vector2.zero, logicalPosition) > despawnRadius)
             Destroy(gameObject);
 
         SyncRouteAlpha();
+    }
+
+    private void StartHolding(Vector2 center)
+    {
+        isHolding = true;
+        holdingCenter = center;
+        holdingTimer = maxHoldingTime;
+
+        // Определяем точный угол, под которым самолет подошел к кругу, чтобы не было дерганий
+        Vector2 dirFromCenter = (logicalPosition - center).normalized;
+        currentHoldingAngle = Mathf.Atan2(dirFromCenter.y, dirFromCenter.x) * Mathf.Rad2Deg;
+
+        waypoints.Clear();
+        RebuildRouteLayer();
+
+        Debug.Log($"[UIAirplane] {callsignText.text} плавно вошел в зону ожидания на подлете.");
     }
 
     void HandlePing()
@@ -157,9 +255,10 @@ public class UIAirplane : MonoBehaviour
         if (Mathf.Abs(Mathf.DeltaAngle(sweepAngle, planeAngle)) < 3f)
         {
             rectTransform.anchoredPosition = logicalPosition;
+
+            // ВАЖНО: Поворачиваем самолет ТОЛЬКО когда его увидел радар
             UpdateVisualRotation();
 
-            // Засветились на радаре!
             canvasGroup.alpha = 1f;
             hasBeenPinged = true;
         }
@@ -167,14 +266,28 @@ public class UIAirplane : MonoBehaviour
 
     void UpdateVisualRotation()
     {
-        if (waypoints.Count == 0) return;
-        Vector2 direction = (waypoints[0] - logicalPosition).normalized;
+        Vector2 direction = Vector2.zero;
+
+        if (isHolding)
+        {
+            // Находим точку чуть-чуть впереди на круге, чтобы повернуть нос туда
+            float nextAngle = currentHoldingAngle + 10f;
+            Vector2 nextCircleTarget = holdingCenter + new Vector2(Mathf.Cos(nextAngle * Mathf.Deg2Rad), Mathf.Sin(nextAngle * Mathf.Deg2Rad)) * holdingRadius;
+            direction = (nextCircleTarget - logicalPosition).normalized;
+        }
+        else if (waypoints.Count > 0)
+        {
+            direction = (waypoints[0] - logicalPosition).normalized;
+        }
+
+        // Применяем вращение
         if (direction != Vector2.zero)
         {
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             rectTransform.rotation = Quaternion.Euler(0, 0, angle - 90f);
         }
 
+        // Оставляем текст ровным
         if (callsignText != null)
         {
             callsignText.transform.rotation = Quaternion.identity;
@@ -185,7 +298,6 @@ public class UIAirplane : MonoBehaviour
 
     void FadeOut()
     {
-        // Если сканер нас еще ни разу не увидел - остаемся полностью невидимыми
         if (!hasBeenPinged)
         {
             canvasGroup.alpha = 0f;
@@ -223,8 +335,6 @@ public class UIAirplane : MonoBehaviour
         }
 
         CreateSegment(logicalPosition, waypoints[0]);
-
-        // Синхронизируем прозрачность сразу при перестроении, чтобы линии не мелькали
         SyncRouteAlpha();
     }
 
@@ -238,12 +348,8 @@ public class UIAirplane : MonoBehaviour
         RectTransform rt = marker.GetComponent<RectTransform>();
         rt.anchoredPosition = pos;
 
-        Color c = isSelected ? Color.yellow : Color.white;
-        if (dispatchStatus == DispatchStatus.Approved) c = Color.green;
-        if (dispatchStatus == DispatchStatus.Denied) c = Color.red;
-        marker.GetComponent<UnityEngine.UI.Image>().color = c;
-
         activeMarkers.Add(marker);
+        UpdateHitboxColor();
     }
 
     private void CreateSegment(Vector2 start, Vector2 end)
@@ -252,23 +358,20 @@ public class UIAirplane : MonoBehaviour
         newSeg.transform.SetSiblingIndex(transform.GetSiblingIndex());
         lineSegments.Add(newSeg);
         UpdateSegmentLook(newSeg.GetComponent<RectTransform>(), start, end);
-
-        Color c = isSelected ? Color.yellow : Color.white;
-        if (dispatchStatus == DispatchStatus.Approved) c = Color.green;
-        if (dispatchStatus == DispatchStatus.Denied) c = Color.red;
-        newSeg.GetComponent<UnityEngine.UI.Image>().color = c;
+        UpdateHitboxColor();
     }
 
     private void UpdateFirstSegment()
     {
         UpdateSegmentLook(lineSegments[lineSegments.Count - 1].GetComponent<RectTransform>(),
-                          rectTransform.anchoredPosition, 
+                          rectTransform.anchoredPosition,
                           waypoints[0]);
     }
 
     private void UpdateSegmentLook(RectTransform segRect, Vector2 start, Vector2 end)
     {
         float dist = Vector2.Distance(start, end);
+
         segRect.sizeDelta = new Vector2(routeLineWidth, dist);
         segRect.anchoredPosition = start;
         Vector2 dir = (end - start).normalized;
@@ -279,28 +382,35 @@ public class UIAirplane : MonoBehaviour
     {
         if (dispatchStatus != DispatchStatus.Pending) return;
         dispatchStatus = DispatchStatus.Approved;
-        callsignText.color = Color.green;
-        foreach (GameObject seg in lineSegments) seg.GetComponent<UnityEngine.UI.Image>().color = Color.green;
-        foreach (GameObject marker in activeMarkers) marker.GetComponent<UnityEngine.UI.Image>().color = Color.green;
+
+        if (isHolding)
+        {
+            isHolding = false;
+            waypoints.Clear();
+            waypoints.Add(Vector2.zero);
+            RebuildRouteLayer();
+        }
+
+        UpdateHitboxColor();
     }
 
     public void Deny()
     {
         if (dispatchStatus != DispatchStatus.Pending) return;
         dispatchStatus = DispatchStatus.Denied;
+
+        isHolding = false;
+
         waypoints.Clear();
         waypoints.Add(logicalPosition.normalized * (despawnRadius + 300f));
-        callsignText.color = Color.red;
         RebuildRouteLayer();
+        UpdateHitboxColor();
     }
 
     public void SetHighlight(bool h)
     {
         isSelected = h;
-        Color c = h ? Color.yellow : (dispatchStatus == DispatchStatus.Approved ? Color.green : (dispatchStatus == DispatchStatus.Denied ? Color.red : Color.white));
-        callsignText.color = c;
-        foreach (GameObject seg in lineSegments) seg.GetComponent<UnityEngine.UI.Image>().color = c;
-        foreach (GameObject marker in activeMarkers) marker.GetComponent<UnityEngine.UI.Image>().color = c;
+        UpdateHitboxColor();
     }
 
     public void TriggerSelection()
@@ -313,12 +423,12 @@ public class UIAirplane : MonoBehaviour
     private void SyncRouteAlpha()
     {
         if (canvasGroup == null) return;
-
         float currentAlpha = canvasGroup.alpha;
 
         foreach (GameObject seg in lineSegments)
         {
-            UnityEngine.UI.Image img = seg.GetComponent<UnityEngine.UI.Image>();
+            if (seg == null) continue;
+            Image img = seg.GetComponent<Image>();
             Color c = img.color;
             c.a = currentAlpha;
             img.color = c;
@@ -326,10 +436,97 @@ public class UIAirplane : MonoBehaviour
 
         foreach (GameObject marker in activeMarkers)
         {
-            UnityEngine.UI.Image img = marker.GetComponent<UnityEngine.UI.Image>();
+            if (marker == null) continue;
+            Image img = marker.GetComponent<Image>();
             Color c = img.color;
             c.a = currentAlpha;
             img.color = c;
+        }
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        UIAirplane otherPlane = other.GetComponentInParent<UIAirplane>();
+        if (otherPlane != null && otherPlane != this)
+        {
+            if (!isColliding)
+            {
+                isColliding = true;
+                TriggerCollision();
+            }
+        }
+    }
+
+    private void TriggerCollision()
+    {
+        Debug.Log($"<color=red>АВАРИЯ: {callsignText.text} столкнулся!</color>");
+        UpdateHitboxColor();
+        Invoke("DestroyPlane", 0.05f);
+    }
+
+    private void DestroyPlane()
+    {
+        if (RadarScreenClicker.selectedPlane == this)
+        {
+            if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.ClearSelection();
+        }
+        Destroy(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (RadarManager.Instance != null)
+            RadarManager.Instance.UnregisterAirplane(this);
+
+        foreach (GameObject seg in lineSegments) if (seg != null) Destroy(seg);
+        foreach (GameObject marker in activeMarkers) if (marker != null) Destroy(marker);
+    }
+
+    public void SetWarning(bool warn)
+    {
+        if (isColliding) return;
+        isInDanger = warn;
+        UpdateHitboxColor();
+    }
+
+    private void UpdateHitboxColor()
+    {
+        if (hitboxVisual == null) return;
+
+        Color finalColor = Color.white;
+
+        if (isColliding) 
+        {
+            finalColor = Color.red;
+        }
+        else if (isSelected) 
+        {
+            finalColor = Color.yellow;
+        }
+        else if (isInDanger) 
+        {
+            finalColor = new Color(1f, 0.5f, 0f);
+        }
+        else 
+        {
+            if (dispatchStatus == DispatchStatus.Approved) finalColor = Color.green;
+            else if (dispatchStatus == DispatchStatus.Denied) finalColor = Color.red;
+            else finalColor = Color.white;
+        }
+
+        hitboxVisual.color = finalColor;
+        callsignText.color = finalColor;
+
+        if (lineSegments != null)
+        {
+            foreach (GameObject seg in lineSegments)
+                if (seg != null) seg.GetComponent<Image>().color = finalColor;
+        }
+
+        if (activeMarkers != null)
+        {
+            foreach (GameObject marker in activeMarkers)
+                if (marker != null) marker.GetComponent<Image>().color = finalColor;
         }
     }
 }
