@@ -22,6 +22,8 @@ public class UIAirplane : MonoBehaviour
     private Vector2 logicalPosition;
     private bool wasInitialized = false;
 
+    public string cargo; // <-- Груз самолета
+
     public enum DispatchStatus { Pending, Approved, Denied }
     public DispatchStatus dispatchStatus = DispatchStatus.Pending;
 
@@ -41,6 +43,10 @@ public class UIAirplane : MonoBehaviour
             string randomID = "" + letters[Random.Range(0, letters.Length)]
                                  + letters[Random.Range(0, letters.Length)];
             callsignText.text = randomID + "-" + Random.Range(100, 999);
+
+            // --- Случайный груз ---
+            string[] cargoTypes = { "Medicines", "People", "Food", "Scrap" };
+            cargo = cargoTypes[Random.Range(0, cargoTypes.Length)];
         }
 
         UpdateInternalSpeed();
@@ -57,6 +63,7 @@ public class UIAirplane : MonoBehaviour
         rectTransform.anchoredPosition = data.position;
         targetPosition = data.target;
         speed = data.speed;
+        cargo = data.cargo; // <-- Восстанавливаем груз при обновлении
         dispatchStatus = DispatchStatus.Pending;
 
         if (data.decisionMade)
@@ -67,7 +74,7 @@ public class UIAirplane : MonoBehaviour
             }
             else
             {
-                Deny();   
+                Deny();
             }
         }
         else

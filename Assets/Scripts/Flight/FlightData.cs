@@ -8,17 +8,19 @@ public class FlightData
     public Vector2 target;
     public float speed;
     public string status;
-    public bool decisionMade;   // было ли принято решение
-    public bool approved;       // true = разрешено, false = запрещено
+    public string cargo;
+    public bool decisionMade;
+    public bool approved;
 
-    public FlightData(string callsign, Vector2 position, Vector2 target, float speed)
+    public FlightData(string callsign, Vector2 position, Vector2 target, float speed, string cargo)
     {
-        this.callsign     = callsign;
-        this.position     = position;
-        this.target       = target;
-        this.speed        = speed;
-        this.status       = (target == Vector2.zero) ? "APPROACHING" : "TRANSIT";
+        this.callsign = callsign;
+        this.position = position;
+        this.target = target;
+        this.speed = speed;
+        this.cargo = cargo;
+        this.status = (target == Vector2.zero) ? "APPROACHING" : "TRANSIT";
         this.decisionMade = false;
-        this.approved     = false;
+        this.approved = false;
     }
 }
