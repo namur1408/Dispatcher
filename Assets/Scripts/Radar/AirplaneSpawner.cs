@@ -109,7 +109,7 @@ public class AirplaneSpawner : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("[AirplaneSpawner] Не удалось найти безопасное место для спавна!");
+            Debug.LogWarning("[AirplaneSpawner] пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ!");
         }
     }
 

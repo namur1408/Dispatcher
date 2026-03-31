@@ -2519,6 +2519,7 @@ MonoBehaviour:
   landingProbability: 0.5
   minSpawnGap: 150
   spawnAttempts: 10
+  currentShiftRules: {fileID: 11400000, guid: 30e8ddd8d16a54849a100f3bdb0e859e, type: 2}
 --- !u!4 &1321087832
 Transform:
   m_ObjectHideFlags: 0
