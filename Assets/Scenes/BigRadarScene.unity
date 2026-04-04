@@ -1111,7 +1111,7 @@ MonoBehaviour:
   disableRandomSpawns: 1
   minSpawnTime: 3
   maxSpawnTime: 8
-  spawnRadius: 900
+  spawnRadius: 1300
   landingProbability: 0.5
   minSpawnGap: 150
   spawnAttempts: 10
@@ -2213,6 +2213,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TutorialManager
   airplanePrefab: {fileID: 1222088960321891165, guid: 48c3cb7490d8ef146b5a1b533ef0049b, type: 3}
+  tutorialCallsigns:
+  - GE-672
+  - QY-467
+  - KO-677
 --- !u!4 &1510750602
 Transform:
   m_ObjectHideFlags: 0
