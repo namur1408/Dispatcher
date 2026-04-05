@@ -305,6 +305,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BookTutorialManager
   subtitlePanel: {fileID: 1362993489}
   subtitleText: {fileID: 177508618}
+  returnButton: {fileID: 731479686}
   initialDelay: 1
   typeSpeed: 0.04
   msgWaitTime: 4

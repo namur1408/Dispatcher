@@ -15,8 +15,8 @@ public class UIAirplane : MonoBehaviour
     public float routeLineWidth = 2f;
 
     [Header("Holding Pattern Settings")]
-    public float holdingRadius = 80f;      // Радиус круга ожидания
-    public float maxHoldingTime = 45f;     // Сколько секунд ждать ответа (потом улетает)
+    public float holdingRadius = 80f;     
+    public float maxHoldingTime = 45f;    
 
     [Header("References")]
     public TextMeshProUGUI callsignText;
@@ -43,7 +43,6 @@ public class UIAirplane : MonoBehaviour
     private bool isSelected = false;
     private bool hasBeenPinged = false;
 
-    // --- Переменные для состояния ожидания ---
     private bool isHolding = false;
     private float holdingTimer = 0f;
     private float currentHoldingAngle = 0f;
@@ -51,6 +50,8 @@ public class UIAirplane : MonoBehaviour
 
     public enum DispatchStatus { Pending, Approved, Denied }
     public DispatchStatus dispatchStatus = DispatchStatus.Pending;
+
+    public List<Vector2> GetWaypoints() => new List<Vector2>(waypoints);
 
     void Awake()
     {
@@ -75,6 +76,12 @@ public class UIAirplane : MonoBehaviour
         if (RadarManager.Instance != null) RadarManager.Instance.RegisterAirplane(this);
     }
 
+    public void SetCallsign(string newCallsign)
+    {
+        wasInitialized = true; 
+        callsignText.text = newCallsign;
+    }
+
     public void InitializeFromData(FlightData data)
     {
         wasInitialized = true;
@@ -82,7 +89,12 @@ public class UIAirplane : MonoBehaviour
         logicalPosition = data.position;
         rectTransform.anchoredPosition = data.position;
         speed = data.speed;
-        SetFlightPath(data.position, data.target);
+        rectTransform.anchoredPosition = data.position;
+        isHolding = false;
+        waypoints = new List<Vector2>(data.savedWaypoints);
+
+        UpdateVisualRotation();
+        RebuildRouteLayer();
 
         if (data.decisionMade)
         {
@@ -493,6 +505,10 @@ public class UIAirplane : MonoBehaviour
     private void TriggerCollision()
     {
         Debug.Log($"<color=red>АВАРИЯ: {callsignText.text} столкнулся!</color>");
+        if (RadarTutorialManager.Instance != null && !RadarTutorialManager.isRadarTutorialCompleted)
+        {
+            RadarTutorialManager.Instance.NotifyEmergencyCollision();
+        }
         UpdateHitboxColor();
         Invoke("DestroyPlane", 0.05f);
     }

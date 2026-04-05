@@ -66,7 +66,7 @@ public class TutorialManager : MonoBehaviour
         if (planeScript != null)
         {
             planeScript.SetFlightPath(startPos, targetPos);
-            planeScript.callsignText.text = customCallsign;
+            planeScript.SetCallsign(customCallsign);
             if (RadarManager.Instance != null)
             {
                 RadarManager.Instance.RegisterAirplane(planeScript);
