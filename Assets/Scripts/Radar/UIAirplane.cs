@@ -15,8 +15,8 @@ public class UIAirplane : MonoBehaviour
     public float routeLineWidth = 2f;
 
     [Header("Holding Pattern Settings")]
-    public float holdingRadius = 80f;     
-    public float maxHoldingTime = 45f;    
+    public float holdingRadius = 80f;
+    public float maxHoldingTime = 45f;
 
     [Header("References")]
     public TextMeshProUGUI callsignText;
@@ -48,6 +48,8 @@ public class UIAirplane : MonoBehaviour
     private float currentHoldingAngle = 0f;
     private Vector2 holdingCenter;
 
+    public string cargo; 
+
     public enum DispatchStatus { Pending, Approved, Denied }
     public DispatchStatus dispatchStatus = DispatchStatus.Pending;
 
@@ -71,6 +73,8 @@ public class UIAirplane : MonoBehaviour
             string[] availablePrefixes = { "QY", "GE", "KO", "LX", "TR" };
             string randomPrefix = availablePrefixes[Random.Range(0, availablePrefixes.Length)];
             callsignText.text = randomPrefix + "-" + Random.Range(100, 999);
+            string[] cargoTypes = { "Medicines", "People", "Food", "Scrap" };
+            cargo = cargoTypes[Random.Range(0, cargoTypes.Length)];
         }
         UpdateInternalSpeed();
         if (RadarManager.Instance != null) RadarManager.Instance.RegisterAirplane(this);
@@ -78,8 +82,13 @@ public class UIAirplane : MonoBehaviour
 
     public void SetCallsign(string newCallsign)
     {
-        wasInitialized = true; 
+        wasInitialized = true;
         callsignText.text = newCallsign;
+        if (string.IsNullOrEmpty(cargo))
+        {
+            string[] cargoTypes = { "Medicines", "People", "Food", "Scrap" };
+            cargo = cargoTypes[Random.Range(0, cargoTypes.Length)];
+        }
     }
 
     public void InitializeFromData(FlightData data)
@@ -89,7 +98,9 @@ public class UIAirplane : MonoBehaviour
         logicalPosition = data.position;
         rectTransform.anchoredPosition = data.position;
         speed = data.speed;
-        rectTransform.anchoredPosition = data.position;
+
+        cargo = data.cargo; 
+
         isHolding = false;
         waypoints = new List<Vector2>(data.savedWaypoints);
 
@@ -121,7 +132,7 @@ public class UIAirplane : MonoBehaviour
     {
         rectTransform.anchoredPosition = start;
         logicalPosition = start;
-        isHolding = false; 
+        isHolding = false;
         waypoints.Clear();
         waypoints.Add(target);
         UpdateVisualRotation();
@@ -147,7 +158,7 @@ public class UIAirplane : MonoBehaviour
         if (distToFirstSeg < minDistance)
         {
             minDistance = distToFirstSeg;
-            bestIndex = 0; 
+            bestIndex = 0;
         }
 
         for (int i = 0; i < waypoints.Count - 1; i++)
@@ -156,14 +167,14 @@ public class UIAirplane : MonoBehaviour
             if (dist < minDistance)
             {
                 minDistance = dist;
-                bestIndex = i + 1; 
+                bestIndex = i + 1;
             }
         }
 
         float distToLastPoint = Vector2.Distance(clickPos, waypoints[waypoints.Count - 1]);
         if (distToLastPoint < minDistance)
         {
-            bestIndex = waypoints.Count; 
+            bestIndex = waypoints.Count;
         }
 
         waypoints.Insert(bestIndex, clickPos);
@@ -216,7 +227,7 @@ public class UIAirplane : MonoBehaviour
             if (holdingTimer <= 0)
             {
                 Debug.Log($"[UIAirplane] {callsignText.text}: Время ожидания вышло. Самолет уходит.");
-                Deny(); 
+                Deny();
             }
             else
             {
@@ -237,7 +248,7 @@ public class UIAirplane : MonoBehaviour
                 if (Vector2.Distance(logicalPosition, currentTarget) <= holdingRadius)
                 {
                     StartHolding(currentTarget);
-                    return; 
+                    return;
                 }
             }
 
@@ -544,19 +555,19 @@ public class UIAirplane : MonoBehaviour
 
         Color finalColor = Color.white;
 
-        if (isColliding) 
+        if (isColliding)
         {
             finalColor = Color.red;
         }
-        else if (isSelected) 
+        else if (isSelected)
         {
             finalColor = Color.yellow;
         }
-        else if (isInDanger) 
+        else if (isInDanger)
         {
             finalColor = new Color(1f, 0.5f, 0f);
         }
-        else 
+        else
         {
             if (dispatchStatus == DispatchStatus.Approved) finalColor = Color.green;
             else if (dispatchStatus == DispatchStatus.Denied) finalColor = Color.red;
