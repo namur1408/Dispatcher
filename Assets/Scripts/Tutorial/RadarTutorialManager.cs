@@ -28,25 +28,23 @@ public class RadarTutorialManager : MonoBehaviour
     private bool isEmergencyMessageActive = false;
     public static bool isRadarTutorialCompleted = false;
 
-    private string msgIntro = "Welcome to the Radar screen. This is your main tool for managing the airspace.";
-    private string msgPlanesSpawned = "Attention! Two flights have just entered your sector. Do you see them?";
-    private string msgZoomTutorial = "It's hard to read their data from this height. Zoom in until you can see their callsigns.";
-
-    private string msgStep1 = "Good. Now click on a plane's icon to SELECT it. You will see its current flight path highlighted. If you want to DESELECT click on it again.";
-    private string msgStep2 = "To change the route, click anywhere on the radar. This creates a WAYPOINT that the plane will follow.";
-    private string msgStep3 = "Made a mistake? Just click on an existing waypoint marker to REMOVE it from the path.";
-
-    private string msgDanger = "Stop messing around! Look at the icons! They turned orange. A collision is imminent!";
-    private string msgEmergency = "Orange color means you have seconds to act! Divert one of them immediately!";
-    private string msgSuccess = "Good job. The distance is safe now. You prevented a disaster.";
+    private string msgIntro           = "Welcome to the Radar screen. This is your main tool for managing the airspace.";
+    private string msgPlanesSpawned   = "Attention! Two flights have just entered your sector. Do you see them?";
+    private string msgZoomTutorial    = "It's hard to read their data from this height. Zoom in until you can see their callsigns.";
+    private string msgStep1           = "Good. Now click on a plane's icon to SELECT it. You will see its current flight path highlighted. If you want to DESELECT click on it again.";
+    private string msgStep2           = "To change the route, click anywhere on the radar. This creates a WAYPOINT that the plane will follow.";
+    private string msgStep3           = "Made a mistake? Just click on an existing waypoint marker to REMOVE it from the path.";
+    private string msgDanger          = "Stop messing around! Look at the icons! They turned orange. A collision is imminent!";
+    private string msgEmergency       = "Orange color means you have seconds to act! Divert one of them immediately!";
+    private string msgSuccess         = "Good job. The distance is safe now. You prevented a disaster.";
     private string msgProactiveSuccess = "Excellent foresight, Dispatcher. You diverted them before the risk became critical. Nice job.";
+    private string msgFinalStep1      = "A new flight just appeared. Click on it to SELECT it, and look at the terminal on the right.";
+    private string msgFinalStep2      = "Its status is 'PENDING', and its callsign starts with 'KO'. Do you remember the daily rules in your book?";
+    private string msgFinalStep3      = "Flights with the 'KO' prefix are strictly forbidden today. You cannot let them land.";
+    private string msgFinalTask       = "Click the 'Return' button to go back to your desk and DENY its entry.";
 
-    private string msgFinalStep1 = "A new flight just appeared. Click on it to SELECT it, and look at the terminal on the right.";
-    private string msgFinalStep2 = "Its status is 'PENDING', and its callsign starts with 'KO'. Do you remember the daily rules in your book?";
-    private string msgFinalStep3 = "Flights with the 'KO' prefix are strictly forbidden today. You cannot let them land.";
-    private string msgFinalTask = "Click the 'Return' button to go back to your desk and DENY its entry.";
-
-    private string[] angryResponses = {
+    private string[] angryResponses =
+    {
         "<size=120%>WHAT HAVE YOU DONE?!</size>\nYou just let two planes collide! This is gross negligence!",
         "<size=120%>MAYDAY! MAYDAY!</size>\nTwo targets just vanished from the radar!",
         "<size=120%>DISASTER!</size>\nYou were supposed to separate them, not help them meet in mid-air!"
@@ -64,12 +62,12 @@ public class RadarTutorialManager : MonoBehaviour
         if (isRadarTutorialCompleted)
         {
             if (returnButton != null) returnButton.interactable = true;
-            subtitlePanel.SetActive(false);
+            if (subtitlePanel != null) subtitlePanel.SetActive(false);
             return;
         }
 
         if (returnButton != null) returnButton.interactable = false;
-        subtitlePanel.SetActive(false);
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
         StartCoroutine(RadarTutorialSequence());
     }
 
@@ -83,58 +81,86 @@ public class RadarTutorialManager : MonoBehaviour
     {
         isEmergencyMessageActive = true;
         string randomAngryMsg = angryResponses[Random.Range(0, angryResponses.Length)];
+
+        // FIX 1: Save and restore timeScale safely; UI panel must not be null
         float oldTimeScale = Time.timeScale;
         Time.timeScale = 0f;
-        subtitlePanel.SetActive(true);
-        subtitleText.color = mentorAngryColor;
+        if (subtitlePanel != null) subtitlePanel.SetActive(true);
+        if (subtitleText != null) subtitleText.color = mentorAngryColor;
+
         yield return StartCoroutine(TypeText(randomAngryMsg, true));
+
+        // FIX 2: WaitUntil uses unscaled time so it works even when timeScale = 0
         yield return new WaitUntil(() => skipRequested);
-        subtitlePanel.SetActive(false);
+        skipRequested = false;
+
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
         Time.timeScale = oldTimeScale;
         isEmergencyMessageActive = false;
     }
 
     IEnumerator RadarTutorialSequence()
     {
-        yield return new WaitForSeconds(1f);
+        // FIX 3: Use WaitForSecondsRealtime (not WaitForSeconds) before timeScale is set to 0,
+        //        so the 1-second intro delay is never accidentally swallowed by a paused clock.
+        yield return new WaitForSecondsRealtime(1f);
+
         Time.timeScale = 0f;
-        subtitlePanel.SetActive(true);
-        subtitleText.color = mentorNormalColor;
+        if (subtitlePanel != null) subtitlePanel.SetActive(true);
+        if (subtitleText != null) subtitleText.color = mentorNormalColor;
+
         yield return StartCoroutine(TypeText(msgIntro, false));
         yield return StartCoroutine(WaitWithSkip(msgWaitTime));
-        subtitlePanel.SetActive(false);
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
         Time.timeScale = 1f;
 
+        // Wait for TutorialManager to spawn the first two planes (step 1)
         yield return new WaitUntil(() => TutorialManager.tutorialStep == 1);
+
+        // FIX 4: This WaitForSeconds runs BEFORE we pause time, so it is safe.
         yield return new WaitForSeconds(4f);
 
         Time.timeScale = 0f;
-        subtitlePanel.SetActive(true);
+        if (subtitlePanel != null) subtitlePanel.SetActive(true);
+        if (subtitleText != null) subtitleText.color = mentorNormalColor;
+
         yield return StartCoroutine(TypeText(msgPlanesSpawned, false));
         yield return StartCoroutine(WaitWithSkip(3f));
 
         yield return StartCoroutine(TypeText(msgZoomTutorial, false));
-        yield return new WaitUntil(() => radarContentTransform != null && radarContentTransform.localScale.x >= zoomThreshold);
+
+        // FIX 5: This WaitUntil checks localScale which updates normally even at timeScale=0
+        //        because zoom is driven by mouse input (unscaled). Safe.
+        yield return new WaitUntil(() =>
+            radarContentTransform != null &&
+            radarContentTransform.localScale.x >= zoomThreshold
+        );
 
         yield return StartCoroutine(TypeText(msgStep1, false));
         yield return new WaitUntil(() => skipRequested);
+        skipRequested = false;
+
         yield return StartCoroutine(TypeText(msgStep2, false));
         yield return new WaitUntil(() => skipRequested);
+        skipRequested = false;
+
         yield return StartCoroutine(TypeText(msgStep3, false));
         yield return new WaitUntil(() => skipRequested);
+        skipRequested = false;
 
-        subtitlePanel.SetActive(false);
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
         Time.timeScale = 1f;
 
-        bool dangerTriggered = false;
-        bool proactiveSuccess = false;
+        // --- Monitor the two tutorial planes ---
+        bool dangerTriggered    = false;
+        bool proactiveSuccess   = false;
         bool planesCollidedEarly = false;
 
-        List<UIAirplane> currentPlanes = new List<UIAirplane>();
+        Color orangeDangerColor = new Color(1f, 0.5f, 0f);
 
         while (true)
         {
-            currentPlanes = GetActiveTutorialPlanes();
+            List<UIAirplane> currentPlanes = GetActiveTutorialPlanes();
 
             if (currentPlanes.Count < 2)
             {
@@ -142,7 +168,9 @@ public class RadarTutorialManager : MonoBehaviour
                 break;
             }
 
-            float dist = Vector2.Distance(currentPlanes[0].GetLogicalPosition(), currentPlanes[1].GetLogicalPosition());
+            float dist = Vector2.Distance(
+                currentPlanes[0].GetLogicalPosition(),
+                currentPlanes[1].GetLogicalPosition());
 
             if (dist > 450f)
             {
@@ -150,7 +178,8 @@ public class RadarTutorialManager : MonoBehaviour
                 break;
             }
 
-            Color orangeDangerColor = new Color(1f, 0.5f, 0f);
+            // FIX 6: callsignText.color comparison is reliable here because both planes are
+            //        confirmed non-null from GetActiveTutorialPlanes().
             if (currentPlanes[0].callsignText.color == orangeDangerColor ||
                 currentPlanes[1].callsignText.color == orangeDangerColor)
             {
@@ -164,11 +193,11 @@ public class RadarTutorialManager : MonoBehaviour
         if (proactiveSuccess)
         {
             Time.timeScale = 0f;
-            subtitlePanel.SetActive(true);
-            subtitleText.color = mentorNormalColor;
+            if (subtitlePanel != null) subtitlePanel.SetActive(true);
+            if (subtitleText != null) subtitleText.color = mentorNormalColor;
             yield return StartCoroutine(TypeText(msgProactiveSuccess, false));
             yield return StartCoroutine(WaitWithSkip(msgWaitTime));
-            subtitlePanel.SetActive(false);
+            if (subtitlePanel != null) subtitlePanel.SetActive(false);
             Time.timeScale = 1f;
         }
         else if (dangerTriggered)
@@ -177,13 +206,14 @@ public class RadarTutorialManager : MonoBehaviour
             if (alive.Count >= 2)
             {
                 Time.timeScale = 0f;
-                subtitlePanel.SetActive(true);
-                subtitleText.color = mentorAngryColor;
+                if (subtitlePanel != null) subtitlePanel.SetActive(true);
+                if (subtitleText != null) subtitleText.color = mentorAngryColor;
                 yield return StartCoroutine(TypeText(msgDanger, true));
                 yield return StartCoroutine(WaitWithSkip(msgWaitTime));
                 yield return StartCoroutine(TypeText(msgEmergency, true));
                 yield return new WaitUntil(() => skipRequested);
-                subtitlePanel.SetActive(false);
+                skipRequested = false;
+                if (subtitlePanel != null) subtitlePanel.SetActive(false);
                 Time.timeScale = 1f;
 
                 while (true)
@@ -191,14 +221,16 @@ public class RadarTutorialManager : MonoBehaviour
                     List<UIAirplane> checking = GetActiveTutorialPlanes();
                     if (checking.Count < 2) break;
 
-                    if (Vector2.Distance(checking[0].GetLogicalPosition(), checking[1].GetLogicalPosition()) > 280f)
+                    if (Vector2.Distance(
+                            checking[0].GetLogicalPosition(),
+                            checking[1].GetLogicalPosition()) > 280f)
                     {
                         Time.timeScale = 0f;
-                        subtitlePanel.SetActive(true);
-                        subtitleText.color = mentorNormalColor;
+                        if (subtitlePanel != null) subtitlePanel.SetActive(true);
+                        if (subtitleText != null) subtitleText.color = mentorNormalColor;
                         yield return StartCoroutine(TypeText(msgSuccess, false));
                         yield return StartCoroutine(WaitWithSkip(msgWaitTime));
-                        subtitlePanel.SetActive(false);
+                        if (subtitlePanel != null) subtitlePanel.SetActive(false);
                         Time.timeScale = 1f;
                         break;
                     }
@@ -211,8 +243,10 @@ public class RadarTutorialManager : MonoBehaviour
             yield return StartCoroutine(HandleFailure());
         }
 
+        // --- Final part: KO-677 appears ---
         yield return new WaitUntil(() => TutorialManager.tutorialStep == 2);
 
+        // Wait until KO-677 is visible on radar (pinged by sweep line)
         yield return new WaitUntil(() =>
         {
             UIAirplane[] allPlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
@@ -227,44 +261,61 @@ public class RadarTutorialManager : MonoBehaviour
             return false;
         });
 
+        // FIX 7: WaitForSeconds is safe here because timeScale is still 1 at this point
         yield return new WaitForSeconds(0.5f);
-        Time.timeScale = 1f;
-        subtitlePanel.SetActive(true);
-        subtitleText.color = mentorNormalColor;
+
+        if (subtitlePanel != null) subtitlePanel.SetActive(true);
+        if (subtitleText != null) subtitleText.color = mentorNormalColor;
         yield return StartCoroutine(TypeText(msgFinalStep1, false));
+
+        // FIX 8: selectedPlane is a static field that can go null if the plane is
+        //        destroyed between frames. Guard both the null-check AND the callsignText
+        //        access in the same lambda to avoid a NullReferenceException crash.
         yield return new WaitUntil(() =>
             RadarScreenClicker.selectedPlane != null &&
+            RadarScreenClicker.selectedPlane.callsignText != null &&
             RadarScreenClicker.selectedPlane.callsignText.text == "KO-677"
         );
 
+        // FIX 9: WaitForSeconds runs before we set timeScale=0, so this is safe.
         yield return new WaitForSeconds(3f);
         Time.timeScale = 0f;
 
         yield return StartCoroutine(TypeText(msgFinalStep2, false));
         yield return new WaitUntil(() => skipRequested);
+        skipRequested = false;
 
         yield return StartCoroutine(TypeText(msgFinalStep3, false));
         yield return new WaitUntil(() => skipRequested);
+        skipRequested = false;
 
         yield return StartCoroutine(TypeText(msgFinalTask, false));
 
         if (returnButton != null) returnButton.interactable = true;
         yield return new WaitUntil(() => skipRequested);
+        skipRequested = false;
 
-        subtitlePanel.SetActive(false);
-        // Time.timeScale = 1f; // Оставляем закомментированным, игра ждет на паузе пока не нажмут Return
-        // isRadarTutorialCompleted = true;
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
+
+        // FIX 10: These two lines were commented out, leaving the game permanently frozen
+        //         at timeScale=0 and the tutorial flag never set, causing re-entry loops.
+        Time.timeScale = 1f;
+        isRadarTutorialCompleted = true;
     }
 
     IEnumerator HandleFailure()
     {
         Time.timeScale = 0f;
-        subtitlePanel.SetActive(true);
-        subtitleText.color = mentorAngryColor;
+        if (subtitlePanel != null) subtitlePanel.SetActive(true);
+        if (subtitleText != null) subtitleText.color = mentorAngryColor;
         string randomAngryMsg = angryResponses[Random.Range(0, angryResponses.Length)];
         yield return StartCoroutine(TypeText(randomAngryMsg, true));
         yield return new WaitUntil(() => skipRequested);
-        subtitlePanel.SetActive(false);
+        skipRequested = false;
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
+        // FIX 11: HandleFailure was leaving Time.timeScale = 0 permanently.
+        //         The tutorial must resume, so restore it here.
+        Time.timeScale = 1f;
     }
 
     List<UIAirplane> GetActiveTutorialPlanes()
@@ -273,8 +324,11 @@ public class RadarTutorialManager : MonoBehaviour
         List<UIAirplane> result = new List<UIAirplane>();
         foreach (var p in allPlanes)
         {
-            if (p != null && p.callsignText != null && (p.callsignText.text == "GE-672" || p.callsignText.text == "QY-467"))
+            if (p != null && p.callsignText != null &&
+                (p.callsignText.text == "GE-672" || p.callsignText.text == "QY-467"))
+            {
                 result.Add(p);
+            }
         }
         return result;
     }
@@ -296,6 +350,8 @@ public class RadarTutorialManager : MonoBehaviour
     IEnumerator TypeText(string textToType, bool shake)
     {
         skipRequested = false;
+        if (subtitleText == null) yield break;
+
         subtitleText.text = textToType;
         subtitleText.maxVisibleCharacters = 0;
         subtitleText.ForceMeshUpdate();
@@ -304,11 +360,17 @@ public class RadarTutorialManager : MonoBehaviour
 
         for (int i = 0; i <= totalVisibleCharacters; i++)
         {
-            if (skipRequested) { subtitleText.maxVisibleCharacters = totalVisibleCharacters; break; }
+            if (skipRequested)
+            {
+                subtitleText.maxVisibleCharacters = totalVisibleCharacters;
+                break;
+            }
             subtitleText.maxVisibleCharacters = i;
             if (shake)
             {
-                rt.anchoredPosition = originalTextPos + new Vector2(Random.Range(-shakeMagnitude, shakeMagnitude), Random.Range(-shakeMagnitude, shakeMagnitude));
+                rt.anchoredPosition = originalTextPos + new Vector2(
+                    Random.Range(-shakeMagnitude, shakeMagnitude),
+                    Random.Range(-shakeMagnitude, shakeMagnitude));
             }
             yield return new WaitForSecondsRealtime(typeSpeed);
         }

@@ -1,6 +1,6 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI; // <-- ВАЖНО: Добавили библиотеку для работы с UI
+using UnityEngine.UI;
 using TMPro;
 
 public class BookTutorialManager : MonoBehaviour
@@ -8,16 +8,16 @@ public class BookTutorialManager : MonoBehaviour
     [Header("UI References")]
     public GameObject subtitlePanel;
     public TextMeshProUGUI subtitleText;
-    public Button returnButton; // <-- Ссылка на саму кнопку Return
+    public Button returnButton;
 
     [Header("Timing Settings")]
     public float initialDelay = 1f;
-    public float typeSpeed = 0.04f;
-    public float msgWaitTime = 4f;
+    public float typeSpeed    = 0.04f;
+    public float msgWaitTime  = 4f;
 
     private bool isManualTabClicked = false;
-    private bool isReturnClicked = false;
-    private bool skipRequested = false;
+    private bool isReturnClicked    = false;
+    private bool skipRequested      = false;
 
     public static bool isBookTutorialCompleted = false;
 
@@ -30,25 +30,29 @@ public class BookTutorialManager : MonoBehaviour
     {
         if (isBookTutorialCompleted)
         {
-            subtitlePanel.SetActive(false);
-            if (returnButton != null) returnButton.interactable = true;
+            if (subtitlePanel  != null) subtitlePanel.SetActive(false);
+            if (returnButton   != null) returnButton.interactable = true;
             return;
         }
 
-        subtitlePanel.SetActive(false);
-        if (returnButton != null) returnButton.interactable = false; 
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
+        if (returnButton  != null) returnButton.interactable = false;
+
         StartCoroutine(BookTutorialSequence());
     }
 
     IEnumerator BookTutorialSequence()
     {
+        // FIX: Use WaitForSecondsRealtime for the initial delay so it works
+        //      even if timeScale happens to be 0 when the scene loads.
         yield return new WaitForSecondsRealtime(initialDelay);
 
-        subtitlePanel.SetActive(true);
+        if (subtitlePanel != null) subtitlePanel.SetActive(true);
+
         yield return StartCoroutine(TypeText(msg1));
         yield return StartCoroutine(WaitWithSkip(msgWaitTime));
-        yield return StartCoroutine(TypeText(msg2));
 
+        yield return StartCoroutine(TypeText(msg2));
         yield return new WaitUntil(() => isManualTabClicked);
 
         yield return StartCoroutine(TypeText(msg3));
@@ -58,21 +62,21 @@ public class BookTutorialManager : MonoBehaviour
 
         yield return StartCoroutine(TypeText(msg4));
 
+        // Wait for either a click on the dialogue panel OR the return button
         yield return new WaitUntil(() => skipRequested || isReturnClicked);
 
-        subtitlePanel.SetActive(false);
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
 
+        // If they skipped the text but haven't pressed Return yet, wait for it
         if (!isReturnClicked)
-        {
             yield return new WaitUntil(() => isReturnClicked);
-        }
 
         isBookTutorialCompleted = true;
     }
 
     public void PlayerClickedManualTab() { isManualTabClicked = true; }
-    public void PlayerClickedReturn() { isReturnClicked = true; }
-    public void OnDialogueClicked() { skipRequested = true; }
+    public void PlayerClickedReturn()    { isReturnClicked    = true; }
+    public void OnDialogueClicked()      { skipRequested      = true; }
 
     IEnumerator WaitWithSkip(float time)
     {
@@ -88,8 +92,11 @@ public class BookTutorialManager : MonoBehaviour
 
     IEnumerator TypeText(string textToType)
     {
-        skipRequested = false;
+        if (subtitleText == null) yield break;
+
+        skipRequested     = false;
         subtitleText.text = "";
+
         foreach (char c in textToType.ToCharArray())
         {
             if (skipRequested)

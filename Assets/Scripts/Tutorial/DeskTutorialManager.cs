@@ -15,99 +15,93 @@ public class DeskTutorialManager : MonoBehaviour
     public GameObject radarHighlight;
 
     [Header("Interactions (Transitions & Buttons)")]
-    public Button radioButton; // Обычная кнопка для радио
-    public ZoomTransition bookTransition;  // Ссылка на скрипт на книге
-    public ZoomTransition radarTransition; // Ссылка на скрипт на радаре
-    public ZoomTransition tvTransition;    // Ссылка на скрипт на ТВ
+    public Button radioButton;
+    public ZoomTransition bookTransition;
+    public ZoomTransition radarTransition;
+    public ZoomTransition tvTransition;
 
     [Header("Timing Settings")]
-    public float typeSpeed = 0.04f;
+    public float typeSpeed   = 0.04f;
     public float msgWaitTime = 4.5f;
 
-    private bool isRadioClicked = false;
-    private bool isBookClicked = false;
-    private bool isRadarClicked = false;
-    private bool skipRequested = false;
+    private bool isRadioClicked  = false;
+    private bool isBookClicked   = false;
+    private bool isRadarClicked  = false;
+    private bool skipRequested   = false;
 
-    // Глобальный шаг обучения, чтобы он сохранялся при перезагрузке сцен
     public static int tutorialStep = 0;
 
     private string msg1 = "Click on the radio to listen to the incoming message";
     private string msg2 = "Welcome to your first shift, Dispatcher! Let me show you around your new workplace!";
-    private string msg3 = "The manual and mandatory requirements for today’s shift are in the book located to the left of the radio.\nOpen it to review today’s tasks.";
+    private string msg3 = "The manual and mandatory requirements for today's shift are in the book located to the left of the radio.\nOpen it to review today's tasks.";
     private string msg4 = "Excellent. Now it's time to manage the airspace.\nClick on the Radar monitor to open it.";
 
     void Awake()
     {
-        // Блокируем всё моментально при пробуждении объекта
         SetAllInteractions(false);
     }
 
     void Start()
     {
-        // Тут оставляем визуальную настройку
-        subtitlePanel.SetActive(false);
-        if (radioHighlight) radioHighlight.SetActive(false);
-        if (bookHighlight) bookHighlight.SetActive(false);
-        if (radarHighlight) radarHighlight.SetActive(false);
-        subtitleText.text = "";
-        // Повторная проверка шага
+        // FIX 1: Guard against unassigned references that would throw NullReferenceException
+        //        if the designer forgot to wire them up in the Inspector.
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
+        if (radioHighlight != null) radioHighlight.SetActive(false);
+        if (bookHighlight  != null) bookHighlight.SetActive(false);
+        if (radarHighlight != null) radarHighlight.SetActive(false);
+        if (subtitleText   != null) subtitleText.text = "";
+
         if (tutorialStep == 0)
-        {
             StartCoroutine(Part1_RadioAndBook());
-        }
         else if (tutorialStep == 1)
-        {
             StartCoroutine(Part2_Radar());
-        }
         else
-        {
             SetAllInteractions(true);
-        }
     }
 
-    // Универсальный метод управления кликами
     void SetAllInteractions(bool state)
     {
-        if (radioButton) radioButton.interactable = state;
-        if (bookTransition) bookTransition.canClick = state;
-        if (radarTransition) radarTransition.canClick = state;
-        if (tvTransition) tvTransition.canClick = state;
+        if (radioButton    != null) radioButton.interactable    = state;
+        if (bookTransition != null) bookTransition.canClick     = state;
+        if (radarTransition!= null) radarTransition.canClick    = state;
+        if (tvTransition   != null) tvTransition.canClick       = state;
     }
 
     IEnumerator Part1_RadioAndBook()
     {
+        // Pause the game while we display the tutorial dialogue.
+        // All WaitForSecondsRealtime / WaitUntil below use unscaled time, so they
+        // work correctly even when timeScale = 0.
         Time.timeScale = 0f;
 
-        // ШАГ 1: РАДИО
-        if (radioButton) radioButton.interactable = true;
-        if (radioHighlight) radioHighlight.SetActive(true);
-        subtitlePanel.SetActive(true);
-        yield return StartCoroutine(TypeText(msg1));
+        // Step 1: Prompt player to click the radio
+        if (radioButton    != null) radioButton.interactable = true;
+        if (radioHighlight != null) radioHighlight.SetActive(true);
+        if (subtitlePanel  != null) subtitlePanel.SetActive(true);
 
+        yield return StartCoroutine(TypeText(msg1));
         yield return new WaitUntil(() => isRadioClicked);
 
-        if (radioHighlight) radioHighlight.SetActive(false);
-        if (radioButton) radioButton.interactable = false; // Выключаем обратно
-        subtitleText.text = "";
+        if (radioHighlight != null) radioHighlight.SetActive(false);
+        if (radioButton    != null) radioButton.interactable = false;
+        if (subtitleText   != null) subtitleText.text = "";
 
         yield return StartCoroutine(TypeText(msg2));
         yield return StartCoroutine(WaitWithSkip(msgWaitTime));
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
 
-        subtitlePanel.SetActive(false);
         yield return new WaitForSecondsRealtime(1f);
 
-        // ШАГ 2: КНИГА
-        if (bookTransition) bookTransition.canClick = true;
-        if (bookHighlight) bookHighlight.SetActive(true);
-        subtitlePanel.SetActive(true);
-        yield return StartCoroutine(TypeText(msg3));
+        // Step 2: Prompt player to open the book
+        if (bookTransition != null) bookTransition.canClick = true;
+        if (bookHighlight  != null) bookHighlight.SetActive(true);
+        if (subtitlePanel  != null) subtitlePanel.SetActive(true);
 
+        yield return StartCoroutine(TypeText(msg3));
         yield return new WaitUntil(() => isBookClicked);
 
-        // После клика по книге сработает переход в другую сцену
-        subtitlePanel.SetActive(false);
-        if (bookHighlight) bookHighlight.SetActive(false);
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
+        if (bookHighlight != null) bookHighlight.SetActive(false);
 
         tutorialStep = 1;
         Time.timeScale = 1f;
@@ -116,38 +110,34 @@ public class DeskTutorialManager : MonoBehaviour
     IEnumerator Part2_Radar()
     {
         SetAllInteractions(false);
-        // Небольшая задержка после возвращения из сцены книги
+
         yield return new WaitForSecondsRealtime(0.5f);
         Time.timeScale = 0f;
 
-        // ШАГ 3: РАДАР
-        if (radarTransition) radarTransition.canClick = true;
-        if (radarHighlight) radarHighlight.SetActive(true);
-        subtitlePanel.SetActive(true);
+        // Step 3: Prompt player to open the radar
+        if (radarTransition != null) radarTransition.canClick = true;
+        if (radarHighlight  != null) radarHighlight.SetActive(true);
+        if (subtitlePanel   != null) subtitlePanel.SetActive(true);
 
         yield return StartCoroutine(TypeText(msg4));
-
         yield return new WaitUntil(() => isRadarClicked);
 
-        // ФИНАЛ: Всё пройдено
-        subtitlePanel.SetActive(false);
-        if (radarHighlight) radarHighlight.SetActive(false);
-        subtitleText.text = "";
+        if (subtitlePanel  != null) subtitlePanel.SetActive(false);
+        if (radarHighlight != null) radarHighlight.SetActive(false);
+        if (subtitleText   != null) subtitleText.text = "";
 
         tutorialStep = 2;
         Time.timeScale = 1f;
-
-        // Включаем всё: книгу, радар, ТВ
         SetAllInteractions(true);
     }
 
-    // --- Публичные методы для вызова из событий OnClick или OnZoomStart ---
+    // --- Public callbacks wired to UI buttons/events ---
     public void PlayerClickedRadio() { isRadioClicked = true; }
-    public void PlayerClickedBook() { isBookClicked = true; }
+    public void PlayerClickedBook()  { isBookClicked  = true; }
     public void PlayerClickedRadar() { isRadarClicked = true; }
-    public void OnDialogueClicked() { skipRequested = true; }
+    public void OnDialogueClicked()  { skipRequested  = true; }
 
-    // --- Вспомогательные функции ---
+    // --- Helpers ---
     IEnumerator WaitWithSkip(float time)
     {
         float timer = time;
@@ -162,8 +152,11 @@ public class DeskTutorialManager : MonoBehaviour
 
     IEnumerator TypeText(string textToType)
     {
-        skipRequested = false;
-        subtitleText.text = "";
+        if (subtitleText == null) yield break;
+
+        skipRequested      = false;
+        subtitleText.text  = "";
+
         foreach (char c in textToType.ToCharArray())
         {
             if (skipRequested)
@@ -172,6 +165,7 @@ public class DeskTutorialManager : MonoBehaviour
                 break;
             }
             subtitleText.text += c;
+            // WaitForSecondsRealtime works correctly when timeScale = 0
             yield return new WaitForSecondsRealtime(typeSpeed);
         }
         skipRequested = false;
