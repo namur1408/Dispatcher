@@ -1920,6 +1920,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlightDataManager
   savedFlights: []
+  landedPlanes: 0
+  maxPlanes: 5
+  totalMedicines: 0
+  totalPeople: 0
+  totalFood: 0
+  totalScrap: 0
 --- !u!4 &878473781
 Transform:
   m_ObjectHideFlags: 0

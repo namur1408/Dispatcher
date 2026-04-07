@@ -41,7 +41,6 @@ public class FlightDataManager : MonoBehaviour
                     plane.GetLogicalPosition(),
                     plane.targetPosition,
                     plane.GetWaypoints(),
-                    plane.speed
                     plane.speed,
                     plane.cargo
                 );
