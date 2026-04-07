@@ -15,20 +15,20 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
     public UnityEvent onZoomStart;
 
     private bool isTransitioning = false;
+    public bool canClick = true;
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (isTransitioning || string.IsNullOrEmpty(sceneToLoad)) return;
+        if (isTransitioning || string.IsNullOrEmpty(sceneToLoad) || !canClick) return;
         StartCoroutine(ZoomAndLoadAsync());
     }
 
     private IEnumerator ZoomAndLoadAsync()
     {
         isTransitioning = true;
-
         if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager();
 
-        onZoomStart?.Invoke();
+        onZoomStart?.Invoke(); 
 
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneToLoad);
         asyncLoad.allowSceneActivation = false;
@@ -36,6 +36,7 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         Vector3 startScale = rootContainer.localScale;
         Vector3 targetScale = startScale * zoomMultiplier;
         Vector2 startPos = rootContainer.anchoredPosition;
+
         Transform targetTransform = zoomTarget != null ? zoomTarget : transform;
         Vector3 localTargetPos3D = rootContainer.InverseTransformPoint(targetTransform.position);
         Vector2 localTargetPos = new Vector2(localTargetPos3D.x, localTargetPos3D.y);
@@ -45,7 +46,7 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
 
         while (elapsedTime < zoomDuration)
         {
-            elapsedTime += Time.deltaTime;
+            elapsedTime += Time.unscaledDeltaTime; 
             float smooth = elapsedTime / zoomDuration;
             smooth = smooth * smooth * (3f - 2f * smooth);
 
@@ -59,7 +60,6 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         rootContainer.anchoredPosition = targetPos;
 
         while (asyncLoad.progress < 0.9f) yield return null;
-
         asyncLoad.allowSceneActivation = true;
     }
 }

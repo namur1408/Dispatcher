@@ -31,6 +31,7 @@ public class FlightDataManager : MonoBehaviour
                     plane.callsignText.text,
                     plane.GetLogicalPosition(),
                     plane.targetPosition,
+                    plane.GetWaypoints(),
                     plane.speed
                 );
 

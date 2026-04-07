@@ -61,7 +61,7 @@ public class BigRadarTerminal : MonoBehaviour
         if (plane.dispatchStatus == UIAirplane.DispatchStatus.Denied) colorHex = "#FF0000";
 
         selectedPlaneText.SetText(
-            $"--- SELECTED TARGET ---\n\n" +
+            $"  SELECTED TARGET\n\n" +
             $">CALLSIGN: {plane.callsignText.text}\n" +
             $">SPEED:    {plane.speed * 10f} KTS\n" +
             $">STATUS:   <color={colorHex}>{statusString}</color>");

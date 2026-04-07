@@ -20,30 +20,25 @@ public class BigRadarLoader : MonoBehaviour
 
     void Update()
     {
-        // 1. Собираем список всех самолетов
         UIAirplane[] allPlanesOnScene = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
         activePlanes.Clear();
         activePlanes.AddRange(allPlanesOnScene);
 
-        // 2. Обновляем счетчик на терминале
         if (BigRadarTerminal.Instance != null)
         {
             BigRadarTerminal.Instance.SetPlaneCount(activePlanes.Count);
         }
 
-        // 3. Проверка на опасное сближение (Conflict Alert)
         CheckForConflicts();
     }
 
     private void CheckForConflicts()
     {
-        // Сбрасываем статус опасности перед новой проверкой
         foreach (var plane in activePlanes)
         {
             if (plane != null) plane.SetWarning(false);
         }
 
-        // Проверяем каждую пару
         for (int i = 0; i < activePlanes.Count; i++)
         {
             for (int j = i + 1; j < activePlanes.Count; j++)
@@ -53,7 +48,6 @@ public class BigRadarLoader : MonoBehaviour
 
                 if (planeA == null || planeB == null) continue;
 
-                // Считаем дистанцию между иконками на экране
                 float distance = Vector2.Distance(
                     planeA.GetComponent<RectTransform>().anchoredPosition,
                     planeB.GetComponent<RectTransform>().anchoredPosition
@@ -86,7 +80,7 @@ public class BigRadarLoader : MonoBehaviour
 
     public void SaveAndReturnToDesk()
     {
-        // Обновляем список перед сохранением
+
         UIAirplane[] allPlanesOnScene = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
 
         if (FlightDataManager.Instance != null)

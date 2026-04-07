@@ -15,8 +15,8 @@ public class UIAirplane : MonoBehaviour
     public float routeLineWidth = 2f;
 
     [Header("Holding Pattern Settings")]
-    public float holdingRadius = 80f;      // Радиус круга ожидания
-    public float maxHoldingTime = 45f;     // Сколько секунд ждать ответа (потом улетает)
+    public float holdingRadius = 80f;     
+    public float maxHoldingTime = 45f;    
 
     [Header("References")]
     public TextMeshProUGUI callsignText;
@@ -43,7 +43,6 @@ public class UIAirplane : MonoBehaviour
     private bool isSelected = false;
     private bool hasBeenPinged = false;
 
-    // --- Переменные для состояния ожидания ---
     private bool isHolding = false;
     private float holdingTimer = 0f;
     private float currentHoldingAngle = 0f;
@@ -51,6 +50,8 @@ public class UIAirplane : MonoBehaviour
 
     public enum DispatchStatus { Pending, Approved, Denied }
     public DispatchStatus dispatchStatus = DispatchStatus.Pending;
+
+    public List<Vector2> GetWaypoints() => new List<Vector2>(waypoints);
 
     void Awake()
     {
@@ -67,13 +68,18 @@ public class UIAirplane : MonoBehaviour
     {
         if (!wasInitialized)
         {
-            string letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            string randomID = "" + letters[Random.Range(0, letters.Length)]
-                                 + letters[Random.Range(0, letters.Length)];
-            callsignText.text = randomID + "-" + Random.Range(100, 999);
+            string[] availablePrefixes = { "QY", "GE", "KO", "LX", "TR" };
+            string randomPrefix = availablePrefixes[Random.Range(0, availablePrefixes.Length)];
+            callsignText.text = randomPrefix + "-" + Random.Range(100, 999);
         }
         UpdateInternalSpeed();
         if (RadarManager.Instance != null) RadarManager.Instance.RegisterAirplane(this);
+    }
+
+    public void SetCallsign(string newCallsign)
+    {
+        wasInitialized = true; 
+        callsignText.text = newCallsign;
     }
 
     public void InitializeFromData(FlightData data)
@@ -83,7 +89,12 @@ public class UIAirplane : MonoBehaviour
         logicalPosition = data.position;
         rectTransform.anchoredPosition = data.position;
         speed = data.speed;
-        SetFlightPath(data.position, data.target);
+        rectTransform.anchoredPosition = data.position;
+        isHolding = false;
+        waypoints = new List<Vector2>(data.savedWaypoints);
+
+        UpdateVisualRotation();
+        RebuildRouteLayer();
 
         if (data.decisionMade)
         {
@@ -110,18 +121,67 @@ public class UIAirplane : MonoBehaviour
     {
         rectTransform.anchoredPosition = start;
         logicalPosition = start;
-        isHolding = false; // Отключаем кружение, если дали новый путь
+        isHolding = false; 
         waypoints.Clear();
         waypoints.Add(target);
         UpdateVisualRotation();
         RebuildRouteLayer();
     }
 
-    public void AddWaypoint(Vector2 point)
+    public void AddWaypoint(Vector2 clickPos)
     {
         if (dispatchStatus != DispatchStatus.Pending) return;
-        waypoints.Insert(0, point);
+
+        if (waypoints.Count == 0)
+        {
+            waypoints.Add(clickPos);
+            RebuildRouteLayer();
+            UpdateVisualRotation();
+            return;
+        }
+
+        int bestIndex = 0;
+        float minDistance = float.MaxValue;
+
+        float distToFirstSeg = DistanceToSegment(clickPos, logicalPosition, waypoints[0]);
+        if (distToFirstSeg < minDistance)
+        {
+            minDistance = distToFirstSeg;
+            bestIndex = 0; 
+        }
+
+        for (int i = 0; i < waypoints.Count - 1; i++)
+        {
+            float dist = DistanceToSegment(clickPos, waypoints[i], waypoints[i + 1]);
+            if (dist < minDistance)
+            {
+                minDistance = dist;
+                bestIndex = i + 1; 
+            }
+        }
+
+        float distToLastPoint = Vector2.Distance(clickPos, waypoints[waypoints.Count - 1]);
+        if (distToLastPoint < minDistance)
+        {
+            bestIndex = waypoints.Count; 
+        }
+
+        waypoints.Insert(bestIndex, clickPos);
+
         RebuildRouteLayer();
+        UpdateVisualRotation();
+    }
+
+    private float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
+    {
+        Vector2 ab = b - a;
+        Vector2 ap = p - a;
+        if (ab.sqrMagnitude == 0f) return ap.magnitude;
+
+        float t = Mathf.Clamp01(Vector2.Dot(ap, ab) / ab.sqrMagnitude);
+        Vector2 projection = a + t * ab;
+
+        return Vector2.Distance(p, projection);
     }
 
     public void RemoveWaypoint(int index)
@@ -149,7 +209,6 @@ public class UIAirplane : MonoBehaviour
 
     void Update()
     {
-        // ЛОГИКА ОЖИДАНИЯ (КРУЖЕНИЯ)
         if (isHolding)
         {
             holdingTimer -= Time.deltaTime;
@@ -157,7 +216,7 @@ public class UIAirplane : MonoBehaviour
             if (holdingTimer <= 0)
             {
                 Debug.Log($"[UIAirplane] {callsignText.text}: Время ожидания вышло. Самолет уходит.");
-                Deny(); // Автоматический отказ
+                Deny(); 
             }
             else
             {
@@ -166,23 +225,19 @@ public class UIAirplane : MonoBehaviour
 
                 Vector2 circleTarget = holdingCenter + new Vector2(Mathf.Cos(currentHoldingAngle * Mathf.Deg2Rad), Mathf.Sin(currentHoldingAngle * Mathf.Deg2Rad)) * holdingRadius;
 
-                // Просто двигаем логическую позицию. Визуал обновляется ТОЛЬКО при пинге радара!
                 logicalPosition = Vector2.MoveTowards(logicalPosition, circleTarget, _actualSpeed * Time.deltaTime);
             }
         }
-        // НОРМАЛЬНЫЙ ПОЛЕТ ПО МАРШРУТУ
         else if (waypoints.Count > 0)
         {
             Vector2 currentTarget = waypoints[0];
 
-            // --- НОВАЯ ЛОГИКА: Плавный вход в зону ожидания ---
-            // Если это последняя точка и статус Pending, проверяем, подошли ли мы на дистанцию кружения
             if (waypoints.Count == 1 && dispatchStatus == DispatchStatus.Pending)
             {
                 if (Vector2.Distance(logicalPosition, currentTarget) <= holdingRadius)
                 {
                     StartHolding(currentTarget);
-                    return; // Пропускаем движение в этом кадре
+                    return; 
                 }
             }
 
@@ -210,8 +265,6 @@ public class UIAirplane : MonoBehaviour
                 }
             }
         }
-
-        // Общие обновления (радар, зум, линии)
         HandlePing();
         FadeOut();
 
@@ -235,14 +288,13 @@ public class UIAirplane : MonoBehaviour
         holdingCenter = center;
         holdingTimer = maxHoldingTime;
 
-        // Определяем точный угол, под которым самолет подошел к кругу, чтобы не было дерганий
         Vector2 dirFromCenter = (logicalPosition - center).normalized;
         currentHoldingAngle = Mathf.Atan2(dirFromCenter.y, dirFromCenter.x) * Mathf.Rad2Deg;
 
         waypoints.Clear();
         RebuildRouteLayer();
 
-        Debug.Log($"[UIAirplane] {callsignText.text} плавно вошел в зону ожидания на подлете.");
+        Debug.Log($"[UIAirplane] {callsignText.text} вошел в зону ожидания.");
     }
 
     void HandlePing()
@@ -255,8 +307,6 @@ public class UIAirplane : MonoBehaviour
         if (Mathf.Abs(Mathf.DeltaAngle(sweepAngle, planeAngle)) < 3f)
         {
             rectTransform.anchoredPosition = logicalPosition;
-
-            // ВАЖНО: Поворачиваем самолет ТОЛЬКО когда его увидел радар
             UpdateVisualRotation();
 
             canvasGroup.alpha = 1f;
@@ -270,7 +320,6 @@ public class UIAirplane : MonoBehaviour
 
         if (isHolding)
         {
-            // Находим точку чуть-чуть впереди на круге, чтобы повернуть нос туда
             float nextAngle = currentHoldingAngle + 10f;
             Vector2 nextCircleTarget = holdingCenter + new Vector2(Mathf.Cos(nextAngle * Mathf.Deg2Rad), Mathf.Sin(nextAngle * Mathf.Deg2Rad)) * holdingRadius;
             direction = (nextCircleTarget - logicalPosition).normalized;
@@ -279,15 +328,11 @@ public class UIAirplane : MonoBehaviour
         {
             direction = (waypoints[0] - logicalPosition).normalized;
         }
-
-        // Применяем вращение
         if (direction != Vector2.zero)
         {
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             rectTransform.rotation = Quaternion.Euler(0, 0, angle - 90f);
         }
-
-        // Оставляем текст ровным
         if (callsignText != null)
         {
             callsignText.transform.rotation = Quaternion.identity;
@@ -460,6 +505,10 @@ public class UIAirplane : MonoBehaviour
     private void TriggerCollision()
     {
         Debug.Log($"<color=red>АВАРИЯ: {callsignText.text} столкнулся!</color>");
+        if (RadarTutorialManager.Instance != null && !RadarTutorialManager.isRadarTutorialCompleted)
+        {
+            RadarTutorialManager.Instance.NotifyEmergencyCollision();
+        }
         UpdateHitboxColor();
         Invoke("DestroyPlane", 0.05f);
     }
