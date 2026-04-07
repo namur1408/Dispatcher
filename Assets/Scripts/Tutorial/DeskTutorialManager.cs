@@ -15,10 +15,10 @@ public class DeskTutorialManager : MonoBehaviour
     public GameObject radarHighlight;
 
     [Header("Interactions (Transitions & Buttons)")]
-    public Button radioButton; // Обычная кнопка для радио
-    public ZoomTransition bookTransition;  // Ссылка на скрипт на книге
-    public ZoomTransition radarTransition; // Ссылка на скрипт на радаре
-    public ZoomTransition tvTransition;    // Ссылка на скрипт на ТВ
+    public Button radioButton;
+    public ZoomTransition bookTransition; 
+    public ZoomTransition radarTransition; 
+    public ZoomTransition tvTransition;    
 
     [Header("Timing Settings")]
     public float typeSpeed = 0.04f;
@@ -28,8 +28,6 @@ public class DeskTutorialManager : MonoBehaviour
     private bool isBookClicked = false;
     private bool isRadarClicked = false;
     private bool skipRequested = false;
-
-    // Глобальный шаг обучения, чтобы он сохранялся при перезагрузке сцен
     public static int tutorialStep = 0;
 
     private string msg1 = "Click on the radio to listen to the incoming message";
@@ -39,19 +37,16 @@ public class DeskTutorialManager : MonoBehaviour
 
     void Awake()
     {
-        // Блокируем всё моментально при пробуждении объекта
         SetAllInteractions(false);
     }
 
     void Start()
     {
-        // Тут оставляем визуальную настройку
         subtitlePanel.SetActive(false);
         if (radioHighlight) radioHighlight.SetActive(false);
         if (bookHighlight) bookHighlight.SetActive(false);
         if (radarHighlight) radarHighlight.SetActive(false);
         subtitleText.text = "";
-        // Повторная проверка шага
         if (tutorialStep == 0)
         {
             StartCoroutine(Part1_RadioAndBook());
@@ -65,8 +60,6 @@ public class DeskTutorialManager : MonoBehaviour
             SetAllInteractions(true);
         }
     }
-
-    // Универсальный метод управления кликами
     void SetAllInteractions(bool state)
     {
         if (radioButton) radioButton.interactable = state;
@@ -78,8 +71,6 @@ public class DeskTutorialManager : MonoBehaviour
     IEnumerator Part1_RadioAndBook()
     {
         Time.timeScale = 0f;
-
-        // ШАГ 1: РАДИО
         if (radioButton) radioButton.interactable = true;
         if (radioHighlight) radioHighlight.SetActive(true);
         subtitlePanel.SetActive(true);
@@ -88,7 +79,7 @@ public class DeskTutorialManager : MonoBehaviour
         yield return new WaitUntil(() => isRadioClicked);
 
         if (radioHighlight) radioHighlight.SetActive(false);
-        if (radioButton) radioButton.interactable = false; // Выключаем обратно
+        if (radioButton) radioButton.interactable = false;
         subtitleText.text = "";
 
         yield return StartCoroutine(TypeText(msg2));
@@ -96,16 +87,12 @@ public class DeskTutorialManager : MonoBehaviour
 
         subtitlePanel.SetActive(false);
         yield return new WaitForSecondsRealtime(1f);
-
-        // ШАГ 2: КНИГА
         if (bookTransition) bookTransition.canClick = true;
         if (bookHighlight) bookHighlight.SetActive(true);
         subtitlePanel.SetActive(true);
         yield return StartCoroutine(TypeText(msg3));
 
         yield return new WaitUntil(() => isBookClicked);
-
-        // После клика по книге сработает переход в другую сцену
         subtitlePanel.SetActive(false);
         if (bookHighlight) bookHighlight.SetActive(false);
 
@@ -116,11 +103,8 @@ public class DeskTutorialManager : MonoBehaviour
     IEnumerator Part2_Radar()
     {
         SetAllInteractions(false);
-        // Небольшая задержка после возвращения из сцены книги
         yield return new WaitForSecondsRealtime(0.5f);
         Time.timeScale = 0f;
-
-        // ШАГ 3: РАДАР
         if (radarTransition) radarTransition.canClick = true;
         if (radarHighlight) radarHighlight.SetActive(true);
         subtitlePanel.SetActive(true);
@@ -128,26 +112,33 @@ public class DeskTutorialManager : MonoBehaviour
         yield return StartCoroutine(TypeText(msg4));
 
         yield return new WaitUntil(() => isRadarClicked);
-
-        // ФИНАЛ: Всё пройдено
         subtitlePanel.SetActive(false);
         if (radarHighlight) radarHighlight.SetActive(false);
         subtitleText.text = "";
 
         tutorialStep = 2;
         Time.timeScale = 1f;
-
-        // Включаем всё: книгу, радар, ТВ
         SetAllInteractions(true);
     }
 
-    // --- Публичные методы для вызова из событий OnClick или OnZoomStart ---
-    public void PlayerClickedRadio() { isRadioClicked = true; }
-    public void PlayerClickedBook() { isBookClicked = true; }
-    public void PlayerClickedRadar() { isRadarClicked = true; }
+    public void PlayerClickedRadio()
+    {
+        isRadioClicked = true;
+    }
+
+    public void PlayerClickedBook()
+    {
+        isBookClicked = true;
+        tutorialStep = 1; 
+    }
+
+    public void PlayerClickedRadar()
+    {
+        isRadarClicked = true;
+        tutorialStep = 2; 
+    }
     public void OnDialogueClicked() { skipRequested = true; }
 
-    // --- Вспомогательные функции ---
     IEnumerator WaitWithSkip(float time)
     {
         float timer = time;
