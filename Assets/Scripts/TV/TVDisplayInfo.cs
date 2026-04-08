@@ -6,24 +6,15 @@ using TMPro;
 
 public class TVDisplayInfo : MonoBehaviour
 {
-    [Header("Список самолётов")]
     public Transform tvListContainer;
     public GameObject tvEntryPrefab;
     private List<string> hiddenFlights = new List<string>();
-
-    [Header("Панель деталей")]
     public GameObject selectionPanelContainer;
     public TextMeshProUGUI detailedInfoText;
-
-    [Header("Панель диспетчера")]
     public TextMeshProUGUI selectedLabel;
     public Button approveButton;
     public Button denyButton;
-
-    [Header("Статистика базы")]
     public TextMeshProUGUI baseStatsText;
-
-    [Header("Цвета кнопок")]
     public Color approveNormalColor = new Color(0.05f, 0.45f, 0.05f, 1f);
     public Color approvePressedColor = new Color(0.1f, 0.8f, 0.1f, 1f);
     public Color denyNormalColor = new Color(0.45f, 0.05f, 0.05f, 1f);
@@ -55,7 +46,6 @@ public class TVDisplayInfo : MonoBehaviour
 
     void Update()
     {
-        // Постоянно обновляем текст со статистикой базы
         UpdateBaseStatsUI();
     }
 
@@ -116,7 +106,7 @@ public class TVDisplayInfo : MonoBehaviour
             Destroy(child.gameObject);
 
         CreateStyledLine($"<color={COL_HEADER}><b>╔══════════════════════════════╗</b></color>", 16);
-        CreateStyledLine($"<color={COL_HEADER}><b>║      AIR TRAFFIC CONTROL     ║</b></color>", 16);
+        CreateStyledLine($"<color={COL_HEADER}><b>║     AIR TRAFFIC CONTROL      ║</b></color>", 16);
         CreateStyledLine($"<color={COL_HEADER}><b>╚══════════════════════════════╝</b></color>", 16);
         CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 13);
 
@@ -296,10 +286,23 @@ public class TVDisplayInfo : MonoBehaviour
         if (fdm.landedPlanes >= fdm.maxPlanes) return;
 
         string callsign = flights[selectedIndex].callsign;
-        fdm.AddDecision(callsign, true);
 
+        if (DeskTutorialManager.tutorialStep < 5 && callsign != "KO-677")
+        {
+            Debug.Log("Нельзя посадить этот самолет до прохождения обучения Холдинга!");
+            if (selectedLabel != null)
+                selectedLabel.text = $"<color={COL_DENIED}><b>[ TUTORIAL ] ACTION BLOCKED</b></color>";
+            return;
+        }
+
+        fdm.AddDecision(callsign, true);
         if (selectedLabel != null)
             selectedLabel.text = $"<color={COL_APPROVED}><b>✔ {callsign} — LANDING APPROVED</b></color>";
+
+        if (TVTutorialManager.Instance != null)
+        {
+            TVTutorialManager.Instance.NotifyFlightAllowed(callsign);
+        }
 
         selectedIndex = -1;
         RefreshButtons();
@@ -317,6 +320,11 @@ public class TVDisplayInfo : MonoBehaviour
 
         if (selectedLabel != null)
             selectedLabel.text = $"<color={COL_DENIED}><b>✘ {callsign} — LANDING DENIED</b></color>";
+
+        if (TVTutorialManager.Instance != null)
+        {
+            TVTutorialManager.Instance.NotifyFlightDenied(callsign);
+        }
 
         selectedIndex = -1;
         RefreshButtons();

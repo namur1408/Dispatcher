@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class TutorialManager : MonoBehaviour
 {
+    public static TutorialManager Instance;
+
     [Header("Settings")]
     public GameObject airplanePrefab;
 
@@ -12,6 +14,11 @@ public class TutorialManager : MonoBehaviour
     public static int tutorialStep = 0;
     public static float stepTimer = 0f;
     public static bool isTutorialActive = true;
+
+    void Awake()
+    {
+        Instance = this;
+    }
 
     void Update()
     {
@@ -59,7 +66,7 @@ public class TutorialManager : MonoBehaviour
         return null;
     }
 
-    void SpawnSpecificPlane(Vector2 startPos, Vector2 targetPos, string customCallsign, Transform contentParent)
+    public void SpawnSpecificPlane(Vector2 startPos, Vector2 targetPos, string customCallsign, Transform contentParent)
     {
         GameObject newPlane = Instantiate(airplanePrefab, contentParent, false);
         UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
@@ -71,6 +78,15 @@ public class TutorialManager : MonoBehaviour
             {
                 RadarManager.Instance.RegisterAirplane(planeScript);
             }
+        }
+    }
+
+    public void SpawnReplacementPlane(string callsign)
+    {
+        Transform content = FindRadarContent();
+        if (content != null)
+        {
+            SpawnSpecificPlane(new Vector2(-700, -700), Vector2.zero, callsign, content);
         }
     }
 }
