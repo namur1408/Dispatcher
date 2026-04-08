@@ -42,7 +42,7 @@ public class RadarManager : MonoBehaviour
         AirplaneSpawner spawner = FindFirstObjectByType<AirplaneSpawner>();
         if (spawner == null) return;
 
-        GameObject newPlane   = Instantiate(spawner.airplanePrefab, spawner.radarContent);
+        GameObject newPlane = Instantiate(spawner.airplanePrefab, spawner.radarContent);
         UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
         if (planeScript != null)
             planeScript.InitializeFromData(data);
@@ -61,7 +61,7 @@ public class RadarManager : MonoBehaviour
             if (target == null) continue;
 
             if (flight.approved) target.Approve();
-            else                 target.Deny();
+            else target.Deny();
         }
     } 
 

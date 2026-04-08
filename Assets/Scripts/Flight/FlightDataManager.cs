@@ -7,6 +7,15 @@ public class FlightDataManager : MonoBehaviour
 
     public List<FlightData> savedFlights = new List<FlightData>();
 
+    [Header("База (Статистика)")]
+    public int landedPlanes = 0;
+    public int maxPlanes = 5;
+
+    public int totalMedicines = 0;
+    public int totalPeople = 0;
+    public int totalFood = 0;
+    public int totalScrap = 0;
+
     void Awake()
     {
         if (Instance == null)
@@ -32,7 +41,8 @@ public class FlightDataManager : MonoBehaviour
                     plane.GetLogicalPosition(),
                     plane.targetPosition,
                     plane.GetWaypoints(),
-                    plane.speed
+                    plane.speed,
+                    plane.cargo
                 );
 
                 if (plane.dispatchStatus == UIAirplane.DispatchStatus.Approved)
@@ -58,7 +68,18 @@ public class FlightDataManager : MonoBehaviour
             if (savedFlights[i].callsign == callsign)
             {
                 savedFlights[i].decisionMade = true;
-                savedFlights[i].approved     = isApproved;
+                savedFlights[i].approved = isApproved;
+                if (isApproved)
+                {
+                    landedPlanes++;
+
+                    string c = savedFlights[i].cargo;
+                    if (c == "Medicines") totalMedicines++;
+                    else if (c == "People") totalPeople++;
+                    else if (c == "Food") totalFood++;
+                    else if (c == "Scrap") totalScrap++;
+                }
+
                 Debug.Log($"[FlightDataManager] {callsign} -> {(isApproved ? "РАЗРЕШЕНО" : "ЗАПРЕЩЕНО")}");
                 return;
             }

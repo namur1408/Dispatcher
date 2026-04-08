@@ -9,11 +9,11 @@ EditorBuildSettings:
     path: Assets/Scenes/SampleScene.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
   - enabled: 1
-    path: Assets/Scenes/ManualScene.unity
-    guid: bf7f0a08c23f9be4097e4cbaa661a61b
-  - enabled: 1
     path: Assets/Scenes/TVInfoScene.unity
     guid: b9b8dafce87b7a243ad40316ceba74b1
+  - enabled: 1
+    path: Assets/Scenes/ManualScene.unity
+    guid: bf7f0a08c23f9be4097e4cbaa661a61b
   - enabled: 1
     path: Assets/Scenes/BigRadarScene.unity
     guid: 9b447c98059f8924bbde2a0ecd399015
