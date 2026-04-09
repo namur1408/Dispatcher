@@ -1,72 +1,75 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
 public class TVDisplayInfo : MonoBehaviour
 {
-    [Header("Список самолётов")]
     public Transform tvListContainer;
     public GameObject tvEntryPrefab;
-
-    [Header("Панель диспетчера")]
+    private List<string> hiddenFlights = new List<string>();
+    public GameObject selectionPanelContainer;
+    public TextMeshProUGUI detailedInfoText;
     public TextMeshProUGUI selectedLabel;
     public Button approveButton;
     public Button denyButton;
-
-    [Header("Цвета кнопок")]
-    public Color approveNormalColor  = new Color(0.05f, 0.45f, 0.05f, 1f);
-    public Color approvePressedColor = new Color(0.1f,  0.8f,  0.1f,  1f);
-    public Color denyNormalColor     = new Color(0.45f, 0.05f, 0.05f, 1f);
-    public Color denyPressedColor    = new Color(0.9f,  0.1f,  0.1f,  1f);
-    public Color disabledColor       = new Color(0.15f, 0.15f, 0.15f, 0.6f);
+    public TextMeshProUGUI baseStatsText;
+    public Color approveNormalColor = new Color(0.05f, 0.45f, 0.05f, 1f);
+    public Color approvePressedColor = new Color(0.1f, 0.8f, 0.1f, 1f);
+    public Color denyNormalColor = new Color(0.45f, 0.05f, 0.05f, 1f);
+    public Color denyPressedColor = new Color(0.9f, 0.1f, 0.1f, 1f);
+    public Color disabledColor = new Color(0.15f, 0.15f, 0.15f, 0.6f);
 
     private int selectedIndex = -1;
 
-    // Цвета строк
-    private const string COL_HEADER    = "#00FF41";   // ярко-зелёный
-    private const string COL_SEPARATOR = "#1A4A1A";   // тёмно-зелёный
-    private const string COL_CALLSIGN  = "#00FF41";
-    private const string COL_APPROACH  = "#FFD700";   // золотой
-    private const string COL_TRANSIT   = "#00BFFF";   // голубой
-    private const string COL_APPROVED  = "#00FF41";
-    private const string COL_DENIED    = "#FF3030";
-    private const string COL_SPEED     = "#888888";
-    private const string COL_SELECTED  = "#FFFFFF";
+    private const string COL_HEADER = "#00FF41";
+    private const string COL_SEPARATOR = "#1A4A1A";
+    private const string COL_CALLSIGN = "#00FF41";
+    private const string COL_APPROACH = "#FFD700";
+    private const string COL_TRANSIT = "#00BFFF";
+    private const string COL_APPROVED = "#00FF41";
+    private const string COL_DENIED = "#FF3030";
+    private const string COL_SPEED = "#888888";
+    private const string COL_SELECTED = "#FFFFFF";
 
     void Start()
     {
         if (approveButton != null) approveButton.onClick.AddListener(OnApproveClicked);
-        if (denyButton     != null) denyButton.onClick.AddListener(OnDenyClicked);
+        if (denyButton != null) denyButton.onClick.AddListener(OnDenyClicked);
 
         StyleButtons();
         DisplayFlights();
         RefreshButtons();
+        UpdateBaseStatsUI();
     }
 
-    // ── Стилизация кнопок ─────────────────────────────────────────────
+    void Update()
+    {
+        UpdateBaseStatsUI();
+    }
+
     void StyleButtons()
     {
         StyleButton(approveButton, approveNormalColor, approvePressedColor);
-        StyleButton(denyButton,    denyNormalColor,    denyPressedColor);
+        StyleButton(denyButton, denyNormalColor, denyPressedColor);
 
-        // Текст кнопок
         SetButtonText(approveButton, "[ ALLOW ]");
-        SetButtonText(denyButton,    "[ DENY  ]");
+        SetButtonText(denyButton, "[ DENY  ]");
     }
 
     void StyleButton(Button btn, Color normal, Color pressed)
     {
         if (btn == null) return;
         var colors = btn.colors;
-        colors.normalColor      = normal;
+        colors.normalColor = normal;
         colors.highlightedColor = Color.Lerp(normal, Color.white, 0.2f);
-        colors.pressedColor     = pressed;
-        colors.selectedColor    = normal;
-        colors.disabledColor    = disabledColor;
-        colors.colorMultiplier  = 1f;
+        colors.pressedColor = pressed;
+        colors.selectedColor = normal;
+        colors.disabledColor = disabledColor;
+        colors.colorMultiplier = 1f;
         btn.colors = colors;
 
-        // Фон кнопки
         Image img = btn.GetComponent<Image>();
         if (img != null) img.color = normal;
     }
@@ -76,14 +79,25 @@ public class TVDisplayInfo : MonoBehaviour
         if (btn == null) return;
         TextMeshProUGUI tmp = btn.GetComponentInChildren<TextMeshProUGUI>();
         if (tmp == null) return;
-        tmp.text      = text;
-        tmp.color     = new Color(0f, 1f, 0.25f);
-        tmp.fontSize  = 18;
+        tmp.text = text;
+        tmp.color = new Color(0f, 1f, 0.25f);
+        tmp.fontSize = 18;
         tmp.fontStyle = FontStyles.Bold;
         tmp.alignment = TextAlignmentOptions.Center;
     }
 
-    // ── Заполнение списка ─────────────────────────────────────────────
+    void UpdateBaseStatsUI()
+    {
+        if (baseStatsText == null) return;
+        var fdm = FlightDataManager.Instance;
+        if (fdm == null) return;
+
+        string capCol = fdm.landedPlanes >= fdm.maxPlanes ? COL_DENIED : COL_APPROVED;
+
+        baseStatsText.text = $"<color=white>CAPACITY:</color> <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n" +
+                             $"<color=#FFD700>MED: {fdm.totalMedicines} | PPL: {fdm.totalPeople} | FOOD: {fdm.totalFood} | SCR: {fdm.totalScrap}</color>";
+    }
+
     void DisplayFlights()
     {
         if (FlightDataManager.Instance == null) return;
@@ -91,9 +105,8 @@ public class TVDisplayInfo : MonoBehaviour
         foreach (Transform child in tvListContainer)
             Destroy(child.gameObject);
 
-        // Заголовок
         CreateStyledLine($"<color={COL_HEADER}><b>╔══════════════════════════════╗</b></color>", 16);
-        CreateStyledLine($"<color={COL_HEADER}><b>║      AIR TRAFFIC CONTROL     ║</b></color>", 16);
+        CreateStyledLine($"<color={COL_HEADER}><b>║     AIR TRAFFIC CONTROL      ║</b></color>", 16);
         CreateStyledLine($"<color={COL_HEADER}><b>╚══════════════════════════════╝</b></color>", 16);
         CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 13);
 
@@ -107,40 +120,38 @@ public class TVDisplayInfo : MonoBehaviour
 
         for (int i = 0; i < flights.Count; i++)
         {
-            var data  = flights[i];
+            var data = flights[i];
             int index = i;
+
+            if (hiddenFlights.Contains(data.callsign)) continue;
 
             GameObject entry = Instantiate(tvEntryPrefab, tvListContainer);
 
-            // Размер строки
             RectTransform rt = entry.GetComponent<RectTransform>();
-            if (rt != null) rt.sizeDelta = new Vector2(rt.sizeDelta.x, 42f);
+            if (rt != null) rt.sizeDelta = new Vector2(rt.sizeDelta.x, 60f);
 
             TextMeshProUGUI txt = entry.GetComponentInChildren<TextMeshProUGUI>();
             if (txt != null)
             {
-                txt.fontSize  = 15;
+                txt.fontSize = 24;
                 txt.alignment = TextAlignmentOptions.Left;
 
                 if (data.decisionMade)
                 {
-                    // Уже принято решение
-                    string decCol  = data.approved ? COL_APPROVED : COL_DENIED;
+                    string decCol = data.approved ? COL_APPROVED : COL_DENIED;
                     string decIcon = data.approved ? "ALLOWED" : "DENIED ";
                     txt.text = $"<color={COL_CALLSIGN}><b>{data.callsign}</b></color>  " +
                                $"<color={decCol}>[{decIcon}]</color>";
                 }
                 else
                 {
-                    // Ожидает решения
-                    string stCol  = data.status == "APPROACHING" ? COL_APPROACH : COL_TRANSIT;
+                    string stCol = data.status == "APPROACHING" ? COL_APPROACH : COL_TRANSIT;
                     string stIcon = data.status == "APPROACHING" ? "↓ LAND" : "→ XSIT";
                     txt.text = $"<color={COL_CALLSIGN}><b>{data.callsign}</b></color>  " +
                                $"<color={stCol}>{stIcon}</color>  " +
                                $"<color={COL_SPEED}>SPD:{data.speed:F0}</color>";
                 }
 
-                // Фон строки — чередуем
                 Image img = entry.GetComponent<Image>();
                 if (img != null)
                     img.color = (i % 2 == 0)
@@ -159,12 +170,11 @@ public class TVDisplayInfo : MonoBehaviour
                     btn.interactable = true;
                     btn.onClick.AddListener(() => SelectFlight(index));
 
-                    // Hover эффект
                     var colors = btn.colors;
-                    colors.normalColor      = Color.clear;
+                    colors.normalColor = Color.clear;
                     colors.highlightedColor = new Color(0f, 0.4f, 0f, 0.4f);
-                    colors.pressedColor     = new Color(0f, 0.6f, 0f, 0.5f);
-                    colors.selectedColor    = new Color(0f, 0.3f, 0f, 0.5f);
+                    colors.pressedColor = new Color(0f, 0.6f, 0f, 0.5f);
+                    colors.selectedColor = new Color(0f, 0.3f, 0f, 0.5f);
                     btn.colors = colors;
                 }
                 else
@@ -188,8 +198,8 @@ public class TVDisplayInfo : MonoBehaviour
         TextMeshProUGUI t = line.GetComponentInChildren<TextMeshProUGUI>();
         if (t != null)
         {
-            t.text      = content;
-            t.fontSize  = fontSize;
+            t.text = content;
+            t.fontSize = fontSize;
             t.alignment = TextAlignmentOptions.Center;
         }
 
@@ -207,6 +217,7 @@ public class TVDisplayInfo : MonoBehaviour
 
         selectedIndex = index;
         string callsign = flights[index].callsign;
+        var data = flights[index];
 
         if (selectedLabel != null)
         {
@@ -216,6 +227,17 @@ public class TVDisplayInfo : MonoBehaviour
                                  $"<color={stCol}>{flights[index].status}</color>";
         }
 
+        if (detailedInfoText != null)
+        {
+            string infoString = $"<color=white><b>FLIGHT DETAILS:</b>\n\n</color>";
+            infoString += $"Callsign: <b>{callsign}</b>\n";
+            infoString += $"Status: {data.status}\n";
+            infoString += $"Speed: {data.speed:F0}\n";
+            infoString += $"Cargo: <color=#FFD700><b>{data.cargo}</b></color>\n";
+
+            detailedInfoText.text = infoString;
+        }
+
         RefreshButtons();
     }
 
@@ -223,11 +245,24 @@ public class TVDisplayInfo : MonoBehaviour
     {
         bool canDecide = selectedIndex >= 0;
 
+        bool hasSpace = true;
+        if (FlightDataManager.Instance != null)
+        {
+            hasSpace = FlightDataManager.Instance.landedPlanes < FlightDataManager.Instance.maxPlanes;
+        }
+
+        bool canApprove = canDecide && hasSpace;
+
+        if (selectionPanelContainer != null)
+        {
+            selectionPanelContainer.SetActive(canDecide);
+        }
+
         if (approveButton != null)
         {
-            approveButton.interactable = canDecide;
+            approveButton.interactable = canApprove;
             Image img = approveButton.GetComponent<Image>();
-            if (img != null) img.color = canDecide ? approveNormalColor : disabledColor;
+            if (img != null) img.color = canApprove ? approveNormalColor : disabledColor;
         }
 
         if (denyButton != null)
@@ -244,14 +279,30 @@ public class TVDisplayInfo : MonoBehaviour
     void OnApproveClicked()
     {
         if (selectedIndex < 0) return;
-        var flights = FlightDataManager.Instance.savedFlights;
+        var fdm = FlightDataManager.Instance;
+        var flights = fdm.savedFlights;
         if (selectedIndex >= flights.Count) return;
 
-        string callsign = flights[selectedIndex].callsign;
-        FlightDataManager.Instance.AddDecision(callsign, true);
+        if (fdm.landedPlanes >= fdm.maxPlanes) return;
 
+        string callsign = flights[selectedIndex].callsign;
+
+        if (DeskTutorialManager.tutorialStep < 5 && callsign != "KO-677")
+        {
+            Debug.Log("Нельзя посадить этот самолет до прохождения обучения Холдинга!");
+            if (selectedLabel != null)
+                selectedLabel.text = $"<color={COL_DENIED}><b>[ TUTORIAL ] ACTION BLOCKED</b></color>";
+            return;
+        }
+
+        fdm.AddDecision(callsign, true);
         if (selectedLabel != null)
             selectedLabel.text = $"<color={COL_APPROVED}><b>✔ {callsign} — LANDING APPROVED</b></color>";
+
+        if (TVTutorialManager.Instance != null)
+        {
+            TVTutorialManager.Instance.NotifyFlightAllowed(callsign);
+        }
 
         selectedIndex = -1;
         RefreshButtons();
@@ -270,8 +321,26 @@ public class TVDisplayInfo : MonoBehaviour
         if (selectedLabel != null)
             selectedLabel.text = $"<color={COL_DENIED}><b>✘ {callsign} — LANDING DENIED</b></color>";
 
+        if (TVTutorialManager.Instance != null)
+        {
+            TVTutorialManager.Instance.NotifyFlightDenied(callsign);
+        }
+
         selectedIndex = -1;
         RefreshButtons();
+        DisplayFlights();
+
+        float randomDelay = Random.Range(5f, 10f);
+        StartCoroutine(HideFlightAfterDelay(callsign, randomDelay));
+    }
+
+    private IEnumerator HideFlightAfterDelay(string callsign, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (!hiddenFlights.Contains(callsign))
+        {
+            hiddenFlights.Add(callsign);
+        }
         DisplayFlights();
     }
 }

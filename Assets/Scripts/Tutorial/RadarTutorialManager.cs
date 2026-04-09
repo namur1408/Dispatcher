@@ -24,6 +24,7 @@ public class RadarTutorialManager : MonoBehaviour
     public float typeSpeed = 0.04f;
     public float msgWaitTime = 4f;
 
+    public static bool didFirstPlanesCrash = false;
     private bool skipRequested = false;
     private bool isEmergencyMessageActive = false;
     public static bool isRadarTutorialCompleted = false;
@@ -48,7 +49,6 @@ public class RadarTutorialManager : MonoBehaviour
 
     private string[] angryResponses = {
         "<size=120%>WHAT HAVE YOU DONE?!</size>\nYou just let two planes collide! This is gross negligence!",
-        "<size=120%>MAYDAY! MAYDAY!</size>\nTwo targets just vanished from the radar!",
         "<size=120%>DISASTER!</size>\nYou were supposed to separate them, not help them meet in mid-air!"
     };
 
@@ -70,12 +70,22 @@ public class RadarTutorialManager : MonoBehaviour
 
         if (returnButton != null) returnButton.interactable = false;
         subtitlePanel.SetActive(false);
-        StartCoroutine(RadarTutorialSequence());
+
+        if (DeskTutorialManager.tutorialStep == 5)
+        {
+            StartCoroutine(HoldingPatternTutorial());
+        }
+        else
+        {
+            StartCoroutine(RadarTutorialSequence());
+        }
     }
 
     public void NotifyEmergencyCollision()
     {
         if (isEmergencyMessageActive || isRadarTutorialCompleted) return;
+
+        didFirstPlanesCrash = true;
         StartCoroutine(ShowAngryEmergencyPopup());
     }
 
@@ -87,6 +97,7 @@ public class RadarTutorialManager : MonoBehaviour
         Time.timeScale = 0f;
         subtitlePanel.SetActive(true);
         subtitleText.color = mentorAngryColor;
+        skipRequested = false;
         yield return StartCoroutine(TypeText(randomAngryMsg, true));
         yield return new WaitUntil(() => skipRequested);
         subtitlePanel.SetActive(false);
@@ -117,10 +128,13 @@ public class RadarTutorialManager : MonoBehaviour
         yield return new WaitUntil(() => radarContentTransform != null && radarContentTransform.localScale.x >= zoomThreshold);
 
         yield return StartCoroutine(TypeText(msgStep1, false));
+        skipRequested = false;
         yield return new WaitUntil(() => skipRequested);
         yield return StartCoroutine(TypeText(msgStep2, false));
+        skipRequested = false;
         yield return new WaitUntil(() => skipRequested);
         yield return StartCoroutine(TypeText(msgStep3, false));
+        skipRequested = false;
         yield return new WaitUntil(() => skipRequested);
 
         subtitlePanel.SetActive(false);
@@ -128,19 +142,12 @@ public class RadarTutorialManager : MonoBehaviour
 
         bool dangerTriggered = false;
         bool proactiveSuccess = false;
-        bool planesCollidedEarly = false;
-
-        List<UIAirplane> currentPlanes = new List<UIAirplane>();
 
         while (true)
         {
-            currentPlanes = GetActiveTutorialPlanes();
+            List<UIAirplane> currentPlanes = GetActiveTutorialPlanes();
 
-            if (currentPlanes.Count < 2)
-            {
-                planesCollidedEarly = true;
-                break;
-            }
+            if (currentPlanes.Count < 2) break; 
 
             float dist = Vector2.Distance(currentPlanes[0].GetLogicalPosition(), currentPlanes[1].GetLogicalPosition());
 
@@ -182,6 +189,7 @@ public class RadarTutorialManager : MonoBehaviour
                 yield return StartCoroutine(TypeText(msgDanger, true));
                 yield return StartCoroutine(WaitWithSkip(msgWaitTime));
                 yield return StartCoroutine(TypeText(msgEmergency, true));
+                skipRequested = false;
                 yield return new WaitUntil(() => skipRequested);
                 subtitlePanel.SetActive(false);
                 Time.timeScale = 1f;
@@ -189,7 +197,10 @@ public class RadarTutorialManager : MonoBehaviour
                 while (true)
                 {
                     List<UIAirplane> checking = GetActiveTutorialPlanes();
-                    if (checking.Count < 2) break;
+                    if (checking.Count < 2)
+                    {
+                        break;
+                    }
 
                     if (Vector2.Distance(checking[0].GetLogicalPosition(), checking[1].GetLogicalPosition()) > 280f)
                     {
@@ -205,10 +216,6 @@ public class RadarTutorialManager : MonoBehaviour
                     yield return null;
                 }
             }
-        }
-        else if (planesCollidedEarly)
-        {
-            yield return StartCoroutine(HandleFailure());
         }
 
         yield return new WaitUntil(() => TutorialManager.tutorialStep == 2);
@@ -232,6 +239,7 @@ public class RadarTutorialManager : MonoBehaviour
         subtitlePanel.SetActive(true);
         subtitleText.color = mentorNormalColor;
         yield return StartCoroutine(TypeText(msgFinalStep1, false));
+
         yield return new WaitUntil(() =>
             RadarScreenClicker.selectedPlane != null &&
             RadarScreenClicker.selectedPlane.callsignText.text == "KO-677"
@@ -241,30 +249,64 @@ public class RadarTutorialManager : MonoBehaviour
         Time.timeScale = 0f;
 
         yield return StartCoroutine(TypeText(msgFinalStep2, false));
+        skipRequested = false;
         yield return new WaitUntil(() => skipRequested);
 
         yield return StartCoroutine(TypeText(msgFinalStep3, false));
+        skipRequested = false;
         yield return new WaitUntil(() => skipRequested);
 
         yield return StartCoroutine(TypeText(msgFinalTask, false));
 
         if (returnButton != null) returnButton.interactable = true;
+        skipRequested = false;
         yield return new WaitUntil(() => skipRequested);
 
         subtitlePanel.SetActive(false);
-        // Time.timeScale = 1f; // Оставляем закомментированным, игра ждет на паузе пока не нажмут Return
-        // isRadarTutorialCompleted = true;
     }
 
-    IEnumerator HandleFailure()
+    IEnumerator HoldingPatternTutorial()
     {
+        yield return new WaitForSeconds(1f);
         Time.timeScale = 0f;
         subtitlePanel.SetActive(true);
-        subtitleText.color = mentorAngryColor;
-        string randomAngryMsg = angryResponses[Random.Range(0, angryResponses.Length)];
-        yield return StartCoroutine(TypeText(randomAngryMsg, true));
+        subtitleText.color = mentorNormalColor;
+
+        yield return StartCoroutine(TypeText("When plane reaches the center without approval, it enters a HOLDING PATTERN.", false));
+        skipRequested = false;
         yield return new WaitUntil(() => skipRequested);
+
+        if (didFirstPlanesCrash)
+        {
+            subtitleText.color = mentorAngryColor;
+            yield return StartCoroutine(TypeText("Since YOU crashed the first ones, I have ordered a new flight to approach. Watch it closely.", false));
+            skipRequested = false;
+            yield return new WaitUntil(() => skipRequested);
+
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.SpawnSpecificPlane(
+                    new Vector2(-600, -600),
+                    Vector2.zero,
+                    "LX-677",
+                    radarContentTransform
+                );
+            }
+        }
+
+        subtitleText.color = mentorNormalColor;
+        yield return StartCoroutine(TypeText("They will fly in circles until you ALLOW or DENY them in the terminal. If they run out of fuel, they will divert automatically.", false));
+        skipRequested = false;
+        yield return new WaitUntil(() => skipRequested);
+
+        yield return StartCoroutine(TypeText("Your training is officially over. From here on out, you're on your own. Good luck.", false));
+        if (returnButton != null) returnButton.interactable = true;
+        skipRequested = false;
+        yield return new WaitUntil(() => skipRequested);
+
         subtitlePanel.SetActive(false);
+        Time.timeScale = 1f;
+        isRadarTutorialCompleted = true;
     }
 
     List<UIAirplane> GetActiveTutorialPlanes()

@@ -1,6 +1,6 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI; // <-- ВАЖНО: Добавили библиотеку для работы с UI
+using UnityEngine.UI; 
 using TMPro;
 
 public class BookTutorialManager : MonoBehaviour
@@ -8,7 +8,7 @@ public class BookTutorialManager : MonoBehaviour
     [Header("UI References")]
     public GameObject subtitlePanel;
     public TextMeshProUGUI subtitleText;
-    public Button returnButton; // <-- Ссылка на саму кнопку Return
+    public Button returnButton;
 
     [Header("Timing Settings")]
     public float initialDelay = 1f;
