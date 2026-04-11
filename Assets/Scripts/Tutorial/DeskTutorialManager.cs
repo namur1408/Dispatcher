@@ -36,9 +36,9 @@ public class DeskTutorialManager : MonoBehaviour
 
     private string msg1 = "Click on the radio to listen to the incoming message.";
     private string msg2 = "Welcome to your first shift, Dispatcher! Let me show you around your new workplace!";
-    private string msg3 = "The manual and mandatory requirements for today’s shift are in the book located to the left of the radio.\nOpen it to review today’s tasks.";
+    private string msg3 = "The manual and mandatory requirements for today's shift are in the book located to the left of the radio.\nOpen it to review today's tasks.";
     private string msg4 = "Excellent. Now it's time to manage the airspace.\nClick on the Radar monitor to open it.";
-    private string msg5 = "On the right, you'll find a terminal. It plays an important role in your work; use it to view detailed information about the aircraft and to check landing clearances or restrictions. Now go to that terminal.";
+    private string msg5 = "On the left, you'll find a terminal. It plays an important role in your work; use it to view detailed information about the aircraft and to check landing clearances or restrictions. Now go to that terminal.";
 
     void Awake()
     {
@@ -74,6 +74,8 @@ public class DeskTutorialManager : MonoBehaviour
     IEnumerator Part1_RadioAndBook()
     {
         Time.timeScale = 0f;
+        if (radioHighlight) radioHighlight.SetActive(true);
+        if (radioButton) radioButton.interactable = true;
         subtitlePanel.SetActive(true);
         yield return StartCoroutine(TypeText(msg1));
 

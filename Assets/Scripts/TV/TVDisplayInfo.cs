@@ -81,7 +81,7 @@ public class TVDisplayInfo : MonoBehaviour
         if (tmp == null) return;
         tmp.text = text;
         tmp.color = new Color(0f, 1f, 0.25f);
-        tmp.fontSize = 18;
+        tmp.fontSize = 60;
         tmp.fontStyle = FontStyles.Bold;
         tmp.alignment = TextAlignmentOptions.Center;
     }
@@ -133,7 +133,7 @@ public class TVDisplayInfo : MonoBehaviour
             TextMeshProUGUI txt = entry.GetComponentInChildren<TextMeshProUGUI>();
             if (txt != null)
             {
-                txt.fontSize = 24;
+                txt.fontSize = 50;
                 txt.alignment = TextAlignmentOptions.Left;
 
                 if (data.decisionMade)

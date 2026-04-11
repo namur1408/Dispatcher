@@ -22,7 +22,7 @@ public class BookTutorialManager : MonoBehaviour
     public static bool isBookTutorialCompleted = false;
 
     private string msg1 = "This is your Shift Tasks page. Here you will find your daily goals and restrictions.";
-    private string msg2 = "Always check this before starting! Now, click on the 'Manual' tab to read the instructions.";
+    private string msg2 = "Always check this before starting! Now, click on the gear icon to read the instructions.";
     private string msg3 = "The Manual explains how to use the Radar, Terminal, and Radio. Read it carefully.";
     private string msg4 = "When you are ready to begin your shift, click 'Return' to close the book.";
 
