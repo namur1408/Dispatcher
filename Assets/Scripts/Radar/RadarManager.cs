@@ -18,14 +18,22 @@ public class RadarManager : MonoBehaviour
 
     void Start()
     {
-        // Восстанавливаем самолёты из сохранённых данных
         if (FlightDataManager.Instance != null && FlightDataManager.Instance.savedFlights.Count > 0)
         {
-            foreach (var data in FlightDataManager.Instance.savedFlights)
-                RestoreAirplane(data);
+            Debug.Log($"[RadarManager] Возвращаемся со стола! Загружаем {FlightDataManager.Instance.savedFlights.Count} самолетов.");
 
-            // Применяем решения диспетчера через кадр (дать самолётам зарегистрироваться)
+            activeAirplanes.Clear();
+
+            foreach (var data in FlightDataManager.Instance.savedFlights)
+            {
+                RestoreAirplane(data);
+            }
+
             StartCoroutine(ApplyDecisionsNextFrame());
+        }
+        else
+        {
+            Debug.Log("[RadarManager] Нет сохраненных данных для загрузки. Радар чист.");
         }
     }
 
@@ -34,7 +42,7 @@ public class RadarManager : MonoBehaviour
         AirplaneSpawner spawner = FindFirstObjectByType<AirplaneSpawner>();
         if (spawner == null) return;
 
-        GameObject newPlane   = Instantiate(spawner.airplanePrefab, spawner.radarContent);
+        GameObject newPlane = Instantiate(spawner.airplanePrefab, spawner.radarContent);
         UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
         if (planeScript != null)
             planeScript.InitializeFromData(data);
@@ -42,22 +50,20 @@ public class RadarManager : MonoBehaviour
 
     IEnumerator ApplyDecisionsNextFrame()
     {
-        yield return null; // ждём один кадр — все Start() завершатся
+        yield return null;
 
         foreach (var flight in FlightDataManager.Instance.savedFlights)
         {
             if (!flight.decisionMade) continue;
-
-            // Ищем самолёт по callsign
             UIAirplane target = activeAirplanes.Find(p =>
                 p != null && p.callsignText != null && p.callsignText.text == flight.callsign);
 
             if (target == null) continue;
 
             if (flight.approved) target.Approve();
-            else                 target.Deny();
+            else target.Deny();
         }
-    }
+    } 
 
     public void RegisterAirplane(UIAirplane airplane)
     {
@@ -78,7 +84,6 @@ public class RadarManager : MonoBehaviour
         activeAirplanes.Remove(airplane);
     }
 
-    // Сохраняет все активные самолёты перед переходом на другую сцену
     public void SaveToGlobalManager()
     {
         if (FlightDataManager.Instance != null)
