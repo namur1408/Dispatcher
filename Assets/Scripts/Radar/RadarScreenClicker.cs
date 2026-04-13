@@ -17,10 +17,10 @@ public class RadarScreenClicker : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (eventData.button != PointerEventData.InputButton.Left) return;
 
         List<RaycastResult> results = new List<RaycastResult>();
         EventSystem.current.RaycastAll(eventData, results);
+
         foreach (var result in results)
         {
             if (backButton != null && result.gameObject == backButton.gameObject)
@@ -42,7 +42,7 @@ public class RadarScreenClicker : MonoBehaviour, IPointerClickHandler
 
             Collider2D hit = Physics2D.OverlapPoint(worldClickPos, airplaneLayer);
 
-            if (hit != null)
+            if (hit != null) 
             {
                 UIAirplane plane = hit.GetComponentInParent<UIAirplane>();
 
@@ -59,7 +59,7 @@ public class RadarScreenClicker : MonoBehaviour, IPointerClickHandler
                     }
                 }
             }
-            else
+            else 
             {
                 if (selectedPlane != null)
                 {
@@ -70,11 +70,11 @@ public class RadarScreenClicker : MonoBehaviour, IPointerClickHandler
 
                     if (clickedIndex != -1)
                     {
-                        selectedPlane.RemoveWaypoint(clickedIndex);
+                        selectedPlane.RemoveWaypoint(clickedIndex); 
                     }
                     else
                     {
-                        selectedPlane.AddWaypoint(finalWaypointPos);
+                        selectedPlane.AddWaypoint(finalWaypointPos); 
                     }
                 }
                 else

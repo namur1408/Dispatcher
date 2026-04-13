@@ -78,12 +78,11 @@ public class DeskTutorialManager : MonoBehaviour
         if (radioButton) radioButton.interactable = true;
         subtitlePanel.SetActive(true);
         yield return StartCoroutine(TypeText(msg1));
+        yield return new WaitUntil(() => isRadioClicked);
 
-        skipRequested = false;
-        yield return new WaitUntil(() => skipRequested);
-
-        if (radioButton) radioButton.interactable = true;
-        if (radioHighlight) radioHighlight.SetActive(true);
+        if (radioHighlight) radioHighlight.SetActive(false);
+        if (radioButton) radioButton.interactable = false;
+        subtitleText.text = "";
 
         yield return new WaitUntil(() => isRadioClicked);
 
