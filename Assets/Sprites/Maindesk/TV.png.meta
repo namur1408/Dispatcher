@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: d1b1cdc4c24e82f498c16c33856a4b21
+guid: 06c676aa65504eb46a778b9d22ac8cf5
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1713478271056411236
-    second: ManualBook_0
+      213: -3357879352890511814
+    second: Gemini_Generated_Image_tw8xaktw8xaktw8x-remove-background.com (13)_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -96,17 +96,30 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: ManualBook_0
+      name: Gemini_Generated_Image_tw8xaktw8xaktw8x-remove-background.com (13)_0
       rect:
         serializedVersion: 2
-        x: 207
-        y: 268
-        width: 1640
-        height: 1477
+        x: 169
+        y: 16
+        width: 296
+        height: 317
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c95055347908838e0800000000000000
-      internalID: -1713478271056411236
+      spriteID: a3ea754f48a6661d0800000000000000
+      internalID: -3357879352890511814
       vertices: []
       indices: 
       edges: []
@@ -135,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      ManualBook_0: -1713478271056411236
+      Gemini_Generated_Image_tw8xaktw8xaktw8x-remove-background.com (13)_0: -3357879352890511814
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

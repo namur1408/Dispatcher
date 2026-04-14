@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class RadarScreenClicker : MonoBehaviour, IPointerClickHandler
+public class RadarScreenClicker : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 {
     public static UIAirplane selectedPlane;
 
@@ -12,15 +12,19 @@ public class RadarScreenClicker : MonoBehaviour, IPointerClickHandler
     public LayerMask airplaneLayer;
 
     private RectTransform zoneRect;
+    private Vector2 pointerDownPos;
+    private const float DRAG_THRESHOLD = 30f;
 
     void Awake() => zoneRect = GetComponent<RectTransform>();
 
-    public void OnPointerClick(PointerEventData eventData)
+    public void OnPointerDown(PointerEventData eventData) => pointerDownPos = eventData.position;
+
+    public void OnPointerUp(PointerEventData eventData)
     {
+        if (Vector2.Distance(pointerDownPos, eventData.position) > DRAG_THRESHOLD) return;
 
         List<RaycastResult> results = new List<RaycastResult>();
         EventSystem.current.RaycastAll(eventData, results);
-
         foreach (var result in results)
         {
             if (backButton != null && result.gameObject == backButton.gameObject)
@@ -40,47 +44,45 @@ public class RadarScreenClicker : MonoBehaviour, IPointerClickHandler
             Vector3 worldClickPos = radarCamera.ViewportToWorldPoint(new Vector3(u, v, distanceToPlane));
             worldClickPos.z = 0f;
 
-            Collider2D hit = Physics2D.OverlapPoint(worldClickPos, airplaneLayer);
+            Vector2 finalPosInsideContent = Vector2.zero;
+            if (selectedPlane != null)
+            {
+                finalPosInsideContent = selectedPlane.transform.parent.InverseTransformPoint(worldClickPos);
+            }
 
-            if (hit != null) 
+            if (selectedPlane != null)
+            {
+                int clickedIndex = selectedPlane.GetWaypointIndexAt(finalPosInsideContent, 150f);
+                if (clickedIndex != -1)
+                {
+                    selectedPlane.RemoveWaypoint(clickedIndex);
+                    return; 
+                }
+            }
+
+            Collider2D hit = Physics2D.OverlapPoint(worldClickPos, airplaneLayer);
+            if (hit != null)
             {
                 UIAirplane plane = hit.GetComponentInParent<UIAirplane>();
-
                 if (plane != null)
                 {
-                    if (selectedPlane == plane)
-                    {
-                        DeselectAll();
-                    }
+                    if (selectedPlane == plane) DeselectAll();
                     else
                     {
                         selectedPlane = plane;
                         plane.TriggerSelection();
                     }
+                    return; 
                 }
             }
-            else 
+
+            if (selectedPlane != null)
             {
-                if (selectedPlane != null)
-                {
-                    Transform radarContent = selectedPlane.transform.parent;
-                    Vector2 finalWaypointPos = radarContent.InverseTransformPoint(worldClickPos);
-
-                    int clickedIndex = selectedPlane.GetWaypointIndexAt(finalWaypointPos, 30f);
-
-                    if (clickedIndex != -1)
-                    {
-                        selectedPlane.RemoveWaypoint(clickedIndex); 
-                    }
-                    else
-                    {
-                        selectedPlane.AddWaypoint(finalWaypointPos); 
-                    }
-                }
-                else
-                {
-                    DeselectAll();
-                }
+                selectedPlane.AddWaypoint(finalPosInsideContent);
+            }
+            else
+            {
+                DeselectAll();
             }
         }
     }
@@ -90,10 +92,6 @@ public class RadarScreenClicker : MonoBehaviour, IPointerClickHandler
         selectedPlane = null;
         UIAirplane[] allPlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
         foreach (var p in allPlanes) p.SetHighlight(false);
-
-        if (BigRadarTerminal.Instance != null)
-        {
-            BigRadarTerminal.Instance.ClearSelection();
-        }
+        if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.ClearSelection();
     }
 }

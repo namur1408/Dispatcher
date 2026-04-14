@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 4c606c18ce23ac44ca023204a99971e0
+guid: c894622fa4f8311448f04b1b3009e0c4
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 6019904023235092774
-    second: "\u0411\u0435\u0437 \u0438\u043C\u0435\u043D\u0438-3_0"
+      213: 653192686721678365
+    second: MAINDESK_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -96,17 +96,30 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: "\u0411\u0435\u0437 \u0438\u043C\u0435\u043D\u0438-3_0"
+      name: MAINDESK_0
       rect:
         serializedVersion: 2
-        x: 98
-        y: 97
-        width: 1305
-        height: 1305
+        x: 0
+        y: 0
+        width: 852
+        height: 239
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 6216fd670defa8350800000000000000
-      internalID: 6019904023235092774
+      spriteID: d1cbdeda94b901900800000000000000
+      internalID: 653192686721678365
       vertices: []
       indices: 
       edges: []
@@ -135,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      "\u0411\u0435\u0437 \u0438\u043C\u0435\u043D\u0438-3_0": 6019904023235092774
+      MAINDESK_0: 653192686721678365
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

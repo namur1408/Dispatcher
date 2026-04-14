@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 20b15accde16d99428374972ba57b133
+guid: a8f91faaae3d6864c8e880081fc16c63
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -765246936122485093
-    second: Main_Radio_0
+      213: 3312798837105470071
+    second: arrow_right_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -96,17 +96,30 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Main_Radio_0
+      name: arrow_right_0
       rect:
         serializedVersion: 2
-        x: 118
+        x: 0
         y: 0
-        width: 2184
-        height: 1545
+        width: 951
+        height: 928
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b9696fe47fb4165f0800000000000000
-      internalID: -765246936122485093
+      spriteID: 77aaff98dfc69fd20800000000000000
+      internalID: 3312798837105470071
       vertices: []
       indices: 
       edges: []
@@ -135,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Main_Radio_0: -765246936122485093
+      arrow_right_0: 3312798837105470071
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 6da430bc0f9bfba4eb49c2e227cd228b
+guid: efa7fe90b31d29445a7ed6d9224115b5
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4841326954115442802
-    second: Radio_Glow 1_0
+      213: -3019424127853119141
+    second: line_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -37,12 +37,12 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
-    wrapU: 1
-    wrapV: 1
-    wrapW: 1
+    wrapU: 0
+    wrapV: 0
+    wrapW: 0
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
@@ -96,17 +96,30 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Radio_Glow 1_0
+      name: line_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 1440
-        height: 1015
+        width: 4
+        height: 4
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e87dc6229c620dcb0800000000000000
-      internalID: -4841326954115442802
+      spriteID: b593219d0c9d816d0800000000000000
+      internalID: -3019424127853119141
       vertices: []
       indices: 
       edges: []
@@ -135,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Radio_Glow 1_0: -4841326954115442802
+      line_0: -3019424127853119141
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 8fb830b4b6217334d997274e5e94b588
+guid: 992c01457d728c044b5b13b045c689e6
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1174368998578606885
-    second: TV_Pencil_0
+      213: 3383636888127445912
+    second: bookmark_shift-tasks_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -96,17 +96,30 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: TV_Pencil_0
+      name: bookmark_shift-tasks_0
       rect:
         serializedVersion: 2
-        x: 189
-        y: 23
-        width: 307
-        height: 327
+        x: 0
+        y: 0
+        width: 798
+        height: 1211
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: bdcad7c2e9dc3bfe0800000000000000
-      internalID: -1174368998578606885
+      spriteID: 89b9ebd82d715fe20800000000000000
+      internalID: 3383636888127445912
       vertices: []
       indices: 
       edges: []
@@ -135,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      TV_Pencil_0: -1174368998578606885
+      bookmark_shift-tasks_0: 3383636888127445912
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

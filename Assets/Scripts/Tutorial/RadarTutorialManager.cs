@@ -33,19 +33,19 @@ public class RadarTutorialManager : MonoBehaviour
     private string msgPlanesSpawned = "Attention! Two flights have just entered your sector. Do you see them?";
     private string msgZoomTutorial = "It's hard to read their data from this height. Zoom in until you can see their callsigns.";
 
-    private string msgStep1 = "Good. Now click on a plane's icon to SELECT it. You will see its current flight path highlighted. If you want to DESELECT click on it again.";
-    private string msgStep2 = "To change the route, click anywhere on the radar. This creates a WAYPOINT that the plane will follow.";
-    private string msgStep3 = "Made a mistake? Just click on an existing waypoint marker to REMOVE it from the path.";
+    private string msgStep1 = "Good. now click a plane to SELECT it and reveal its flight path. Click again to DESELECT.";
+    private string msgStep2 = "Click anywhere on the radar to create a WAYPOINT. And most importantly, if flight paths cross, planes will COLLIDE!";
+    private string msgStep3 = "Need to fix a route? Click an existing waypoint to REMOVE it.";
 
-    private string msgDanger = "Stop messing around! Look at the icons! They turned orange. A collision is imminent!";
-    private string msgEmergency = "Orange color means you have seconds to act! Divert one of them immediately!";
-    private string msgSuccess = "Good job. The distance is safe now. You prevented a disaster.";
-    private string msgProactiveSuccess = "Excellent foresight, Dispatcher. You diverted them before the risk became critical. Nice job.";
+    private string msgDanger = "Stop messing around! Icons turned ORANGE! A collision is imminent!";
+    private string msgEmergency = "You have seconds to act! Divert one of the planes NOW!";
+    private string msgSuccess = "Crisis averted. Safe distance maintained.";
+    private string msgProactiveSuccess = "Excellent foresight, Dispatcher. You diverted them early. Good job.";
 
-    private string msgFinalStep1 = "A new flight just appeared. Click on it to SELECT it, and look at the terminal on the right.";
-    private string msgFinalStep2 = "Its status is 'PENDING', and its callsign starts with 'KO'. Do you remember the daily rules in your book?";
-    private string msgFinalStep3 = "Flights with the 'KO' prefix are strictly forbidden today. You cannot let them land.";
-    private string msgFinalTask = "Click the 'Return' button to go back to your desk and DENY its entry.";
+    private string msgFinalStep1 = "A new flight appeared. SELECT it and check the terminal on the left.";
+    private string msgFinalStep2 = "Status is 'PENDING', prefix is 'KO'. Remember the rules in your book?";
+    private string msgFinalStep3 = "'KO' flights are strictly FORBIDDEN today. They cannot land.";
+    private string msgFinalTask = "Click 'Return', go back to your desk, and DENY their entry.";
 
     private string[] angryResponses = {
         "<size=120%>WHAT HAVE YOU DONE?!</size>\nYou just let two planes collide! This is gross negligence!",
@@ -272,7 +272,7 @@ public class RadarTutorialManager : MonoBehaviour
         subtitlePanel.SetActive(true);
         subtitleText.color = mentorNormalColor;
 
-        yield return StartCoroutine(TypeText("When plane reaches the center without approval, it enters a HOLDING PATTERN.", false));
+        yield return StartCoroutine(TypeText("Planes reaching the center without clearance enter a HOLDING PATTERN.", false));
         skipRequested = false;
         yield return new WaitUntil(() => skipRequested);
 
@@ -295,7 +295,7 @@ public class RadarTutorialManager : MonoBehaviour
         }
 
         subtitleText.color = mentorNormalColor;
-        yield return StartCoroutine(TypeText("They will fly in circles until you ALLOW or DENY them in the terminal. If they run out of fuel, they will divert automatically.", false));
+        yield return StartCoroutine(TypeText("They circle until you ALLOW or DENY them. If fuel runs out, they divert.", false));
         skipRequested = false;
         yield return new WaitUntil(() => skipRequested);
 

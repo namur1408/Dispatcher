@@ -797,7 +797,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -5339821118244573711, guid: 1daed67cd1849ed4fb53b52fea1ffc72, type: 3}
+  m_Sprite: {fileID: 1402627292799575379, guid: e19131fa10b6ff24a9f5e85835338650, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1001,6 +1001,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RadarZoomManager
   radarContent: {fileID: 898857637}
   zoomSpeed: 0.1
+  mobileZoomSpeed: 0.005
   minZoom: 0.37
   maxZoom: 3
   panSpeed: 1

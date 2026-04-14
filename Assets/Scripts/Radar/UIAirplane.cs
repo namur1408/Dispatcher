@@ -360,6 +360,12 @@ public class UIAirplane : MonoBehaviour
             return;
         }
 
+        if (isSelected)
+        {
+            canvasGroup.alpha = 1f;
+            return;
+        }
+
         canvasGroup.alpha = Mathf.Max(minAlpha, canvasGroup.alpha - fadeSpeed * Time.deltaTime);
     }
 
@@ -561,7 +567,7 @@ public class UIAirplane : MonoBehaviour
         }
         else if (isSelected)
         {
-            finalColor = Color.yellow;
+            finalColor = new Color(1f, 0.9f, 0f, 1f);
         }
         else if (isInDanger)
         {

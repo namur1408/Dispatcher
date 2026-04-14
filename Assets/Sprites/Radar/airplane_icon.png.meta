@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: e3d581c26cf843547917bcb9453707ef
+guid: ef84fac40e5b7cb4f9602e37f46483d4
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 8222077132905031655
-    second: TV_1_0
+      213: 9200328658351448018
+    second: airplane_icon_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -96,17 +96,30 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: TV_1_0
+      name: airplane_icon_0
       rect:
         serializedVersion: 2
-        x: 790
-        y: 75
-        width: 1272
-        height: 1357
+        x: 0
+        y: 0
+        width: 24
+        height: 24
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7e7aaa6079faa1270800000000000000
-      internalID: 8222077132905031655
+      spriteID: 2df52e95b222eaf70800000000000000
+      internalID: 9200328658351448018
       vertices: []
       indices: 
       edges: []
@@ -135,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      TV_1_0: 8222077132905031655
+      airplane_icon_0: 9200328658351448018
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

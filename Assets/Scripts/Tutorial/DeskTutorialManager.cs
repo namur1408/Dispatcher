@@ -26,6 +26,7 @@ public class DeskTutorialManager : MonoBehaviour
     [Header("Timing Settings")]
     public float typeSpeed = 0.04f;
     public float msgWaitTime = 4.5f;
+    public bool disableTutorialsForTesting = false;
 
     private bool isRadioClicked = false;
     private bool isBookClicked = false;
@@ -43,6 +44,15 @@ public class DeskTutorialManager : MonoBehaviour
     void Awake()
     {
         Instance = this;
+        if (disableTutorialsForTesting)
+        {
+            tutorialStep = 99; 
+            RadarTutorialManager.isRadarTutorialCompleted = true; 
+            TVTutorialManager.isTvTutorialCompleted = true; 
+        }
+#if !UNITY_EDITOR
+        disableTutorialsForTesting = false;
+#endif
     }
 
     void Start()
@@ -173,6 +183,7 @@ public class DeskTutorialManager : MonoBehaviour
         isBookClicked = true;
         tutorialStep = 1;
         Time.timeScale = 1f;
+        subtitlePanel.SetActive(false); 
     }
 
     public void PlayerClickedRadar()
@@ -181,6 +192,7 @@ public class DeskTutorialManager : MonoBehaviour
         if (tutorialStep == 1) tutorialStep = 2;
         else if (tutorialStep == 4) tutorialStep = 5;
         Time.timeScale = 1f;
+        subtitlePanel.SetActive(false); 
     }
 
     public void PlayerClickedTV()
@@ -188,6 +200,7 @@ public class DeskTutorialManager : MonoBehaviour
         isTvClicked = true;
         tutorialStep = 3;
         Time.timeScale = 1f;
+        subtitlePanel.SetActive(false); 
     }
 
     public void OnDialogueClicked() { skipRequested = true; }

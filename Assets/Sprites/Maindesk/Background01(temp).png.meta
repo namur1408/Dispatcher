@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 1daed67cd1849ed4fb53b52fea1ffc72
+guid: 40a9d1496b47cf647a324cd1c6ebba43
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5339821118244573711
-    second: Main_Radar_0
+      213: 3823081975884303515
+    second: Background01_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -96,17 +96,30 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Main_Radar_0
+      name: Background01_0
       rect:
         serializedVersion: 2
-        x: 860
-        y: 123
-        width: 1100
-        height: 1277
+        x: 0
+        y: 0
+        width: 2760
+        height: 1504
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 1fd27ea0cf425e5b0800000000000000
-      internalID: -5339821118244573711
+      spriteID: b9c48cf2dc05e0530800000000000000
+      internalID: 3823081975884303515
       vertices: []
       indices: 
       edges: []
@@ -135,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Main_Radar_0: -5339821118244573711
+      Background01_0: 3823081975884303515
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

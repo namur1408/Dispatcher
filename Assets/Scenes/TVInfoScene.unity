@@ -2550,12 +2550,12 @@ RectTransform:
   m_Children:
   - {fileID: 714846774}
   - {fileID: 1328422586}
-  - {fileID: 2101722973}
   - {fileID: 869980391}
   - {fileID: 1028233191}
   - {fileID: 37131968}
   - {fileID: 1653841553}
   - {fileID: 292598183}
+  - {fileID: 2101722973}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -2783,7 +2783,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2101722976}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 2101722978}
+        m_TargetAssemblyTypeName: ReturnToDesk, Assembly-CSharp
+        m_MethodName: GoBackToMainScene
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &2101722976
 MonoBehaviour:
   m_ObjectHideFlags: 0
