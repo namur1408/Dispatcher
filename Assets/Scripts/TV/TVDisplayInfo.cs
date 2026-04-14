@@ -6,6 +6,7 @@ using TMPro;
 
 public class TVDisplayInfo : MonoBehaviour
 {
+    [Header("Original UI Elements")]
     public Transform tvListContainer;
     public GameObject tvEntryPrefab;
     private List<string> hiddenFlights = new List<string>();
@@ -15,11 +16,23 @@ public class TVDisplayInfo : MonoBehaviour
     public Button approveButton;
     public Button denyButton;
     public TextMeshProUGUI baseStatsText;
+
+    [Header("Colors")]
     public Color approveNormalColor = new Color(0.05f, 0.45f, 0.05f, 1f);
     public Color approvePressedColor = new Color(0.1f, 0.8f, 0.1f, 1f);
     public Color denyNormalColor = new Color(0.45f, 0.05f, 0.05f, 1f);
     public Color denyPressedColor = new Color(0.9f, 0.1f, 0.1f, 1f);
     public Color disabledColor = new Color(0.15f, 0.15f, 0.15f, 0.6f);
+
+    [Header("Panels & Resources UI")]
+    public GameObject flightsPanel;   // Контейнер со списком рейсов
+    public GameObject resourcesPanel; // Контейнер с информацией о ресурсах
+    public Button resourcesButton;    // Кнопка "Ресурсы"
+    public Button backToFlightsButton;// Кнопка для возврата к рейсам
+    public TextMeshProUGUI detailedResourcesText; // Текст для отображения ресурсов
+
+    [Header("Resource Settings")]
+    public int maxResourceValue = 100; // Тот самый лимит (например, 100)
 
     private int selectedIndex = -1;
 
@@ -38,15 +51,66 @@ public class TVDisplayInfo : MonoBehaviour
         if (approveButton != null) approveButton.onClick.AddListener(OnApproveClicked);
         if (denyButton != null) denyButton.onClick.AddListener(OnDenyClicked);
 
+        // Слушатели для новых кнопок панелей
+        if (resourcesButton != null) resourcesButton.onClick.AddListener(ShowResourcesView);
+        if (backToFlightsButton != null) backToFlightsButton.onClick.AddListener(ShowFlightsView);
+
         StyleButtons();
         DisplayFlights();
         RefreshButtons();
         UpdateBaseStatsUI();
+
+        // По умолчанию показываем панель рейсов
+        ShowFlightsView();
     }
 
     void Update()
     {
         UpdateBaseStatsUI();
+
+        // Обновляем текст ресурсов в реальном времени, если панель открыта
+        if (resourcesPanel != null && resourcesPanel.activeSelf)
+        {
+            UpdateResourcesText();
+        }
+    }
+
+    public void ShowResourcesView()
+    {
+        if (flightsPanel != null) flightsPanel.SetActive(false);
+        if (resourcesPanel != null) resourcesPanel.SetActive(true);
+
+        UpdateResourcesText();
+    }
+
+    public void ShowFlightsView()
+    {
+        if (resourcesPanel != null) resourcesPanel.SetActive(false);
+        if (flightsPanel != null) flightsPanel.SetActive(true);
+
+        DisplayFlights();
+    }
+
+    private void UpdateResourcesText()
+    {
+        if (detailedResourcesText == null || FlightDataManager.Instance == null) return;
+
+        var fdm = FlightDataManager.Instance;
+
+        // Формируем детальный список ресурсов в формате "X / MAX"
+        string infoString = $"<color={COL_HEADER}><b>СОСТОЯНИЕ СКЛАДА:</b>\n\n</color>";
+
+        infoString += $"МЕДИКАМЕНТЫ: <color=#FFD700><b>{fdm.totalMedicines} / {maxResourceValue}</b></color>\n";
+        infoString += $"ПРОДОВОЛЬСТВИЕ: <color=#FFD700><b>{fdm.totalFood} / {maxResourceValue}</b></color>\n";
+        infoString += $"МАТЕРИАЛЫ (SCR): <color=#FFD700><b>{fdm.totalScrap} / {maxResourceValue}</b></color>\n";
+        infoString += $"ПЕРСОНАЛ: <color=#FFD700><b>{fdm.totalPeople} / {maxResourceValue}</b></color>\n\n";
+
+        // Вместимость самолетов (отдельный лимит из менеджера)
+        string capCol = fdm.landedPlanes >= fdm.maxPlanes ? COL_DENIED : COL_APPROVED;
+        infoString += $"<color=white>ЗАПОЛНЕННОСТЬ ПОЛОС:</color> <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n";
+        infoString += $"<color={COL_SEPARATOR}>──────────────────────────────────</color>";
+
+        detailedResourcesText.text = infoString;
     }
 
     void StyleButtons()
