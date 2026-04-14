@@ -17,22 +17,22 @@ public class TVDisplayInfo : MonoBehaviour
     public Button denyButton;
     public TextMeshProUGUI baseStatsText;
 
+    [Header("Panels & Resources UI")]
+    public GameObject flightsPanel;
+    public GameObject resourcesPanel;
+    public Button resourcesButton;
+    public Button backToFlightsButton;
+    public TextMeshProUGUI detailedResourcesText;
+
+    [Header("Resource Settings")]
+    public int maxResourceValue = 100;
+
     [Header("Colors")]
     public Color approveNormalColor = new Color(0.05f, 0.45f, 0.05f, 1f);
     public Color approvePressedColor = new Color(0.1f, 0.8f, 0.1f, 1f);
     public Color denyNormalColor = new Color(0.45f, 0.05f, 0.05f, 1f);
     public Color denyPressedColor = new Color(0.9f, 0.1f, 0.1f, 1f);
     public Color disabledColor = new Color(0.15f, 0.15f, 0.15f, 0.6f);
-
-    [Header("Panels & Resources UI")]
-    public GameObject flightsPanel;   // Контейнер со списком рейсов
-    public GameObject resourcesPanel; // Контейнер с информацией о ресурсах
-    public Button resourcesButton;    // Кнопка "Ресурсы"
-    public Button backToFlightsButton;// Кнопка для возврата к рейсам
-    public TextMeshProUGUI detailedResourcesText; // Текст для отображения ресурсов
-
-    [Header("Resource Settings")]
-    public int maxResourceValue = 100; // Тот самый лимит (например, 100)
 
     private int selectedIndex = -1;
 
@@ -51,7 +51,6 @@ public class TVDisplayInfo : MonoBehaviour
         if (approveButton != null) approveButton.onClick.AddListener(OnApproveClicked);
         if (denyButton != null) denyButton.onClick.AddListener(OnDenyClicked);
 
-        // Слушатели для новых кнопок панелей
         if (resourcesButton != null) resourcesButton.onClick.AddListener(ShowResourcesView);
         if (backToFlightsButton != null) backToFlightsButton.onClick.AddListener(ShowFlightsView);
 
@@ -60,7 +59,6 @@ public class TVDisplayInfo : MonoBehaviour
         RefreshButtons();
         UpdateBaseStatsUI();
 
-        // По умолчанию показываем панель рейсов
         ShowFlightsView();
     }
 
@@ -68,7 +66,6 @@ public class TVDisplayInfo : MonoBehaviour
     {
         UpdateBaseStatsUI();
 
-        // Обновляем текст ресурсов в реальном времени, если панель открыта
         if (resourcesPanel != null && resourcesPanel.activeSelf)
         {
             UpdateResourcesText();
@@ -93,21 +90,30 @@ public class TVDisplayInfo : MonoBehaviour
 
     private void UpdateResourcesText()
     {
-        if (detailedResourcesText == null || FlightDataManager.Instance == null) return;
+        // Added logs to debug why the text might stay as "New text"
+        if (detailedResourcesText == null)
+        {
+            Debug.LogError("[TVDisplayInfo] 'Detailed Resources Text' is NOT assigned in the Inspector!");
+            return;
+        }
+
+        if (FlightDataManager.Instance == null)
+        {
+            Debug.LogError("[TVDisplayInfo] 'FlightDataManager' instance is missing from the scene!");
+            return;
+        }
 
         var fdm = FlightDataManager.Instance;
 
-        // Формируем детальный список ресурсов в формате "X / MAX"
-        string infoString = $"<color={COL_HEADER}><b>СОСТОЯНИЕ СКЛАДА:</b>\n\n</color>";
+        string infoString = $"<color={COL_HEADER}><b>WAREHOUSE STATUS:</b>\n\n</color>";
 
-        infoString += $"МЕДИКАМЕНТЫ: <color=#FFD700><b>{fdm.totalMedicines} / {maxResourceValue}</b></color>\n";
-        infoString += $"ПРОДОВОЛЬСТВИЕ: <color=#FFD700><b>{fdm.totalFood} / {maxResourceValue}</b></color>\n";
-        infoString += $"МАТЕРИАЛЫ (SCR): <color=#FFD700><b>{fdm.totalScrap} / {maxResourceValue}</b></color>\n";
-        infoString += $"ПЕРСОНАЛ: <color=#FFD700><b>{fdm.totalPeople} / {maxResourceValue}</b></color>\n\n";
+        infoString += $"PEOPLE: <color=#FFD700><b>{fdm.totalPeople} / {maxResourceValue}</b></color>\n";
+        infoString += $"FUEL: <color=#FFD700><b>{fdm.totalFuel} / {maxResourceValue}</b></color>\n";
+        infoString += $"MEDICINES: <color=#FFD700><b>{fdm.totalMedicines} / {maxResourceValue}</b></color>\n";
+        infoString += $"FOOD: <color=#FFD700><b>{fdm.totalFood} / {maxResourceValue}</b></color>\n\n";
 
-        // Вместимость самолетов (отдельный лимит из менеджера)
         string capCol = fdm.landedPlanes >= fdm.maxPlanes ? COL_DENIED : COL_APPROVED;
-        infoString += $"<color=white>ЗАПОЛНЕННОСТЬ ПОЛОС:</color> <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n";
+        infoString += $"<color=white>RUNWAY CAPACITY:</color> <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n";
         infoString += $"<color={COL_SEPARATOR}>──────────────────────────────────</color>";
 
         detailedResourcesText.text = infoString;
@@ -159,7 +165,7 @@ public class TVDisplayInfo : MonoBehaviour
         string capCol = fdm.landedPlanes >= fdm.maxPlanes ? COL_DENIED : COL_APPROVED;
 
         baseStatsText.text = $"<color=white>CAPACITY:</color> <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n" +
-                             $"<color=#FFD700>MED: {fdm.totalMedicines} | PPL: {fdm.totalPeople} | FOOD: {fdm.totalFood} | SCR: {fdm.totalScrap}</color>";
+                             $"<color=#FFD700>MED: {fdm.totalMedicines} | PPL: {fdm.totalPeople} | FOOD: {fdm.totalFood} | FUEL: {fdm.totalFuel}</color>";
     }
 
     void DisplayFlights()
@@ -353,7 +359,7 @@ public class TVDisplayInfo : MonoBehaviour
 
         if (DeskTutorialManager.tutorialStep < 5 && callsign != "KO-677")
         {
-            Debug.Log("Нельзя посадить этот самолет до прохождения обучения Холдинга!");
+            Debug.Log("[Tutorial] Cannot land this plane until Holding tutorial is completed!");
             if (selectedLabel != null)
                 selectedLabel.text = $"<color={COL_DENIED}><b>[ TUTORIAL ] ACTION BLOCKED</b></color>";
             return;

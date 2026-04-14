@@ -7,14 +7,14 @@ public class FlightDataManager : MonoBehaviour
 
     public List<FlightData> savedFlights = new List<FlightData>();
 
-    [Header("База (Статистика)")]
+    [Header("Base Stats")]
     public int landedPlanes = 0;
     public int maxPlanes = 5;
 
     public int totalMedicines = 0;
     public int totalPeople = 0;
     public int totalFood = 0;
-    public int totalScrap = 0;
+    public int totalFuel = 0; // Changed from totalScrap to totalFuel
 
     void Awake()
     {
@@ -77,10 +77,10 @@ public class FlightDataManager : MonoBehaviour
                     if (c == "Medicines") totalMedicines++;
                     else if (c == "People") totalPeople++;
                     else if (c == "Food") totalFood++;
-                    else if (c == "Scrap") totalScrap++;
+                    else if (c == "Fuel") totalFuel++; // Using Fuel here
                 }
 
-                Debug.Log($"[FlightDataManager] {callsign} -> {(isApproved ? "РАЗРЕШЕНО" : "ЗАПРЕЩЕНО")}");
+                Debug.Log($"[FlightDataManager] {callsign} -> {(isApproved ? "APPROVED" : "DENIED")}");
                 return;
             }
         }
