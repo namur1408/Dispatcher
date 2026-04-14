@@ -90,7 +90,6 @@ public class TVDisplayInfo : MonoBehaviour
 
     private void UpdateResourcesText()
     {
-        // Added logs to debug why the text might stay as "New text"
         if (detailedResourcesText == null)
         {
             Debug.LogError("[TVDisplayInfo] 'Detailed Resources Text' is NOT assigned in the Inspector!");
@@ -357,13 +356,8 @@ public class TVDisplayInfo : MonoBehaviour
 
         string callsign = flights[selectedIndex].callsign;
 
-        if (DeskTutorialManager.tutorialStep < 5 && callsign != "KO-677")
-        {
-            Debug.Log("[Tutorial] Cannot land this plane until Holding tutorial is completed!");
-            if (selectedLabel != null)
-                selectedLabel.text = $"<color={COL_DENIED}><b>[ TUTORIAL ] ACTION BLOCKED</b></color>";
-            return;
-        }
+        // Я закомментировал и удалил проверку на Tutorial
+        // Больше ничего не блокирует нажатие "ALLOW"!
 
         fdm.AddDecision(callsign, true);
         if (selectedLabel != null)
