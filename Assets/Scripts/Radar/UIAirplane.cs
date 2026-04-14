@@ -289,8 +289,6 @@ public class UIAirplane : MonoBehaviour
 
         if (Vector2.Distance(Vector2.zero, logicalPosition) > despawnRadius)
             Destroy(gameObject);
-
-        SyncRouteAlpha();
     }
 
     private void StartHolding(Vector2 center)
@@ -348,7 +346,7 @@ public class UIAirplane : MonoBehaviour
         {
             callsignText.transform.rotation = Quaternion.identity;
             callsignText.rectTransform.localPosition =
-                Quaternion.Inverse(rectTransform.localRotation) * new Vector3(0, -35f, 0);
+                Quaternion.Inverse(rectTransform.localRotation) * new Vector3(0, -60f, 0);
         }
     }
 
@@ -362,13 +360,20 @@ public class UIAirplane : MonoBehaviour
 
         if (isSelected)
         {
-            canvasGroup.alpha = 1f;
+            if (canvasGroup.alpha != 1f)
+            {
+                canvasGroup.alpha = 1f;
+                SyncRouteAlpha(); 
+            }
             return;
         }
 
-        canvasGroup.alpha = Mathf.Max(minAlpha, canvasGroup.alpha - fadeSpeed * Time.deltaTime);
+        if (canvasGroup.alpha > minAlpha)
+        {
+            canvasGroup.alpha = Mathf.Max(minAlpha, canvasGroup.alpha - fadeSpeed * Time.deltaTime);
+            SyncRouteAlpha();
+        }
     }
-
     public void UpdateInternalSpeed() => _actualSpeed = speed / 10f;
 
     private void CheckZoomVisibility(float zoom)
@@ -379,48 +384,72 @@ public class UIAirplane : MonoBehaviour
 
     private void RebuildRouteLayer()
     {
-        foreach (GameObject seg in lineSegments) Destroy(seg);
-        lineSegments.Clear();
-        foreach (GameObject marker in activeMarkers) Destroy(marker);
-        activeMarkers.Clear();
+        if (waypoints.Count == 0)
+        {
+            foreach (var seg in lineSegments) seg.SetActive(false);
+            foreach (var marker in activeMarkers) marker.SetActive(false);
+            return;
+        }
+
+        foreach (var seg in lineSegments) seg.SetActive(false);
+        foreach (var marker in activeMarkers) marker.SetActive(false);
+
+        int currentMarkerIndex = 0;
+        int currentSegmentIndex = 0;
 
         if (waypoints.Count == 0) return;
 
         for (int i = 0; i < waypoints.Count; i++)
         {
-            CreateWaypointMarker(waypoints[i], i);
+            SetMarker(currentMarkerIndex, waypoints[i]);
+            currentMarkerIndex++;
 
             if (i < waypoints.Count - 1)
             {
-                CreateSegment(waypoints[i], waypoints[i + 1]);
+                SetSegment(currentSegmentIndex, waypoints[i], waypoints[i + 1]);
+                currentSegmentIndex++;
             }
         }
 
-        CreateSegment(logicalPosition, waypoints[0]);
+        SetSegment(currentSegmentIndex, logicalPosition, waypoints[0]);
         SyncRouteAlpha();
+        UpdateHitboxColor();
     }
 
-    private void CreateWaypointMarker(Vector2 pos, int index)
+    private void SetMarker(int index, Vector2 pos)
     {
-        if (waypointMarkerPrefab == null) return;
+        GameObject marker;
+        if (index < activeMarkers.Count)
+        {
+            marker = activeMarkers[index];
+            marker.SetActive(true);
+        }
+        else
+        {
+            marker = Instantiate(waypointMarkerPrefab, transform.parent, false);
+            activeMarkers.Add(marker);
+        }
 
-        GameObject marker = Instantiate(waypointMarkerPrefab, transform.parent, false);
         marker.transform.SetSiblingIndex(transform.GetSiblingIndex());
-
-        RectTransform rt = marker.GetComponent<RectTransform>();
-        rt.anchoredPosition = pos;
-
-        activeMarkers.Add(marker);
-        UpdateHitboxColor();
+        marker.GetComponent<RectTransform>().anchoredPosition = pos;
     }
 
-    private void CreateSegment(Vector2 start, Vector2 end)
+    private void SetSegment(int index, Vector2 start, Vector2 end)
     {
-        GameObject newSeg = Instantiate(routeSegmentPrefab, transform.parent, false);
-        newSeg.transform.SetSiblingIndex(transform.GetSiblingIndex());
-        lineSegments.Add(newSeg);
-        UpdateSegmentLook(newSeg.GetComponent<RectTransform>(), start, end);
-        UpdateHitboxColor();
+        GameObject seg;
+        if (index < lineSegments.Count)
+        {
+            seg = lineSegments[index];
+            seg.SetActive(true);
+        }
+        else
+        {
+            seg = Instantiate(routeSegmentPrefab, transform.parent, false);
+            lineSegments.Add(seg);
+        }
+
+        seg.transform.SetSiblingIndex(transform.GetSiblingIndex());
+        UpdateSegmentLook(seg.GetComponent<RectTransform>(), start, end);
     }
 
     private void UpdateFirstSegment()
@@ -544,8 +573,11 @@ public class UIAirplane : MonoBehaviour
         if (RadarManager.Instance != null)
             RadarManager.Instance.UnregisterAirplane(this);
 
-        foreach (GameObject seg in lineSegments) if (seg != null) Destroy(seg);
-        foreach (GameObject marker in activeMarkers) if (marker != null) Destroy(marker);
+        if (lineSegments != null)
+            foreach (GameObject seg in lineSegments) if (seg != null) Destroy(seg);
+
+        if (activeMarkers != null)
+            foreach (GameObject marker in activeMarkers) if (marker != null) Destroy(marker);
     }
 
     public void SetWarning(bool warn)
@@ -580,19 +612,24 @@ public class UIAirplane : MonoBehaviour
             else finalColor = Color.white;
         }
 
+        if (canvasGroup != null)
+        {
+            finalColor.a = canvasGroup.alpha;
+        }
+
         hitboxVisual.color = finalColor;
         callsignText.color = finalColor;
 
         if (lineSegments != null)
         {
             foreach (GameObject seg in lineSegments)
-                if (seg != null) seg.GetComponent<Image>().color = finalColor;
+                if (seg != null && seg.activeSelf) seg.GetComponent<Image>().color = finalColor;
         }
 
         if (activeMarkers != null)
         {
             foreach (GameObject marker in activeMarkers)
-                if (marker != null) marker.GetComponent<Image>().color = finalColor;
+                if (marker != null && marker.activeSelf) marker.GetComponent<Image>().color = finalColor;
         }
     }
 }

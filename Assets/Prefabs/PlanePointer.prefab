@@ -95,8 +95,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UIAirplane
   speed: 60
   despawnRadius: 1000
-  fadeSpeed: 0.5
-  minAlpha: 0.3
+  fadeSpeed: 0.3
+  minAlpha: 0.7
   showTextZoomThreshold: 0.5
   routeLineWidth: 4
   holdingRadius: 160
@@ -163,7 +163,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 100, y: 100}
+  m_Size: {x: 160, y: 160}
   m_EdgeRadius: 0
 --- !u!50 &6046786606121978838
 Rigidbody2D:
@@ -384,7 +384,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -90.8, y: -122.9}
+  m_AnchoredPosition: {x: -90.8, y: -126}
   m_SizeDelta: {x: 138.3076, y: 31.2605}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5177819431456373310
