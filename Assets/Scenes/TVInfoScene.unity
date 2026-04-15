@@ -291,8 +291,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -489.76013, y: -186.12}
-  m_SizeDelta: {x: -979.52985, y: -1377.75}
+  m_AnchoredPosition: {x: 576, y: 497}
+  m_SizeDelta: {x: -1151.7, y: -1303.2}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &37131969
 MonoBehaviour:
@@ -1292,6 +1292,8 @@ MonoBehaviour:
   backToFlightsButton: {fileID: 290491130}
   detailedResourcesText: {fileID: 1160437754}
   maxResourceValue: 100
+  leftPadding: 100
+  entryWidth: 750
   approveNormalColor: {r: 0.05, g: 0.45, b: 0.05, a: 1}
   approvePressedColor: {r: 0.1, g: 0.8, b: 0.1, a: 1}
   denyNormalColor: {r: 0.45, g: 0.05, b: 0.05, a: 1}
@@ -2610,8 +2612,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 572.5, y: -0.0025024414}
-  m_SizeDelta: {x: -1144.9999, y: 0.015024424}
+  m_AnchoredPosition: {x: 575.85, y: 0}
+  m_SizeDelta: {x: -1151.7, y: 0.00012207}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1653841554
 MonoBehaviour:

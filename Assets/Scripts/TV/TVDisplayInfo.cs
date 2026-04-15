@@ -27,6 +27,12 @@ public class TVDisplayInfo : MonoBehaviour
     [Header("Resource Settings")]
     public int maxResourceValue = 100;
 
+    [Header("List Layout Settings")]
+    [Tooltip("Отступ слева, чтобы список не прилипал к краю экрана")]
+    public int leftPadding = 100;
+    [Tooltip("Ширина рамки. Настройте, чтобы она заканчивалась сразу после текста")]
+    public float entryWidth = 750f;
+
     [Header("Colors")]
     public Color approveNormalColor = new Color(0.05f, 0.45f, 0.05f, 1f);
     public Color approvePressedColor = new Color(0.1f, 0.8f, 0.1f, 1f);
@@ -46,6 +52,17 @@ public class TVDisplayInfo : MonoBehaviour
     private const string COL_SPEED = "#888888";
     private const string COL_SELECTED = "#FFFFFF";
 
+    // --- ДОБАВЛЕНО ДЛЯ РАМКИ ---
+    private class FlightEntryUI
+    {
+        public Image backgroundImage;
+        public GameObject selectionFrame;
+        public int flightIndex;
+        public int listIndex;
+    }
+    private List<FlightEntryUI> activeFlightUIs = new List<FlightEntryUI>();
+    // ---------------------------
+
     void Start()
     {
         if (approveButton != null) approveButton.onClick.AddListener(OnApproveClicked);
@@ -53,6 +70,19 @@ public class TVDisplayInfo : MonoBehaviour
 
         if (resourcesButton != null) resourcesButton.onClick.AddListener(ShowResourcesView);
         if (backToFlightsButton != null) backToFlightsButton.onClick.AddListener(ShowFlightsView);
+
+        // Настраиваем контейнер списка, чтобы он не растягивал элементы на весь экран
+        if (tvListContainer != null)
+        {
+            VerticalLayoutGroup vlg = tvListContainer.GetComponent<VerticalLayoutGroup>();
+            if (vlg != null)
+            {
+                vlg.childForceExpandWidth = false; // Отключаем автоматическое растягивание в ширину
+                vlg.childControlWidth = true;      // Включаем ручной контроль ширины
+                vlg.childAlignment = TextAnchor.UpperLeft; // Прижимаем всё к левому краю
+                vlg.padding = new RectOffset(leftPadding, 0, vlg.padding.top, vlg.padding.bottom);
+            }
+        }
 
         StyleButtons();
         DisplayFlights();
@@ -174,16 +204,18 @@ public class TVDisplayInfo : MonoBehaviour
         foreach (Transform child in tvListContainer)
             Destroy(child.gameObject);
 
-        CreateStyledLine($"<color={COL_HEADER}><b>╔══════════════════════════════╗</b></color>", 16);
-        CreateStyledLine($"<color={COL_HEADER}><b>║     AIR TRAFFIC CONTROL      ║</b></color>", 16);
-        CreateStyledLine($"<color={COL_HEADER}><b>╚══════════════════════════════╝</b></color>", 16);
-        CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 13);
+        activeFlightUIs.Clear(); // Очищаем список рамок при обновлении
+
+        CreateStyledLine($"<color={COL_HEADER}><b>╔══════════════════════════════╗</b></color>", 24);
+        CreateStyledLine($"<color={COL_HEADER}><b>║     AIR TRAFFIC CONTROL      ║</b></color>", 24);
+        CreateStyledLine($"<color={COL_HEADER}><b>╚══════════════════════════════╝</b></color>", 24);
+        CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 20);
 
         var flights = FlightDataManager.Instance.savedFlights;
 
         if (flights.Count == 0)
         {
-            CreateStyledLine($"<color={COL_SEPARATOR}>  [ NO ACTIVE FLIGHTS ]</color>", 15);
+            CreateStyledLine($"<color={COL_SEPARATOR}>  [ NO ACTIVE FLIGHTS ]</color>", 24);
             return;
         }
 
@@ -196,14 +228,18 @@ public class TVDisplayInfo : MonoBehaviour
 
             GameObject entry = Instantiate(tvEntryPrefab, tvListContainer);
 
-            RectTransform rt = entry.GetComponent<RectTransform>();
-            if (rt != null) rt.sizeDelta = new Vector2(rt.sizeDelta.x, 60f);
+            // Задаем строгую ширину (entryWidth) и высоту
+            LayoutElement le = entry.GetComponent<LayoutElement>();
+            if (le == null) le = entry.AddComponent<LayoutElement>();
+            le.minHeight = 85f;
+            le.preferredHeight = 85f;
+            le.preferredWidth = entryWidth;
 
             TextMeshProUGUI txt = entry.GetComponentInChildren<TextMeshProUGUI>();
             if (txt != null)
             {
-                txt.fontSize = 50;
-                txt.alignment = TextAlignmentOptions.Left;
+                txt.fontSize = 55;
+                txt.alignment = TextAlignmentOptions.Left; // Текст остается слева!
 
                 if (data.decisionMade)
                 {
@@ -222,10 +258,16 @@ public class TVDisplayInfo : MonoBehaviour
                 }
 
                 Image img = entry.GetComponent<Image>();
-                if (img != null)
-                    img.color = (i % 2 == 0)
-                        ? new Color(0f, 0.12f, 0f, 0.6f)
-                        : new Color(0f, 0.08f, 0f, 0.4f);
+
+                // Создаем рамку
+                GameObject frame = AddFrame(entry);
+                activeFlightUIs.Add(new FlightEntryUI
+                {
+                    backgroundImage = img,
+                    selectionFrame = frame,
+                    flightIndex = index,
+                    listIndex = i
+                });
             }
 
             FlightListEntry entryScript = entry.GetComponent<FlightListEntry>();
@@ -253,16 +295,84 @@ public class TVDisplayInfo : MonoBehaviour
             }
         }
 
-        CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 13);
-        CreateStyledLine($"<color={COL_SPEED}>  TOTAL: {flights.Count} FLIGHT(S)</color>", 13);
+        CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 20);
+        CreateStyledLine($"<color={COL_SPEED}>  TOTAL: {flights.Count} FLIGHT(S)</color>", 20);
+
+        UpdateSelectionVisuals(); // Обновляем визуал рамок
     }
+
+    // --- МЕТОДЫ ДЛЯ РАМКИ ---
+    private GameObject AddFrame(GameObject parent)
+    {
+        GameObject frameObj = new GameObject("SelectionFrame");
+        RectTransform rt = frameObj.AddComponent<RectTransform>();
+        rt.SetParent(parent.transform, false);
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.sizeDelta = Vector2.zero;
+        rt.anchoredPosition = Vector2.zero;
+
+        float thickness = 4f;
+        Color frameColor = new Color(0.0f, 0.5f, 0.1f, 1f);
+
+        CreateBorderRect(rt, "Top", new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1), new Vector2(0, thickness), frameColor);
+        CreateBorderRect(rt, "Bottom", new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0), new Vector2(0, thickness), frameColor);
+        CreateBorderRect(rt, "Left", new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0.5f), new Vector2(thickness, 0), frameColor);
+        CreateBorderRect(rt, "Right", new Vector2(1, 0), new Vector2(1, 1), new Vector2(1, 0.5f), new Vector2(thickness, 0), frameColor);
+
+        frameObj.SetActive(false);
+        return frameObj;
+    }
+
+    private void CreateBorderRect(Transform parent, string name, Vector2 aMin, Vector2 aMax, Vector2 pivot, Vector2 sizeDelta, Color color)
+    {
+        GameObject borderObj = new GameObject(name);
+        RectTransform rt = borderObj.AddComponent<RectTransform>();
+        rt.SetParent(parent, false);
+        rt.anchorMin = aMin;
+        rt.anchorMax = aMax;
+        rt.pivot = pivot;
+        rt.sizeDelta = sizeDelta;
+        rt.anchoredPosition = Vector2.zero;
+
+        Image img = borderObj.AddComponent<Image>();
+        img.color = color;
+        img.raycastTarget = false;
+    }
+
+    private void UpdateSelectionVisuals()
+    {
+        foreach (var ui in activeFlightUIs)
+        {
+            if (ui.flightIndex == selectedIndex)
+            {
+                if (ui.backgroundImage != null) ui.backgroundImage.color = Color.clear;
+                if (ui.selectionFrame != null) ui.selectionFrame.SetActive(true);
+            }
+            else
+            {
+                if (ui.backgroundImage != null)
+                {
+                    ui.backgroundImage.color = (ui.listIndex % 2 == 0)
+                        ? new Color(0f, 0.12f, 0f, 0.6f)
+                        : new Color(0f, 0.08f, 0f, 0.4f);
+                }
+                if (ui.selectionFrame != null) ui.selectionFrame.SetActive(false);
+            }
+        }
+    }
+    // -------------------------------------
 
     void CreateStyledLine(string content, int fontSize = 14)
     {
         GameObject line = Instantiate(tvEntryPrefab, tvListContainer);
 
-        RectTransform rt = line.GetComponent<RectTransform>();
-        if (rt != null) rt.sizeDelta = new Vector2(rt.sizeDelta.x, 28f);
+        // Линиям-разделителям задаем ту же ширину, чтобы они совпадали с рамками
+        LayoutElement le = line.GetComponent<LayoutElement>();
+        if (le == null) le = line.AddComponent<LayoutElement>();
+        le.minHeight = 40f;
+        le.preferredHeight = 40f;
+        le.preferredWidth = entryWidth;
 
         TextMeshProUGUI t = line.GetComponentInChildren<TextMeshProUGUI>();
         if (t != null)
@@ -307,6 +417,7 @@ public class TVDisplayInfo : MonoBehaviour
             detailedInfoText.text = infoString;
         }
 
+        UpdateSelectionVisuals(); // <-- Обновляем выделение при клике
         RefreshButtons();
     }
 
@@ -355,9 +466,6 @@ public class TVDisplayInfo : MonoBehaviour
         if (fdm.landedPlanes >= fdm.maxPlanes) return;
 
         string callsign = flights[selectedIndex].callsign;
-
-        // Я закомментировал и удалил проверку на Tutorial
-        // Больше ничего не блокирует нажатие "ALLOW"!
 
         fdm.AddDecision(callsign, true);
         if (selectedLabel != null)
