@@ -14,7 +14,7 @@ public class FlightDataManager : MonoBehaviour
     public int totalMedicines = 0;
     public int totalPeople = 0;
     public int totalFood = 0;
-    public int totalFuel = 0; // Changed from totalScrap to totalFuel
+    public int totalFuel = 0;
 
     void Awake()
     {
@@ -31,7 +31,10 @@ public class FlightDataManager : MonoBehaviour
 
     public void UpdateFlights(List<UIAirplane> airplanes)
     {
+        // Сохраняем старый список, чтобы не потерять статус разгрузки
+        List<FlightData> oldFlights = new List<FlightData>(savedFlights);
         savedFlights.Clear();
+
         foreach (var plane in airplanes)
         {
             if (plane != null && plane.callsignText != null)
@@ -56,6 +59,13 @@ public class FlightDataManager : MonoBehaviour
                     newData.approved = false;
                 }
 
+                // Переносим статус разгрузки из старых данных в новые
+                var oldData = oldFlights.Find(f => f.callsign == newData.callsign);
+                if (oldData != null)
+                {
+                    newData.isUnloaded = oldData.isUnloaded;
+                }
+
                 savedFlights.Add(newData);
             }
         }
@@ -72,12 +82,6 @@ public class FlightDataManager : MonoBehaviour
                 if (isApproved)
                 {
                     landedPlanes++;
-
-                    string c = savedFlights[i].cargo;
-                    if (c == "Medicines") totalMedicines++;
-                    else if (c == "People") totalPeople++;
-                    else if (c == "Food") totalFood++;
-                    else if (c == "Fuel") totalFuel++; // Using Fuel here
                 }
 
                 Debug.Log($"[FlightDataManager] {callsign} -> {(isApproved ? "APPROVED" : "DENIED")}");

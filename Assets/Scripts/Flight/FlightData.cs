@@ -7,12 +7,13 @@ public class FlightData
     public string callsign;
     public Vector2 position;
     public Vector2 target;
-    public List<Vector2> savedWaypoints; 
+    public List<Vector2> savedWaypoints;
     public float speed;
     public string status;
-    public string cargo;                 
+    public string cargo;
     public bool decisionMade;
     public bool approved;
+    public bool isUnloaded;
 
     public FlightData(string callsign, Vector2 position, Vector2 target, List<Vector2> incomingWaypoints, float speed, string cargo)
     {
@@ -25,5 +26,6 @@ public class FlightData
         this.status = (target == Vector2.zero) ? "APPROACHING" : "TRANSIT";
         this.decisionMade = false;
         this.approved = false;
+        this.isUnloaded = false;
     }
 }

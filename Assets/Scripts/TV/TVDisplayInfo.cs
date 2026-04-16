@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.InputSystem;
 
 public class TVDisplayInfo : MonoBehaviour
 {
@@ -22,15 +23,21 @@ public class TVDisplayInfo : MonoBehaviour
     public GameObject resourcesPanel;
     public Button resourcesButton;
     public Button backToFlightsButton;
+
+    [Tooltip("Текст для левой части (Самолеты и полоса)")]
     public TextMeshProUGUI detailedResourcesText;
 
-    [Header("Resource Settings")]
-    public int maxResourceValue = 100;
+    [Tooltip("Текст для правой части (Склад с ресурсами)")]
+    public TextMeshProUGUI warehouseResourcesText;
+
+    [Header("Resource Settings (Max Values)")]
+    public int maxPeople = 350;
+    public int maxFuel = 500;
+    public int maxMedicines = 12;
+    public int maxFood = 1200;
 
     [Header("List Layout Settings")]
-    [Tooltip("Отступ слева, чтобы список не прилипал к краю экрана")]
     public int leftPadding = 100;
-    [Tooltip("Ширина рамки. Настройте, чтобы она заканчивалась сразу после текста")]
     public float entryWidth = 750f;
 
     [Header("Colors")]
@@ -52,7 +59,6 @@ public class TVDisplayInfo : MonoBehaviour
     private const string COL_SPEED = "#888888";
     private const string COL_SELECTED = "#FFFFFF";
 
-    // --- ДОБАВЛЕНО ДЛЯ РАМКИ ---
     private class FlightEntryUI
     {
         public Image backgroundImage;
@@ -61,7 +67,10 @@ public class TVDisplayInfo : MonoBehaviour
         public int listIndex;
     }
     private List<FlightEntryUI> activeFlightUIs = new List<FlightEntryUI>();
-    // ---------------------------
+
+    private string selectedResourceCallsign = "";
+    private Dictionary<string, float> activeUnloads = new Dictionary<string, float>();
+    private const float UNLOAD_TIME = 15f;
 
     void Start()
     {
@@ -71,15 +80,14 @@ public class TVDisplayInfo : MonoBehaviour
         if (resourcesButton != null) resourcesButton.onClick.AddListener(ShowResourcesView);
         if (backToFlightsButton != null) backToFlightsButton.onClick.AddListener(ShowFlightsView);
 
-        // Настраиваем контейнер списка, чтобы он не растягивал элементы на весь экран
         if (tvListContainer != null)
         {
             VerticalLayoutGroup vlg = tvListContainer.GetComponent<VerticalLayoutGroup>();
             if (vlg != null)
             {
-                vlg.childForceExpandWidth = false; // Отключаем автоматическое растягивание в ширину
-                vlg.childControlWidth = true;      // Включаем ручной контроль ширины
-                vlg.childAlignment = TextAnchor.UpperLeft; // Прижимаем всё к левому краю
+                vlg.childForceExpandWidth = false;
+                vlg.childControlWidth = true;
+                vlg.childAlignment = TextAnchor.UpperLeft;
                 vlg.padding = new RectOffset(leftPadding, 0, vlg.padding.top, vlg.padding.bottom);
             }
         }
@@ -98,6 +106,8 @@ public class TVDisplayInfo : MonoBehaviour
 
         if (resourcesPanel != null && resourcesPanel.activeSelf)
         {
+            HandleTextClicks();
+            UpdateUnloadTimers();
             UpdateResourcesText();
         }
     }
@@ -107,6 +117,7 @@ public class TVDisplayInfo : MonoBehaviour
         if (flightsPanel != null) flightsPanel.SetActive(false);
         if (resourcesPanel != null) resourcesPanel.SetActive(true);
 
+        selectedResourceCallsign = "";
         UpdateResourcesText();
     }
 
@@ -118,34 +129,183 @@ public class TVDisplayInfo : MonoBehaviour
         DisplayFlights();
     }
 
+    private void HandleTextClicks()
+    {
+        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            Vector2 mousePos = Mouse.current.position.ReadValue();
+
+            Camera cam = null;
+            if (detailedResourcesText.canvas.renderMode == RenderMode.ScreenSpaceCamera ||
+                detailedResourcesText.canvas.renderMode == RenderMode.WorldSpace)
+            {
+                cam = detailedResourcesText.canvas.worldCamera;
+            }
+
+            int linkIndex = TMP_TextUtilities.FindIntersectingLink(detailedResourcesText, mousePos, cam);
+            if (linkIndex != -1)
+            {
+                TMP_LinkInfo linkInfo = detailedResourcesText.textInfo.linkInfo[linkIndex];
+                string linkID = linkInfo.GetLinkID();
+
+                if (linkID.StartsWith("UNLOAD_"))
+                {
+                    StartUnloading(linkID.Replace("UNLOAD_", ""));
+                }
+                else
+                {
+                    selectedResourceCallsign = (selectedResourceCallsign == linkID) ? "" : linkID;
+                }
+            }
+        }
+    }
+
+    private void StartUnloading(string callsign)
+    {
+        if (!activeUnloads.ContainsKey(callsign))
+        {
+            activeUnloads.Add(callsign, UNLOAD_TIME);
+        }
+    }
+
+    private void UpdateUnloadTimers()
+    {
+        List<string> finished = new List<string>();
+        var keys = new List<string>(activeUnloads.Keys);
+
+        foreach (var callsign in keys)
+        {
+            activeUnloads[callsign] -= Time.deltaTime;
+            if (activeUnloads[callsign] <= 0)
+            {
+                finished.Add(callsign);
+            }
+        }
+
+        foreach (var callsign in finished)
+        {
+            CompleteUnload(callsign);
+        }
+    }
+
+    private void CompleteUnload(string callsign)
+    {
+        activeUnloads.Remove(callsign);
+
+        if (FlightDataManager.Instance != null)
+        {
+            var flight = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == callsign);
+            if (flight != null && !flight.isUnloaded)
+            {
+                flight.isUnloaded = true;
+
+                string c = flight.cargo;
+                if (c == "Medicines") FlightDataManager.Instance.totalMedicines++;
+                else if (c == "People") FlightDataManager.Instance.totalPeople++;
+                else if (c == "Food") FlightDataManager.Instance.totalFood++;
+                else if (c == "Fuel") FlightDataManager.Instance.totalFuel++;
+            }
+        }
+
+        if (selectedResourceCallsign == callsign)
+        {
+            selectedResourceCallsign = "";
+        }
+    }
+
+    // ЗДЕСЬ СДЕЛАНА ИДЕАЛЬНО РОВНАЯ И КРАСИВАЯ ШКАЛА ЗАГРУЗКИ
+    private string CreateProgressBar(float percent)
+    {
+        int barLength = 16;
+        int filled = Mathf.Clamp(Mathf.RoundToInt(percent * barLength), 0, barLength);
+
+        // Используем ТОЛЬКО вертикальную черту. 
+        // Поскольку символ один, ширина строки в пикселях будет заморожена.
+        string filledBar = new string('|', filled);
+        string emptyBar = new string('|', barLength - filled);
+
+        // Расчет процентов
+        int pct = Mathf.Clamp(Mathf.RoundToInt(percent * 100), 0, 100);
+        string pctString = pct.ToString();
+
+        // Добавляем абсолютно прозрачные цифры перед процентом (00000000 - это цвет с нулевой альфой).
+        // Это заставляет текст всегда занимать ширину ровно 3 цифр, и он перестает прыгать!
+        if (pct < 10) pctString = "<color=#00000000>88</color>" + pctString;
+        else if (pct < 100) pctString = "<color=#00000000>8</color>" + pctString;
+
+        return $"<color=#888888>[</color><color=#00FF41>{filledBar}</color><color=#002200>{emptyBar}</color><color=#888888>]</color> <color=#FFD700>{pctString}%</color>";
+    }
+
     private void UpdateResourcesText()
     {
-        if (detailedResourcesText == null)
-        {
-            Debug.LogError("[TVDisplayInfo] 'Detailed Resources Text' is NOT assigned in the Inspector!");
-            return;
-        }
-
-        if (FlightDataManager.Instance == null)
-        {
-            Debug.LogError("[TVDisplayInfo] 'FlightDataManager' instance is missing from the scene!");
-            return;
-        }
-
+        if (FlightDataManager.Instance == null) return;
         var fdm = FlightDataManager.Instance;
 
-        string infoString = $"<color={COL_HEADER}><b>WAREHOUSE STATUS:</b>\n\n</color>";
+        // ========================================
+        // ЛЕВАЯ ЧАСТЬ: ПОЛОСА И САМОЛЕТЫ
+        // ========================================
+        if (detailedResourcesText != null)
+        {
+            string leftInfo = $"<color={COL_HEADER}><b>RUNWAY STATUS:</b></color>\n";
+            string capCol = fdm.landedPlanes >= fdm.maxPlanes ? COL_DENIED : COL_APPROVED;
+            leftInfo += $"CAPACITY: <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n\n";
 
-        infoString += $"PEOPLE: <color=#FFD700><b>{fdm.totalPeople} / {maxResourceValue}</b></color>\n";
-        infoString += $"FUEL: <color=#FFD700><b>{fdm.totalFuel} / {maxResourceValue}</b></color>\n";
-        infoString += $"MEDICINES: <color=#FFD700><b>{fdm.totalMedicines} / {maxResourceValue}</b></color>\n";
-        infoString += $"FOOD: <color=#FFD700><b>{fdm.totalFood} / {maxResourceValue}</b></color>\n\n";
+            leftInfo += $"<color=white>LANDED PLANES:</color>\n";
+            bool hasApprovedPlanes = false;
 
-        string capCol = fdm.landedPlanes >= fdm.maxPlanes ? COL_DENIED : COL_APPROVED;
-        infoString += $"<color=white>RUNWAY CAPACITY:</color> <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n";
-        infoString += $"<color={COL_SEPARATOR}>──────────────────────────────────</color>";
+            foreach (var flight in fdm.savedFlights)
+            {
+                if (flight.decisionMade && flight.approved && !flight.isUnloaded)
+                {
+                    hasApprovedPlanes = true;
 
-        detailedResourcesText.text = infoString;
+                    if (selectedResourceCallsign == flight.callsign)
+                    {
+                        int planeFuel = 120 + (Mathf.Abs(flight.callsign.GetHashCode()) % 380);
+
+                        leftInfo += $" ▼ <link=\"{flight.callsign}\"><color=#FFFFFF><b>{flight.callsign}</b></color></link>\n";
+                        leftInfo += $"    CARGO: <color=#FFD700>{flight.cargo}</color>\n";
+                        leftInfo += $"    TANK FUEL: <color=#FFD700>{planeFuel} \n";
+
+                        if (activeUnloads.ContainsKey(flight.callsign))
+                        {
+                            float progress = 1f - (activeUnloads[flight.callsign] / UNLOAD_TIME);
+                            leftInfo += $"    {CreateProgressBar(progress)}\n";
+                        }
+                        else
+                        {
+                            leftInfo += $"    <link=\"UNLOAD_{flight.callsign}\"><color=#00FF41><b>[ START UNLOADING ]</b></color></link>\n";
+                        }
+                    }
+                    else
+                    {
+                        leftInfo += $" ► <link=\"{flight.callsign}\"><color={COL_CALLSIGN}><b>{flight.callsign}</b></color></link>\n";
+                    }
+                }
+            }
+
+            if (!hasApprovedPlanes)
+            {
+                leftInfo += $"  <color=#E1D9D1>[ NO PLANES ]</color>\n";
+            }
+
+            if (detailedResourcesText.text != leftInfo) detailedResourcesText.text = leftInfo;
+        }
+
+        // ========================================
+        // ПРАВАЯ ЧАСТЬ: СКЛАД (РЕСУРСЫ)
+        // ========================================
+        if (warehouseResourcesText != null)
+        {
+            string rightInfo = $"<color={COL_HEADER}><b>WAREHOUSE STATUS:</b></color>\n\n";
+
+            rightInfo += $"PEOPLE:    <color=#FFD700><b>{fdm.totalPeople} / {maxPeople}</b></color>\n";
+            rightInfo += $"FUEL:      <color=#FFD700><b>{fdm.totalFuel} / {maxFuel} L</b></color>\n";
+            rightInfo += $"MEDICINES: <color=#FFD700><b>{fdm.totalMedicines} / {maxMedicines} BOX</b></color>\n";
+            rightInfo += $"FOOD:      <color=#FFD700><b>{fdm.totalFood} / {maxFood} KG</b></color>\n";
+
+            if (warehouseResourcesText.text != rightInfo) warehouseResourcesText.text = rightInfo;
+        }
     }
 
     void StyleButtons()
@@ -204,7 +364,7 @@ public class TVDisplayInfo : MonoBehaviour
         foreach (Transform child in tvListContainer)
             Destroy(child.gameObject);
 
-        activeFlightUIs.Clear(); // Очищаем список рамок при обновлении
+        activeFlightUIs.Clear();
 
         CreateStyledLine($"<color={COL_HEADER}><b>╔══════════════════════════════╗</b></color>", 24);
         CreateStyledLine($"<color={COL_HEADER}><b>║     AIR TRAFFIC CONTROL      ║</b></color>", 24);
@@ -228,18 +388,17 @@ public class TVDisplayInfo : MonoBehaviour
 
             GameObject entry = Instantiate(tvEntryPrefab, tvListContainer);
 
-            // Задаем строгую ширину (entryWidth) и высоту
             LayoutElement le = entry.GetComponent<LayoutElement>();
             if (le == null) le = entry.AddComponent<LayoutElement>();
-            le.minHeight = 85f;
-            le.preferredHeight = 85f;
+            le.minHeight = 100f;
+            le.preferredHeight = 100f;
             le.preferredWidth = entryWidth;
 
             TextMeshProUGUI txt = entry.GetComponentInChildren<TextMeshProUGUI>();
             if (txt != null)
             {
-                txt.fontSize = 55;
-                txt.alignment = TextAlignmentOptions.Left; // Текст остается слева!
+                txt.fontSize = 70;
+                txt.alignment = TextAlignmentOptions.Left;
 
                 if (data.decisionMade)
                 {
@@ -259,7 +418,6 @@ public class TVDisplayInfo : MonoBehaviour
 
                 Image img = entry.GetComponent<Image>();
 
-                // Создаем рамку
                 GameObject frame = AddFrame(entry);
                 activeFlightUIs.Add(new FlightEntryUI
                 {
@@ -298,10 +456,9 @@ public class TVDisplayInfo : MonoBehaviour
         CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 20);
         CreateStyledLine($"<color={COL_SPEED}>  TOTAL: {flights.Count} FLIGHT(S)</color>", 20);
 
-        UpdateSelectionVisuals(); // Обновляем визуал рамок
+        UpdateSelectionVisuals();
     }
 
-    // --- МЕТОДЫ ДЛЯ РАМКИ ---
     private GameObject AddFrame(GameObject parent)
     {
         GameObject frameObj = new GameObject("SelectionFrame");
@@ -309,8 +466,9 @@ public class TVDisplayInfo : MonoBehaviour
         rt.SetParent(parent.transform, false);
         rt.anchorMin = Vector2.zero;
         rt.anchorMax = Vector2.one;
-        rt.sizeDelta = Vector2.zero;
-        rt.anchoredPosition = Vector2.zero;
+
+        rt.offsetMin = new Vector2(-20f, 0f);
+        rt.offsetMax = Vector2.zero;
 
         float thickness = 4f;
         Color frameColor = new Color(0.0f, 0.5f, 0.1f, 1f);
@@ -361,13 +519,11 @@ public class TVDisplayInfo : MonoBehaviour
             }
         }
     }
-    // -------------------------------------
 
     void CreateStyledLine(string content, int fontSize = 14)
     {
         GameObject line = Instantiate(tvEntryPrefab, tvListContainer);
 
-        // Линиям-разделителям задаем ту же ширину, чтобы они совпадали с рамками
         LayoutElement le = line.GetComponent<LayoutElement>();
         if (le == null) le = line.AddComponent<LayoutElement>();
         le.minHeight = 40f;
@@ -417,7 +573,7 @@ public class TVDisplayInfo : MonoBehaviour
             detailedInfoText.text = infoString;
         }
 
-        UpdateSelectionVisuals(); // <-- Обновляем выделение при клике
+        UpdateSelectionVisuals();
         RefreshButtons();
     }
 
