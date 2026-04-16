@@ -16,6 +16,15 @@ public class FlightDataManager : MonoBehaviour
     public int totalFood = 0;
     public int totalFuel = 0;
 
+    [Header("Warehouse Maximums")]
+    public int maxPeople = 250;
+    public int maxFuel = 1500;
+    public int maxMedicines = 12;
+    public int maxFood = 850;
+
+    public const float UNLOAD_TIME = 15f;
+    public const float REFUEL_TIME = 15f;
+
     void Awake()
     {
         if (Instance == null)
@@ -29,9 +38,35 @@ public class FlightDataManager : MonoBehaviour
         }
     }
 
+    void Update()
+    {
+        // ГЛОБАЛЬНОЕ ОБНОВЛЕНИЕ ТАЙМЕРОВ (РАБОТАЕТ ФОНОМ ВСЕГДА)
+        for (int i = 0; i < savedFlights.Count; i++)
+        {
+            var flight = savedFlights[i];
+
+            if (flight.isUnloading)
+            {
+                flight.unloadTimer -= Time.deltaTime;
+                if (flight.unloadTimer <= 0)
+                {
+                    CompleteUnload(flight);
+                }
+            }
+
+            if (flight.isRefueling)
+            {
+                flight.refuelTimer -= Time.deltaTime;
+                if (flight.refuelTimer <= 0)
+                {
+                    CompleteRefuel(flight);
+                }
+            }
+        }
+    }
+
     public void UpdateFlights(List<UIAirplane> airplanes)
     {
-        // Сохраняем старый список, чтобы не потерять статус разгрузки
         List<FlightData> oldFlights = new List<FlightData>(savedFlights);
         savedFlights.Clear();
 
@@ -59,11 +94,20 @@ public class FlightDataManager : MonoBehaviour
                     newData.approved = false;
                 }
 
-                // Переносим статус разгрузки из старых данных в новые
                 var oldData = oldFlights.Find(f => f.callsign == newData.callsign);
                 if (oldData != null)
                 {
                     newData.isUnloaded = oldData.isUnloaded;
+                    newData.isRefueled = oldData.isRefueled;
+                    newData.currentFuel = oldData.currentFuel;
+                    newData.planeMaxFuel = oldData.planeMaxFuel;
+                    newData.cargoAmount = oldData.cargoAmount;
+
+                    // Переносим таймеры
+                    newData.isUnloading = oldData.isUnloading;
+                    newData.unloadTimer = oldData.unloadTimer;
+                    newData.isRefueling = oldData.isRefueling;
+                    newData.refuelTimer = oldData.refuelTimer;
                 }
 
                 savedFlights.Add(newData);
@@ -79,14 +123,57 @@ public class FlightDataManager : MonoBehaviour
             {
                 savedFlights[i].decisionMade = true;
                 savedFlights[i].approved = isApproved;
-                if (isApproved)
-                {
-                    landedPlanes++;
-                }
-
-                Debug.Log($"[FlightDataManager] {callsign} -> {(isApproved ? "APPROVED" : "DENIED")}");
+                if (isApproved) landedPlanes++;
                 return;
             }
         }
+    }
+
+    // --- ЛОГИКА ПРОЦЕССОВ ВЫГРУЗКИ / ЗАПРАВКИ ---
+
+    public void StartUnloading(string callsign)
+    {
+        var flight = savedFlights.Find(f => f.callsign == callsign);
+        if (flight != null && !flight.isUnloaded && !flight.isUnloading)
+        {
+            flight.isUnloading = true;
+            flight.unloadTimer = UNLOAD_TIME;
+        }
+    }
+
+    public void StartRefueling(string callsign)
+    {
+        var flight = savedFlights.Find(f => f.callsign == callsign);
+        if (flight != null && !flight.isRefueled && !flight.isRefueling && flight.isUnloaded)
+        {
+            flight.isRefueling = true;
+            flight.refuelTimer = REFUEL_TIME;
+        }
+    }
+
+    private void CompleteUnload(FlightData flight)
+    {
+        flight.isUnloading = false;
+        flight.isUnloaded = true;
+
+        string c = flight.cargo;
+        if (c == "Medicines") totalMedicines = Mathf.Min(totalMedicines + flight.cargoAmount, maxMedicines);
+        else if (c == "People") totalPeople = Mathf.Min(totalPeople + flight.cargoAmount, maxPeople);
+        else if (c == "Food") totalFood = Mathf.Min(totalFood + flight.cargoAmount, maxFood);
+        else if (c == "Fuel") totalFuel = Mathf.Min(totalFuel + flight.cargoAmount, maxFuel);
+    }
+
+    private void CompleteRefuel(FlightData flight)
+    {
+        flight.isRefueling = false;
+        flight.isRefueled = true;
+
+        int neededFuel = flight.planeMaxFuel - flight.currentFuel;
+        int actualFuelTaken = Mathf.Min(neededFuel, totalFuel);
+
+        totalFuel -= actualFuelTaken;
+        flight.currentFuel += actualFuelTaken;
+
+        landedPlanes--;
     }
 }

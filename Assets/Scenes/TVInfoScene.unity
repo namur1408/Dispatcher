@@ -1293,10 +1293,6 @@ MonoBehaviour:
   backToFlightsButton: {fileID: 290491130}
   detailedResourcesText: {fileID: 1160437754}
   warehouseResourcesText: {fileID: 1936897586}
-  maxPeople: 350
-  maxFuel: 500
-  maxMedicines: 12
-  maxFood: 1200
   leftPadding: 100
   entryWidth: 750
   approveNormalColor: {r: 0.05, g: 0.45, b: 0.05, a: 1}
@@ -1779,6 +1775,10 @@ MonoBehaviour:
   totalPeople: 0
   totalFood: 0
   totalFuel: 0
+  maxPeople: 250
+  maxFuel: 1500
+  maxMedicines: 12
+  maxFood: 850
 --- !u!4 &1031651908
 Transform:
   m_ObjectHideFlags: 0
