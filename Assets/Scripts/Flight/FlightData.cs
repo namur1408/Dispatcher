@@ -19,11 +19,16 @@ public class FlightData
     public bool isRefueled;
     public int currentFuel;
     public int planeMaxFuel;
-
-    public bool isUnloading;
-    public float unloadTimer;
     public bool isRefueling;
     public float refuelTimer;
+
+    // Переменные выгрузки
+    public bool isUnloading;
+    public float unloadTimer;
+
+    public bool isRepaired;
+    public bool isRepairing;
+    public float repairTimer;
 
     public FlightData(string callsign, Vector2 position, Vector2 target, List<Vector2> incomingWaypoints, float speed, string cargo)
     {
@@ -45,13 +50,28 @@ public class FlightData
         this.approved = false;
 
         this.isUnloaded = false;
-        this.isRefueled = false;
-        this.planeMaxFuel = Random.Range(300, 500);
-        this.currentFuel = this.planeMaxFuel / 2;
-
         this.isUnloading = false;
         this.unloadTimer = 0f;
+
+        this.planeMaxFuel = Random.Range(300, 500);
+
+        if (this.cargo == "Fuel")
+        {
+            this.currentFuel = Random.Range(this.planeMaxFuel - 15, this.planeMaxFuel + 1); // Почти полный бак
+            this.isRefueled = true;
+            this.isRepaired = false;
+        }
+        else
+        {
+            this.currentFuel = this.planeMaxFuel / 2;
+            this.isRefueled = false;
+            this.isRepaired = true;
+        }
+
         this.isRefueling = false;
         this.refuelTimer = 0f;
+
+        this.isRepairing = false;
+        this.repairTimer = 0f;
     }
 }

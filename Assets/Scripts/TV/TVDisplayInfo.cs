@@ -24,10 +24,7 @@ public class TVDisplayInfo : MonoBehaviour
     public Button resourcesButton;
     public Button backToFlightsButton;
 
-    [Tooltip("Текст для левой части (Самолеты и полоса)")]
     public TextMeshProUGUI detailedResourcesText;
-
-    [Tooltip("Текст для правой части (Склад с ресурсами)")]
     public TextMeshProUGUI warehouseResourcesText;
 
     [Header("List Layout Settings")]
@@ -63,6 +60,7 @@ public class TVDisplayInfo : MonoBehaviour
     private List<FlightEntryUI> activeFlightUIs = new List<FlightEntryUI>();
 
     private string selectedResourceCallsign = "";
+    private bool isFoodDetailsExpanded = false;
 
     void Start()
     {
@@ -99,7 +97,6 @@ public class TVDisplayInfo : MonoBehaviour
         if (resourcesPanel != null && resourcesPanel.activeSelf)
         {
             HandleTextClicks();
-            // Таймеры теперь обновляются глобально в FlightDataManager
             UpdateResourcesText();
         }
     }
@@ -150,15 +147,35 @@ public class TVDisplayInfo : MonoBehaviour
                     if (FlightDataManager.Instance != null)
                         FlightDataManager.Instance.StartRefueling(linkID.Replace("REFUEL_", ""));
                 }
+                else if (linkID.StartsWith("REPAIR_"))
+                {
+                    if (FlightDataManager.Instance != null)
+                        FlightDataManager.Instance.StartRepairing(linkID.Replace("REPAIR_", ""));
+                }
                 else
                 {
                     selectedResourceCallsign = (selectedResourceCallsign == linkID) ? "" : linkID;
                 }
             }
+
+            if (warehouseResourcesText != null)
+            {
+                int linkIndexRight = TMP_TextUtilities.FindIntersectingLink(warehouseResourcesText, mousePos, cam);
+                if (linkIndexRight != -1)
+                {
+                    TMP_LinkInfo linkInfo = warehouseResourcesText.textInfo.linkInfo[linkIndexRight];
+                    string linkID = linkInfo.GetLinkID();
+
+                    if (linkID == "FOOD_LINK")
+                    {
+                        isFoodDetailsExpanded = !isFoodDetailsExpanded;
+                    }
+                }
+            }
         }
     }
 
-    private string CreateProgressBar(float percent)
+    private string CreateProgressBar(float percent, string color = "#00FF41")
     {
         int barLength = 16;
         int filled = Mathf.Clamp(Mathf.RoundToInt(percent * barLength), 0, barLength);
@@ -172,7 +189,7 @@ public class TVDisplayInfo : MonoBehaviour
         if (pct < 10) pctString = "<color=#00000000>88</color>" + pctString;
         else if (pct < 100) pctString = "<color=#00000000>8</color>" + pctString;
 
-        return $"<color=#888888>[</color><color=#00FF41>{filledBar}</color><color=#002200>{emptyBar}</color><color=#888888>]</color> <color=#FFD700>{pctString}%</color>";
+        return $"<color=#888888>[</color><color={color}>{filledBar}</color><color=#002200>{emptyBar}</color><color=#888888>]</color> <color=#FFD700>{pctString}%</color>";
     }
 
     private void UpdateResourcesText()
@@ -191,7 +208,8 @@ public class TVDisplayInfo : MonoBehaviour
 
             foreach (var flight in fdm.savedFlights)
             {
-                if (flight.decisionMade && flight.approved && !flight.isRefueled)
+                // Самолет висит в списке, пока не выполнит ВСЕ свои фазы (выгрузка + (заправка ИЛИ починка))
+                if (flight.decisionMade && flight.approved && (!flight.isRefueled || !flight.isRepaired))
                 {
                     hasApprovedPlanes = true;
 
@@ -204,11 +222,11 @@ public class TVDisplayInfo : MonoBehaviour
 
                         string displayCargo = flight.isUnloaded ? "EMPTY" : $"{flight.cargo} ({flight.cargoAmount}{cargoUnit})";
 
-                        leftInfo += $" ▼ <link=\"{flight.callsign}\"><color=#FFFFFF><b>{flight.callsign}</b></color></link>\n";
+                        leftInfo += $" v <link=\"{flight.callsign}\"><color=#FFFFFF><b>{flight.callsign}</b></color></link>\n";
                         leftInfo += $"    CARGO: <color=#FFD700>{displayCargo}</color>\n";
                         leftInfo += $"    TANK FUEL: <color=#FFD700>{flight.currentFuel} / {flight.planeMaxFuel} L</color>\n";
 
-                        if (!flight.isUnloaded) // ФАЗА 1: ВЫГРУЗКА
+                        if (!flight.isUnloaded) // ФАЗА 1: ВЫГРУЗКА (ДЛЯ ВСЕХ)
                         {
                             if (flight.isUnloading)
                             {
@@ -220,30 +238,45 @@ public class TVDisplayInfo : MonoBehaviour
                                 leftInfo += $"    <link=\"UNLOAD_{flight.callsign}\"><color=#00FF41><b>[ START UNLOADING ]</b></color></link>\n";
                             }
                         }
-                        else // ФАЗА 2: ЗАПРАВКА
+                        else // ФАЗА 2: ЗАПРАВКА или ПОЧИНКА
                         {
-                            if (flight.isRefueling)
+                            if (flight.cargo == "Fuel") // ДЛЯ ТОПЛИВНЫХ САМОЛЕТОВ - ПОЧИНКА
                             {
-                                float progress = 1f - (flight.refuelTimer / FlightDataManager.REFUEL_TIME);
-                                leftInfo += $"    {CreateProgressBar(progress)}\n";
-                            }
-                            else
-                            {
-                                int neededFuel = flight.planeMaxFuel - flight.currentFuel;
-                                if (fdm.totalFuel > 0)
+                                if (flight.isRepairing)
                                 {
-                                    leftInfo += $"    <link=\"REFUEL_{flight.callsign}\"><color=#00BFFF><b>[ START REFUELING ({neededFuel}L) ]</b></color></link>\n";
+                                    float progress = 1f - (flight.repairTimer / FlightDataManager.REPAIR_TIME);
+                                    leftInfo += $"    {CreateProgressBar(progress, "#FF8C00")}\n"; // Оранжевый прогресс бар
                                 }
-                                else
+                                else if (!flight.isRepaired)
                                 {
-                                    leftInfo += $"    <color=#FF3030>[ NOT ENOUGH FUEL ON WAREHOUSE ]</color>\n";
+                                    leftInfo += $"    <link=\"REPAIR_{flight.callsign}\"><color=#FF8C00><b>[ REPAIRING ]</b></color></link>\n";
+                                }
+                            }
+                            else // ДЛЯ ОСТАЛЬНЫХ - ЗАПРАВКА
+                            {
+                                if (flight.isRefueling)
+                                {
+                                    float progress = 1f - (flight.refuelTimer / FlightDataManager.REFUEL_TIME);
+                                    leftInfo += $"    {CreateProgressBar(progress, "#00BFFF")}\n"; // Синий прогресс бар
+                                }
+                                else if (!flight.isRefueled)
+                                {
+                                    int neededFuel = flight.planeMaxFuel - flight.currentFuel;
+                                    if (fdm.totalFuel > 0)
+                                    {
+                                        leftInfo += $"    <link=\"REFUEL_{flight.callsign}\"><color=#00BFFF><b>[ START REFUELING ({neededFuel}L) ]</b></color></link>\n";
+                                    }
+                                    else
+                                    {
+                                        leftInfo += $"    <color=#FF3030>[ NOT ENOUGH FUEL ON WAREHOUSE ]</color>\n";
+                                    }
                                 }
                             }
                         }
                     }
                     else
                     {
-                        leftInfo += $" ► <link=\"{flight.callsign}\"><color={COL_CALLSIGN}><b>{flight.callsign}</b></color></link>\n";
+                        leftInfo += $" > <link=\"{flight.callsign}\"><color={COL_CALLSIGN}><b>{flight.callsign}</b></color></link>\n";
                     }
                 }
             }
@@ -259,7 +292,18 @@ public class TVDisplayInfo : MonoBehaviour
             rightInfo += $"PEOPLE:    <color=#FFD700><b>{fdm.totalPeople} / {fdm.maxPeople}</b></color>\n";
             rightInfo += $"FUEL:      <color=#FFD700><b>{fdm.totalFuel} / {fdm.maxFuel} L</b></color>\n";
             rightInfo += $"MEDICINES: <color=#FFD700><b>{fdm.totalMedicines} / {fdm.maxMedicines} BOX</b></color>\n";
-            rightInfo += $"FOOD:      <color=#FFD700><b>{fdm.totalFood} / {fdm.maxFood} KG</b></color>\n";
+
+            rightInfo += $"<link=\"FOOD_LINK\">FOOD:      <color=#FFD700><b>{fdm.totalFood} / {fdm.maxFood} KG</b></color></link>\n";
+
+            if (isFoodDetailsExpanded)
+            {
+                float consumption = fdm.totalPeople * fdm.foodPerPersonPerMinute;
+
+                if (consumption > 0)
+                    rightInfo += $"  <color=#E1D9D1>CONSUMPTION: -{consumption:F1} KG/MIN</color>\n";
+                else
+                    rightInfo += $"  <color=#E1D9D1>CONSUMPTION: 0 KG/MIN</color>\n";
+            }
 
             if (warehouseResourcesText.text != rightInfo) warehouseResourcesText.text = rightInfo;
         }

@@ -22,8 +22,17 @@ public class FlightDataManager : MonoBehaviour
     public int maxMedicines = 12;
     public int maxFood = 850;
 
+    [Header("Consumption Settings")]
+    [Tooltip("Сколько еды потребляет 1 человек за реальную минуту")]
+    public float foodPerPersonPerMinute = 0.2f;
+    [Tooltip("Терять ли людей, если еда закончилась?")]
+    public bool losePeopleWhenStarving = true;
+
+    private float accumulatedFoodConsumption = 0f;
+
     public const float UNLOAD_TIME = 15f;
     public const float REFUEL_TIME = 15f;
+    public const float REPAIR_TIME = 20f;
 
     void Awake()
     {
@@ -40,7 +49,6 @@ public class FlightDataManager : MonoBehaviour
 
     void Update()
     {
-        // ГЛОБАЛЬНОЕ ОБНОВЛЕНИЕ ТАЙМЕРОВ (РАБОТАЕТ ФОНОМ ВСЕГДА)
         for (int i = 0; i < savedFlights.Count; i++)
         {
             var flight = savedFlights[i];
@@ -48,21 +56,56 @@ public class FlightDataManager : MonoBehaviour
             if (flight.isUnloading)
             {
                 flight.unloadTimer -= Time.deltaTime;
-                if (flight.unloadTimer <= 0)
-                {
-                    CompleteUnload(flight);
-                }
+                if (flight.unloadTimer <= 0) CompleteUnload(flight);
             }
 
             if (flight.isRefueling)
             {
                 flight.refuelTimer -= Time.deltaTime;
-                if (flight.refuelTimer <= 0)
+                if (flight.refuelTimer <= 0) CompleteRefuel(flight);
+            }
+
+            if (flight.isRepairing)
+            {
+                flight.repairTimer -= Time.deltaTime;
+                if (flight.repairTimer <= 0) CompleteRepair(flight);
+            }
+        }
+        ProcessFoodConsumption();
+    }
+
+    private void ProcessFoodConsumption()
+    {
+        if (totalPeople > 0)
+        {
+            float consumptionRatePerSecond = foodPerPersonPerMinute / 60f;
+            float consumptionThisFrame = (totalPeople * consumptionRatePerSecond) * Time.deltaTime;
+            accumulatedFoodConsumption += consumptionThisFrame;
+
+            if (accumulatedFoodConsumption >= 1f)
+            {
+                int foodToDeduct = Mathf.FloorToInt(accumulatedFoodConsumption);
+                totalFood -= foodToDeduct;
+                accumulatedFoodConsumption -= foodToDeduct;
+
+                if (totalFood < 0)
                 {
-                    CompleteRefuel(flight);
+                    int unfedDemand = Mathf.Abs(totalFood);
+                    totalFood = 0;
+
+                    if (losePeopleWhenStarving)
+                    {
+                        totalPeople -= unfedDemand;
+                        if (totalPeople < 0) totalPeople = 0;
+                    }
                 }
             }
         }
+    }
+
+    public float GetCurrentFoodConsumptionPerMinute()
+    {
+        return totalPeople * foodPerPersonPerMinute;
     }
 
     public void UpdateFlights(List<UIAirplane> airplanes)
@@ -108,9 +151,25 @@ public class FlightDataManager : MonoBehaviour
                     newData.unloadTimer = oldData.unloadTimer;
                     newData.isRefueling = oldData.isRefueling;
                     newData.refuelTimer = oldData.refuelTimer;
+                    newData.isRepaired = oldData.isRepaired;
+                    newData.isRepairing = oldData.isRepairing;
+                    newData.repairTimer = oldData.repairTimer;
                 }
 
                 savedFlights.Add(newData);
+            }
+        }
+
+        foreach (var oldFlight in oldFlights)
+        {
+            if (oldFlight.decisionMade && oldFlight.approved)
+            {
+                bool isFullyProcessed = oldFlight.isUnloaded && oldFlight.isRefueled && oldFlight.isRepaired;
+
+                if (!isFullyProcessed && !savedFlights.Exists(f => f.callsign == oldFlight.callsign))
+                {
+                    savedFlights.Add(oldFlight);
+                }
             }
         }
     }
@@ -129,7 +188,6 @@ public class FlightDataManager : MonoBehaviour
         }
     }
 
-    // --- ЛОГИКА ПРОЦЕССОВ ВЫГРУЗКИ / ЗАПРАВКИ ---
 
     public void StartUnloading(string callsign)
     {
@@ -148,6 +206,16 @@ public class FlightDataManager : MonoBehaviour
         {
             flight.isRefueling = true;
             flight.refuelTimer = REFUEL_TIME;
+        }
+    }
+
+    public void StartRepairing(string callsign)
+    {
+        var flight = savedFlights.Find(f => f.callsign == callsign);
+        if (flight != null && !flight.isRepaired && !flight.isRepairing && flight.isUnloaded)
+        {
+            flight.isRepairing = true;
+            flight.repairTimer = REPAIR_TIME;
         }
     }
 
@@ -174,6 +242,20 @@ public class FlightDataManager : MonoBehaviour
         totalFuel -= actualFuelTaken;
         flight.currentFuel += actualFuelTaken;
 
-        landedPlanes--;
+        if (flight.isRepaired)
+        {
+            landedPlanes--;
+        }
+    }
+
+    private void CompleteRepair(FlightData flight)
+    {
+        flight.isRepairing = false;
+        flight.isRepaired = true;
+
+        if (flight.isRefueled)
+        {
+            landedPlanes--;
+        }
     }
 }
