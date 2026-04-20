@@ -1779,6 +1779,8 @@ MonoBehaviour:
   maxFuel: 1500
   maxMedicines: 12
   maxFood: 850
+  foodPerPersonPerMinute: 0.2
+  losePeopleWhenStarving: 1
 --- !u!4 &1031651908
 Transform:
   m_ObjectHideFlags: 0
@@ -3592,7 +3594,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Resurses
+  m_text: Resurses 123
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 36a8058d35c36554b9ead4b7db4c8706, type: 2}
   m_sharedMaterial: {fileID: -4993873307652430692, guid: 36a8058d35c36554b9ead4b7db4c8706, type: 2}
