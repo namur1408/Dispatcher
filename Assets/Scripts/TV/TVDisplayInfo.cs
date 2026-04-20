@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.InputSystem;
 
 public class TVDisplayInfo : MonoBehaviour
 {
+    [Header("Original UI Elements")]
     public Transform tvListContainer;
     public GameObject tvEntryPrefab;
     private List<string> hiddenFlights = new List<string>();
@@ -15,6 +17,21 @@ public class TVDisplayInfo : MonoBehaviour
     public Button approveButton;
     public Button denyButton;
     public TextMeshProUGUI baseStatsText;
+
+    [Header("Panels & Resources UI")]
+    public GameObject flightsPanel;
+    public GameObject resourcesPanel;
+    public Button resourcesButton;
+    public Button backToFlightsButton;
+
+    public TextMeshProUGUI detailedResourcesText;
+    public TextMeshProUGUI warehouseResourcesText;
+
+    [Header("List Layout Settings")]
+    public int leftPadding = 100;
+    public float entryWidth = 750f;
+
+    [Header("Colors")]
     public Color approveNormalColor = new Color(0.05f, 0.45f, 0.05f, 1f);
     public Color approvePressedColor = new Color(0.1f, 0.8f, 0.1f, 1f);
     public Color denyNormalColor = new Color(0.45f, 0.05f, 0.05f, 1f);
@@ -33,20 +50,263 @@ public class TVDisplayInfo : MonoBehaviour
     private const string COL_SPEED = "#888888";
     private const string COL_SELECTED = "#FFFFFF";
 
+    private class FlightEntryUI
+    {
+        public Image backgroundImage;
+        public GameObject selectionFrame;
+        public int flightIndex;
+        public int listIndex;
+    }
+    private List<FlightEntryUI> activeFlightUIs = new List<FlightEntryUI>();
+
+    private string selectedResourceCallsign = "";
+    private bool isFoodDetailsExpanded = false;
+
     void Start()
     {
         if (approveButton != null) approveButton.onClick.AddListener(OnApproveClicked);
         if (denyButton != null) denyButton.onClick.AddListener(OnDenyClicked);
 
+        if (resourcesButton != null) resourcesButton.onClick.AddListener(ShowResourcesView);
+        if (backToFlightsButton != null) backToFlightsButton.onClick.AddListener(ShowFlightsView);
+
+        if (tvListContainer != null)
+        {
+            VerticalLayoutGroup vlg = tvListContainer.GetComponent<VerticalLayoutGroup>();
+            if (vlg != null)
+            {
+                vlg.childForceExpandWidth = false;
+                vlg.childControlWidth = true;
+                vlg.childAlignment = TextAnchor.UpperLeft;
+                vlg.padding = new RectOffset(leftPadding, 0, vlg.padding.top, vlg.padding.bottom);
+            }
+        }
+
         StyleButtons();
         DisplayFlights();
         RefreshButtons();
         UpdateBaseStatsUI();
+
+        ShowFlightsView();
     }
 
     void Update()
     {
         UpdateBaseStatsUI();
+
+        if (resourcesPanel != null && resourcesPanel.activeSelf)
+        {
+            HandleTextClicks();
+            UpdateResourcesText();
+        }
+    }
+
+    public void ShowResourcesView()
+    {
+        if (flightsPanel != null) flightsPanel.SetActive(false);
+        if (resourcesPanel != null) resourcesPanel.SetActive(true);
+
+        selectedResourceCallsign = "";
+        UpdateResourcesText();
+    }
+
+    public void ShowFlightsView()
+    {
+        if (resourcesPanel != null) resourcesPanel.SetActive(false);
+        if (flightsPanel != null) flightsPanel.SetActive(true);
+
+        DisplayFlights();
+    }
+
+    private void HandleTextClicks()
+    {
+        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            Vector2 mousePos = Mouse.current.position.ReadValue();
+
+            Camera cam = null;
+            if (detailedResourcesText.canvas.renderMode == RenderMode.ScreenSpaceCamera ||
+                detailedResourcesText.canvas.renderMode == RenderMode.WorldSpace)
+            {
+                cam = detailedResourcesText.canvas.worldCamera;
+            }
+
+            int linkIndex = TMP_TextUtilities.FindIntersectingLink(detailedResourcesText, mousePos, cam);
+            if (linkIndex != -1)
+            {
+                TMP_LinkInfo linkInfo = detailedResourcesText.textInfo.linkInfo[linkIndex];
+                string linkID = linkInfo.GetLinkID();
+
+                if (linkID.StartsWith("UNLOAD_"))
+                {
+                    if (FlightDataManager.Instance != null)
+                        FlightDataManager.Instance.StartUnloading(linkID.Replace("UNLOAD_", ""));
+                }
+                else if (linkID.StartsWith("REFUEL_"))
+                {
+                    if (FlightDataManager.Instance != null)
+                        FlightDataManager.Instance.StartRefueling(linkID.Replace("REFUEL_", ""));
+                }
+                else if (linkID.StartsWith("REPAIR_"))
+                {
+                    if (FlightDataManager.Instance != null)
+                        FlightDataManager.Instance.StartRepairing(linkID.Replace("REPAIR_", ""));
+                }
+                else
+                {
+                    selectedResourceCallsign = (selectedResourceCallsign == linkID) ? "" : linkID;
+                }
+            }
+
+            if (warehouseResourcesText != null)
+            {
+                int linkIndexRight = TMP_TextUtilities.FindIntersectingLink(warehouseResourcesText, mousePos, cam);
+                if (linkIndexRight != -1)
+                {
+                    TMP_LinkInfo linkInfo = warehouseResourcesText.textInfo.linkInfo[linkIndexRight];
+                    string linkID = linkInfo.GetLinkID();
+
+                    if (linkID == "FOOD_LINK")
+                    {
+                        isFoodDetailsExpanded = !isFoodDetailsExpanded;
+                    }
+                }
+            }
+        }
+    }
+
+    private string CreateProgressBar(float percent, string color = "#00FF41")
+    {
+        int barLength = 16;
+        int filled = Mathf.Clamp(Mathf.RoundToInt(percent * barLength), 0, barLength);
+
+        string filledBar = new string('|', filled);
+        string emptyBar = new string('|', barLength - filled);
+
+        int pct = Mathf.Clamp(Mathf.RoundToInt(percent * 100), 0, 100);
+        string pctString = pct.ToString();
+
+        if (pct < 10) pctString = "<color=#00000000>88</color>" + pctString;
+        else if (pct < 100) pctString = "<color=#00000000>8</color>" + pctString;
+
+        return $"<color=#888888>[</color><color={color}>{filledBar}</color><color=#002200>{emptyBar}</color><color=#888888>]</color> <color=#FFD700>{pctString}%</color>";
+    }
+
+    private void UpdateResourcesText()
+    {
+        if (FlightDataManager.Instance == null) return;
+        var fdm = FlightDataManager.Instance;
+
+        if (detailedResourcesText != null)
+        {
+            string leftInfo = $"<color={COL_HEADER}><b>RUNWAY STATUS:</b></color>\n";
+            string capCol = fdm.landedPlanes >= fdm.maxPlanes ? COL_DENIED : COL_APPROVED;
+            leftInfo += $"CAPACITY: <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n\n";
+
+            leftInfo += $"<color=white>LANDED PLANES:</color>\n";
+            bool hasApprovedPlanes = false;
+
+            foreach (var flight in fdm.savedFlights)
+            {
+                // Самолет висит в списке, пока не выполнит ВСЕ свои фазы (выгрузка + (заправка ИЛИ починка))
+                if (flight.decisionMade && flight.approved && (!flight.isRefueled || !flight.isRepaired))
+                {
+                    hasApprovedPlanes = true;
+
+                    if (selectedResourceCallsign == flight.callsign)
+                    {
+                        string cargoUnit = "";
+                        if (flight.cargo == "Medicines") cargoUnit = " BOX";
+                        else if (flight.cargo == "Food") cargoUnit = " KG";
+                        else if (flight.cargo == "Fuel") cargoUnit = " L";
+
+                        string displayCargo = flight.isUnloaded ? "EMPTY" : $"{flight.cargo} ({flight.cargoAmount}{cargoUnit})";
+
+                        leftInfo += $" v <link=\"{flight.callsign}\"><color=#FFFFFF><b>{flight.callsign}</b></color></link>\n";
+                        leftInfo += $"    CARGO: <color=#FFD700>{displayCargo}</color>\n";
+                        leftInfo += $"    TANK FUEL: <color=#FFD700>{flight.currentFuel} / {flight.planeMaxFuel} L</color>\n";
+
+                        if (!flight.isUnloaded) // ФАЗА 1: ВЫГРУЗКА (ДЛЯ ВСЕХ)
+                        {
+                            if (flight.isUnloading)
+                            {
+                                float progress = 1f - (flight.unloadTimer / FlightDataManager.UNLOAD_TIME);
+                                leftInfo += $"    {CreateProgressBar(progress)}\n";
+                            }
+                            else
+                            {
+                                leftInfo += $"    <link=\"UNLOAD_{flight.callsign}\"><color=#00FF41><b>[ START UNLOADING ]</b></color></link>\n";
+                            }
+                        }
+                        else // ФАЗА 2: ЗАПРАВКА или ПОЧИНКА
+                        {
+                            if (flight.cargo == "Fuel") // ДЛЯ ТОПЛИВНЫХ САМОЛЕТОВ - ПОЧИНКА
+                            {
+                                if (flight.isRepairing)
+                                {
+                                    float progress = 1f - (flight.repairTimer / FlightDataManager.REPAIR_TIME);
+                                    leftInfo += $"    {CreateProgressBar(progress, "#FF8C00")}\n"; // Оранжевый прогресс бар
+                                }
+                                else if (!flight.isRepaired)
+                                {
+                                    leftInfo += $"    <link=\"REPAIR_{flight.callsign}\"><color=#FF8C00><b>[ REPAIRING ]</b></color></link>\n";
+                                }
+                            }
+                            else // ДЛЯ ОСТАЛЬНЫХ - ЗАПРАВКА
+                            {
+                                if (flight.isRefueling)
+                                {
+                                    float progress = 1f - (flight.refuelTimer / FlightDataManager.REFUEL_TIME);
+                                    leftInfo += $"    {CreateProgressBar(progress, "#00BFFF")}\n"; // Синий прогресс бар
+                                }
+                                else if (!flight.isRefueled)
+                                {
+                                    int neededFuel = flight.planeMaxFuel - flight.currentFuel;
+                                    if (fdm.totalFuel > 0)
+                                    {
+                                        leftInfo += $"    <link=\"REFUEL_{flight.callsign}\"><color=#00BFFF><b>[ START REFUELING ({neededFuel}L) ]</b></color></link>\n";
+                                    }
+                                    else
+                                    {
+                                        leftInfo += $"    <color=#FF3030>[ NOT ENOUGH FUEL ON WAREHOUSE ]</color>\n";
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        leftInfo += $" > <link=\"{flight.callsign}\"><color={COL_CALLSIGN}><b>{flight.callsign}</b></color></link>\n";
+                    }
+                }
+            }
+
+            if (!hasApprovedPlanes) leftInfo += $"  <color=#E1D9D1>[ NO PLANES ]</color>\n";
+            if (detailedResourcesText.text != leftInfo) detailedResourcesText.text = leftInfo;
+        }
+
+        if (warehouseResourcesText != null)
+        {
+            string rightInfo = $"<color={COL_HEADER}><b>WAREHOUSE STATUS:</b></color>\n\n";
+
+            rightInfo += $"PEOPLE:    <color=#FFD700><b>{fdm.totalPeople} / {fdm.maxPeople}</b></color>\n";
+            rightInfo += $"FUEL:      <color=#FFD700><b>{fdm.totalFuel} / {fdm.maxFuel} L</b></color>\n";
+            rightInfo += $"MEDICINES: <color=#FFD700><b>{fdm.totalMedicines} / {fdm.maxMedicines} BOX</b></color>\n";
+
+            rightInfo += $"<link=\"FOOD_LINK\">FOOD:      <color=#FFD700><b>{fdm.totalFood} / {fdm.maxFood} KG</b></color></link>\n";
+
+            if (isFoodDetailsExpanded)
+            {
+                float consumption = fdm.totalPeople * fdm.foodPerPersonPerMinute;
+
+                if (consumption > 0)
+                    rightInfo += $"  <color=#E1D9D1>CONSUMPTION: -{consumption:F1} KG/MIN</color>\n";
+                else
+                    rightInfo += $"  <color=#E1D9D1>CONSUMPTION: 0 KG/MIN</color>\n";
+            }
+
+            if (warehouseResourcesText.text != rightInfo) warehouseResourcesText.text = rightInfo;
+        }
     }
 
     void StyleButtons()
@@ -95,26 +355,27 @@ public class TVDisplayInfo : MonoBehaviour
         string capCol = fdm.landedPlanes >= fdm.maxPlanes ? COL_DENIED : COL_APPROVED;
 
         baseStatsText.text = $"<color=white>CAPACITY:</color> <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n" +
-                             $"<color=#FFD700>MED: {fdm.totalMedicines} | PPL: {fdm.totalPeople} | FOOD: {fdm.totalFood} | SCR: {fdm.totalScrap}</color>";
+                             $"<color=#FFD700>MED: {fdm.totalMedicines} | PPL: {fdm.totalPeople} | FOOD: {fdm.totalFood} | FUEL: {fdm.totalFuel}</color>";
     }
 
     void DisplayFlights()
     {
         if (FlightDataManager.Instance == null) return;
 
-        foreach (Transform child in tvListContainer)
-            Destroy(child.gameObject);
+        foreach (Transform child in tvListContainer) Destroy(child.gameObject);
 
-        CreateStyledLine($"<color={COL_HEADER}><b>╔══════════════════════════════╗</b></color>", 16);
-        CreateStyledLine($"<color={COL_HEADER}><b>║     AIR TRAFFIC CONTROL      ║</b></color>", 16);
-        CreateStyledLine($"<color={COL_HEADER}><b>╚══════════════════════════════╝</b></color>", 16);
-        CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 13);
+        activeFlightUIs.Clear();
+
+        CreateStyledLine($"<color={COL_HEADER}><b>╔══════════════════════════════╗</b></color>", 24);
+        CreateStyledLine($"<color={COL_HEADER}><b>║     AIR TRAFFIC CONTROL      ║</b></color>", 24);
+        CreateStyledLine($"<color={COL_HEADER}><b>╚══════════════════════════════╝</b></color>", 24);
+        CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 20);
 
         var flights = FlightDataManager.Instance.savedFlights;
 
         if (flights.Count == 0)
         {
-            CreateStyledLine($"<color={COL_SEPARATOR}>  [ NO ACTIVE FLIGHTS ]</color>", 15);
+            CreateStyledLine($"<color={COL_SEPARATOR}>  [ NO ACTIVE FLIGHTS ]</color>", 24);
             return;
         }
 
@@ -127,13 +388,16 @@ public class TVDisplayInfo : MonoBehaviour
 
             GameObject entry = Instantiate(tvEntryPrefab, tvListContainer);
 
-            RectTransform rt = entry.GetComponent<RectTransform>();
-            if (rt != null) rt.sizeDelta = new Vector2(rt.sizeDelta.x, 60f);
+            LayoutElement le = entry.GetComponent<LayoutElement>();
+            if (le == null) le = entry.AddComponent<LayoutElement>();
+            le.minHeight = 100f;
+            le.preferredHeight = 100f;
+            le.preferredWidth = entryWidth;
 
             TextMeshProUGUI txt = entry.GetComponentInChildren<TextMeshProUGUI>();
             if (txt != null)
             {
-                txt.fontSize = 50;
+                txt.fontSize = 70;
                 txt.alignment = TextAlignmentOptions.Left;
 
                 if (data.decisionMade)
@@ -153,10 +417,14 @@ public class TVDisplayInfo : MonoBehaviour
                 }
 
                 Image img = entry.GetComponent<Image>();
-                if (img != null)
-                    img.color = (i % 2 == 0)
-                        ? new Color(0f, 0.12f, 0f, 0.6f)
-                        : new Color(0f, 0.08f, 0f, 0.4f);
+                GameObject frame = AddFrame(entry);
+                activeFlightUIs.Add(new FlightEntryUI
+                {
+                    backgroundImage = img,
+                    selectionFrame = frame,
+                    flightIndex = index,
+                    listIndex = i
+                });
             }
 
             FlightListEntry entryScript = entry.GetComponent<FlightListEntry>();
@@ -184,16 +452,82 @@ public class TVDisplayInfo : MonoBehaviour
             }
         }
 
-        CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 13);
-        CreateStyledLine($"<color={COL_SPEED}>  TOTAL: {flights.Count} FLIGHT(S)</color>", 13);
+        CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 20);
+        CreateStyledLine($"<color={COL_SPEED}>  TOTAL: {flights.Count} FLIGHT(S)</color>", 20);
+
+        UpdateSelectionVisuals();
+    }
+
+    private GameObject AddFrame(GameObject parent)
+    {
+        GameObject frameObj = new GameObject("SelectionFrame");
+        RectTransform rt = frameObj.AddComponent<RectTransform>();
+        rt.SetParent(parent.transform, false);
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+
+        rt.offsetMin = new Vector2(-20f, 0f);
+        rt.offsetMax = Vector2.zero;
+
+        float thickness = 4f;
+        Color frameColor = new Color(0.0f, 0.5f, 0.1f, 1f);
+
+        CreateBorderRect(rt, "Top", new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1), new Vector2(0, thickness), frameColor);
+        CreateBorderRect(rt, "Bottom", new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0), new Vector2(0, thickness), frameColor);
+        CreateBorderRect(rt, "Left", new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0.5f), new Vector2(thickness, 0), frameColor);
+        CreateBorderRect(rt, "Right", new Vector2(1, 0), new Vector2(1, 1), new Vector2(1, 0.5f), new Vector2(thickness, 0), frameColor);
+
+        frameObj.SetActive(false);
+        return frameObj;
+    }
+
+    private void CreateBorderRect(Transform parent, string name, Vector2 aMin, Vector2 aMax, Vector2 pivot, Vector2 sizeDelta, Color color)
+    {
+        GameObject borderObj = new GameObject(name);
+        RectTransform rt = borderObj.AddComponent<RectTransform>();
+        rt.SetParent(parent, false);
+        rt.anchorMin = aMin;
+        rt.anchorMax = aMax;
+        rt.pivot = pivot;
+        rt.sizeDelta = sizeDelta;
+        rt.anchoredPosition = Vector2.zero;
+
+        Image img = borderObj.AddComponent<Image>();
+        img.color = color;
+        img.raycastTarget = false;
+    }
+
+    private void UpdateSelectionVisuals()
+    {
+        foreach (var ui in activeFlightUIs)
+        {
+            if (ui.flightIndex == selectedIndex)
+            {
+                if (ui.backgroundImage != null) ui.backgroundImage.color = Color.clear;
+                if (ui.selectionFrame != null) ui.selectionFrame.SetActive(true);
+            }
+            else
+            {
+                if (ui.backgroundImage != null)
+                {
+                    ui.backgroundImage.color = (ui.listIndex % 2 == 0)
+                        ? new Color(0f, 0.12f, 0f, 0.6f)
+                        : new Color(0f, 0.08f, 0f, 0.4f);
+                }
+                if (ui.selectionFrame != null) ui.selectionFrame.SetActive(false);
+            }
+        }
     }
 
     void CreateStyledLine(string content, int fontSize = 14)
     {
         GameObject line = Instantiate(tvEntryPrefab, tvListContainer);
 
-        RectTransform rt = line.GetComponent<RectTransform>();
-        if (rt != null) rt.sizeDelta = new Vector2(rt.sizeDelta.x, 28f);
+        LayoutElement le = line.GetComponent<LayoutElement>();
+        if (le == null) le = line.AddComponent<LayoutElement>();
+        le.minHeight = 40f;
+        le.preferredHeight = 40f;
+        le.preferredWidth = entryWidth;
 
         TextMeshProUGUI t = line.GetComponentInChildren<TextMeshProUGUI>();
         if (t != null)
@@ -229,15 +563,21 @@ public class TVDisplayInfo : MonoBehaviour
 
         if (detailedInfoText != null)
         {
+            string cargoUnit = "";
+            if (data.cargo == "Medicines") cargoUnit = " BOX";
+            else if (data.cargo == "Food") cargoUnit = " KG";
+            else if (data.cargo == "Fuel") cargoUnit = " L";
+
             string infoString = $"<color=white><b>FLIGHT DETAILS:</b>\n\n</color>";
             infoString += $"Callsign: <b>{callsign}</b>\n";
             infoString += $"Status: {data.status}\n";
             infoString += $"Speed: {data.speed:F0}\n";
-            infoString += $"Cargo: <color=#FFD700><b>{data.cargo}</b></color>\n";
+            infoString += $"Cargo: <color=#FFD700><b>{data.cargo} ({data.cargoAmount}{cargoUnit})</b></color>\n";
 
             detailedInfoText.text = infoString;
         }
 
+        UpdateSelectionVisuals();
         RefreshButtons();
     }
 
@@ -253,10 +593,7 @@ public class TVDisplayInfo : MonoBehaviour
 
         bool canApprove = canDecide && hasSpace;
 
-        if (selectionPanelContainer != null)
-        {
-            selectionPanelContainer.SetActive(canDecide);
-        }
+        if (selectionPanelContainer != null) selectionPanelContainer.SetActive(canDecide);
 
         if (approveButton != null)
         {
@@ -287,22 +624,11 @@ public class TVDisplayInfo : MonoBehaviour
 
         string callsign = flights[selectedIndex].callsign;
 
-        if (DeskTutorialManager.tutorialStep < 5 && callsign != "KO-677")
-        {
-            Debug.Log("Нельзя посадить этот самолет до прохождения обучения Холдинга!");
-            if (selectedLabel != null)
-                selectedLabel.text = $"<color={COL_DENIED}><b>[ TUTORIAL ] ACTION BLOCKED</b></color>";
-            return;
-        }
-
         fdm.AddDecision(callsign, true);
         if (selectedLabel != null)
             selectedLabel.text = $"<color={COL_APPROVED}><b>✔ {callsign} — LANDING APPROVED</b></color>";
 
-        if (TVTutorialManager.Instance != null)
-        {
-            TVTutorialManager.Instance.NotifyFlightAllowed(callsign);
-        }
+        if (TVTutorialManager.Instance != null) TVTutorialManager.Instance.NotifyFlightAllowed(callsign);
 
         selectedIndex = -1;
         RefreshButtons();
@@ -321,10 +647,7 @@ public class TVDisplayInfo : MonoBehaviour
         if (selectedLabel != null)
             selectedLabel.text = $"<color={COL_DENIED}><b>✘ {callsign} — LANDING DENIED</b></color>";
 
-        if (TVTutorialManager.Instance != null)
-        {
-            TVTutorialManager.Instance.NotifyFlightDenied(callsign);
-        }
+        if (TVTutorialManager.Instance != null) TVTutorialManager.Instance.NotifyFlightDenied(callsign);
 
         selectedIndex = -1;
         RefreshButtons();
@@ -337,10 +660,7 @@ public class TVDisplayInfo : MonoBehaviour
     private IEnumerator HideFlightAfterDelay(string callsign, float delay)
     {
         yield return new WaitForSeconds(delay);
-        if (!hiddenFlights.Contains(callsign))
-        {
-            hiddenFlights.Add(callsign);
-        }
+        if (!hiddenFlights.Contains(callsign)) hiddenFlights.Add(callsign);
         DisplayFlights();
     }
 }
