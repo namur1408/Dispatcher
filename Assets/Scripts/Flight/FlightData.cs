@@ -14,6 +14,7 @@ public class FlightData
     public int cargoAmount;
     public bool decisionMade;
     public bool approved;
+    public bool hasLanded;
 
     public bool isUnloaded;
     public bool isRefueled;
@@ -22,7 +23,6 @@ public class FlightData
     public bool isRefueling;
     public float refuelTimer;
 
-    // Переменные выгрузки
     public bool isUnloading;
     public float unloadTimer;
 
@@ -48,7 +48,7 @@ public class FlightData
         this.status = (target == Vector2.zero) ? "APPROACHING" : "TRANSIT";
         this.decisionMade = false;
         this.approved = false;
-
+        this.hasLanded = false;
         this.isUnloaded = false;
         this.isUnloading = false;
         this.unloadTimer = 0f;
@@ -57,7 +57,7 @@ public class FlightData
 
         if (this.cargo == "Fuel")
         {
-            this.currentFuel = Random.Range(this.planeMaxFuel - 15, this.planeMaxFuel + 1); // Почти полный бак
+            this.currentFuel = Random.Range(this.planeMaxFuel - 15, this.planeMaxFuel + 1); 
             this.isRefueled = true;
             this.isRepaired = false;
         }

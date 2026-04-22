@@ -93,7 +93,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9ba75acf317f624da4f937207f02dff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIAirplane
-  speed: 60
+  speed: 150
   despawnRadius: 1000
   fadeSpeed: 0.3
   minAlpha: 0.7
@@ -102,9 +102,13 @@ MonoBehaviour:
   holdingRadius: 160
   maxHoldingTime: 45
   callsignText: {fileID: 7721111432679918824}
-  routeSegmentPrefab: {fileID: 8453672744373194292, guid: 995eaa6de41a3c741b673e3cfdad61ff, type: 3}
+  routeSegmentPrefab: {fileID: 8453672744373194292, guid: fa4d9243782f57842a5b2f359c872c08, type: 3}
   waypointMarkerPrefab: {fileID: 4447171322116784114, guid: 9bd0c0c225f04744489f2a06b7489c74, type: 3}
   hitboxVisual: {fileID: 7097506196762670886}
+  inStorm: 0
+  currentFuel: 260
+  distancePerFuelUnit: 10
+  emergencyTimer: 20
   cargo: 
   dispatchStatus: 0
 --- !u!225 &-132890971376957439
@@ -163,7 +167,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 160, y: 160}
+  m_Size: {x: 200, y: 200}
   m_EdgeRadius: 0
 --- !u!50 &6046786606121978838
 Rigidbody2D:

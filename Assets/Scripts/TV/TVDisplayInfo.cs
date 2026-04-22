@@ -208,8 +208,7 @@ public class TVDisplayInfo : MonoBehaviour
 
             foreach (var flight in fdm.savedFlights)
             {
-                // Самолет висит в списке, пока не выполнит ВСЕ свои фазы (выгрузка + (заправка ИЛИ починка))
-                if (flight.decisionMade && flight.approved && (!flight.isRefueled || !flight.isRepaired))
+                if (flight.hasLanded && (!flight.isRefueled || !flight.isRepaired))
                 {
                     hasApprovedPlanes = true;
 
@@ -226,7 +225,7 @@ public class TVDisplayInfo : MonoBehaviour
                         leftInfo += $"    CARGO: <color=#FFD700>{displayCargo}</color>\n";
                         leftInfo += $"    TANK FUEL: <color=#FFD700>{flight.currentFuel} / {flight.planeMaxFuel} L</color>\n";
 
-                        if (!flight.isUnloaded) // ФАЗА 1: ВЫГРУЗКА (ДЛЯ ВСЕХ)
+                        if (!flight.isUnloaded)
                         {
                             if (flight.isUnloading)
                             {
@@ -238,26 +237,26 @@ public class TVDisplayInfo : MonoBehaviour
                                 leftInfo += $"    <link=\"UNLOAD_{flight.callsign}\"><color=#00FF41><b>[ START UNLOADING ]</b></color></link>\n";
                             }
                         }
-                        else // ФАЗА 2: ЗАПРАВКА или ПОЧИНКА
+                        else
                         {
-                            if (flight.cargo == "Fuel") // ДЛЯ ТОПЛИВНЫХ САМОЛЕТОВ - ПОЧИНКА
+                            if (flight.cargo == "Fuel")
                             {
                                 if (flight.isRepairing)
                                 {
                                     float progress = 1f - (flight.repairTimer / FlightDataManager.REPAIR_TIME);
-                                    leftInfo += $"    {CreateProgressBar(progress, "#FF8C00")}\n"; // Оранжевый прогресс бар
+                                    leftInfo += $"    {CreateProgressBar(progress, "#FF8C00")}\n";
                                 }
                                 else if (!flight.isRepaired)
                                 {
                                     leftInfo += $"    <link=\"REPAIR_{flight.callsign}\"><color=#FF8C00><b>[ REPAIRING ]</b></color></link>\n";
                                 }
                             }
-                            else // ДЛЯ ОСТАЛЬНЫХ - ЗАПРАВКА
+                            else
                             {
                                 if (flight.isRefueling)
                                 {
                                     float progress = 1f - (flight.refuelTimer / FlightDataManager.REFUEL_TIME);
-                                    leftInfo += $"    {CreateProgressBar(progress, "#00BFFF")}\n"; // Синий прогресс бар
+                                    leftInfo += $"    {CreateProgressBar(progress, "#00BFFF")}\n";
                                 }
                                 else if (!flight.isRefueled)
                                 {
@@ -366,18 +365,9 @@ public class TVDisplayInfo : MonoBehaviour
 
         activeFlightUIs.Clear();
 
-        CreateStyledLine($"<color={COL_HEADER}><b>╔══════════════════════════════╗</b></color>", 24);
-        CreateStyledLine($"<color={COL_HEADER}><b>║     AIR TRAFFIC CONTROL      ║</b></color>", 24);
-        CreateStyledLine($"<color={COL_HEADER}><b>╚══════════════════════════════╝</b></color>", 24);
-        CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 20);
-
         var flights = FlightDataManager.Instance.savedFlights;
 
-        if (flights.Count == 0)
-        {
-            CreateStyledLine($"<color={COL_SEPARATOR}>  [ NO ACTIVE FLIGHTS ]</color>", 24);
-            return;
-        }
+        if (flights.Count == 0) return;
 
         for (int i = 0; i < flights.Count; i++)
         {
@@ -452,9 +442,6 @@ public class TVDisplayInfo : MonoBehaviour
             }
         }
 
-        CreateStyledLine($"<color={COL_SEPARATOR}>──────────────────────────────────</color>", 20);
-        CreateStyledLine($"<color={COL_SPEED}>  TOTAL: {flights.Count} FLIGHT(S)</color>", 20);
-
         UpdateSelectionVisuals();
     }
 
@@ -519,31 +506,6 @@ public class TVDisplayInfo : MonoBehaviour
         }
     }
 
-    void CreateStyledLine(string content, int fontSize = 14)
-    {
-        GameObject line = Instantiate(tvEntryPrefab, tvListContainer);
-
-        LayoutElement le = line.GetComponent<LayoutElement>();
-        if (le == null) le = line.AddComponent<LayoutElement>();
-        le.minHeight = 40f;
-        le.preferredHeight = 40f;
-        le.preferredWidth = entryWidth;
-
-        TextMeshProUGUI t = line.GetComponentInChildren<TextMeshProUGUI>();
-        if (t != null)
-        {
-            t.text = content;
-            t.fontSize = fontSize;
-            t.alignment = TextAlignmentOptions.Center;
-        }
-
-        Image img = line.GetComponent<Image>();
-        if (img != null) img.color = Color.clear;
-
-        Button btn = line.GetComponent<Button>();
-        if (btn != null) btn.interactable = false;
-    }
-
     void SelectFlight(int index)
     {
         var flights = FlightDataManager.Instance.savedFlights;
@@ -592,6 +554,23 @@ public class TVDisplayInfo : MonoBehaviour
         }
 
         bool canApprove = canDecide && hasSpace;
+        bool canDeny = canDecide;
+
+        if (canDecide && TVTutorialManager.Instance != null && !TVTutorialManager.isTvTutorialCompleted)
+        {
+            string currentCallsign = FlightDataManager.Instance.savedFlights[selectedIndex].callsign;
+
+            if (!currentCallsign.StartsWith("KO"))
+            {
+                canApprove = false;
+                canDeny = false;
+
+                if (selectedLabel != null && !selectedLabel.text.Contains("LOCKED"))
+                {
+                    selectedLabel.text += "  <color=#FF3030>[ LOCKED: FIND 'KO' FLIGHT ]</color>";
+                }
+            }
+        }
 
         if (selectionPanelContainer != null) selectionPanelContainer.SetActive(canDecide);
 
@@ -604,9 +583,9 @@ public class TVDisplayInfo : MonoBehaviour
 
         if (denyButton != null)
         {
-            denyButton.interactable = canDecide;
+            denyButton.interactable = canDeny;
             Image img = denyButton.GetComponent<Image>();
-            if (img != null) img.color = canDecide ? denyNormalColor : disabledColor;
+            if (img != null) img.color = canDeny ? denyNormalColor : disabledColor;
         }
 
         if (!canDecide && selectedLabel != null)

@@ -11,10 +11,10 @@ public class FlightDataManager : MonoBehaviour
     public int landedPlanes = 0;
     public int maxPlanes = 5;
 
-    public int totalMedicines = 0;
-    public int totalPeople = 0;
-    public int totalFood = 0;
-    public int totalFuel = 0;
+    public int totalMedicines = 9;
+    public int totalPeople = 180;
+    public int totalFood = 850;
+    public int totalFuel = 1500;
 
     [Header("Warehouse Maximums")]
     public int maxPeople = 250;
@@ -140,13 +140,14 @@ public class FlightDataManager : MonoBehaviour
                 var oldData = oldFlights.Find(f => f.callsign == newData.callsign);
                 if (oldData != null)
                 {
+                    newData.hasLanded = oldData.hasLanded;
+
                     newData.isUnloaded = oldData.isUnloaded;
                     newData.isRefueled = oldData.isRefueled;
                     newData.currentFuel = oldData.currentFuel;
                     newData.planeMaxFuel = oldData.planeMaxFuel;
                     newData.cargoAmount = oldData.cargoAmount;
 
-                    // Переносим таймеры
                     newData.isUnloading = oldData.isUnloading;
                     newData.unloadTimer = oldData.unloadTimer;
                     newData.isRefueling = oldData.isRefueling;
@@ -165,7 +166,6 @@ public class FlightDataManager : MonoBehaviour
             if (oldFlight.decisionMade && oldFlight.approved)
             {
                 bool isFullyProcessed = oldFlight.isUnloaded && oldFlight.isRefueled && oldFlight.isRepaired;
-
                 if (!isFullyProcessed && !savedFlights.Exists(f => f.callsign == oldFlight.callsign))
                 {
                     savedFlights.Add(oldFlight);
@@ -256,6 +256,15 @@ public class FlightDataManager : MonoBehaviour
         if (flight.isRefueled)
         {
             landedPlanes--;
+        }
+    }
+
+    public void MarkFlightAsLanded(string callsign)
+    {
+        var flight = savedFlights.Find(f => f.callsign == callsign);
+        if (flight != null)
+        {
+            flight.hasLanded = true;
         }
     }
 }
