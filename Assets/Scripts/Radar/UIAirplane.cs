@@ -27,6 +27,14 @@ public class UIAirplane : MonoBehaviour
     public Image hitboxVisual;
     private bool isColliding = false;
     private bool isInDanger = false;
+    public bool inStorm = false;
+    private string realCallsign;
+
+    [Header("Fuel Mechanics")]
+    public float currentFuel = 100f;
+    public float distancePerFuelUnit = 15f; 
+    private bool isOutOfFuel = false;
+    private Vector2 lastPosition; 
 
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
@@ -48,7 +56,7 @@ public class UIAirplane : MonoBehaviour
     private float currentHoldingAngle = 0f;
     private Vector2 holdingCenter;
 
-    public string cargo; 
+    public string cargo;
 
     public enum DispatchStatus { Pending, Approved, Denied }
     public DispatchStatus dispatchStatus = DispatchStatus.Pending;
@@ -76,6 +84,10 @@ public class UIAirplane : MonoBehaviour
             string[] cargoTypes = { "Medicines", "People", "Food", "Scrap" };
             cargo = cargoTypes[Random.Range(0, cargoTypes.Length)];
         }
+
+        realCallsign = callsignText.text;
+        lastPosition = logicalPosition;
+
         UpdateInternalSpeed();
         if (RadarManager.Instance != null) RadarManager.Instance.RegisterAirplane(this);
     }
@@ -84,6 +96,8 @@ public class UIAirplane : MonoBehaviour
     {
         wasInitialized = true;
         callsignText.text = newCallsign;
+        realCallsign = newCallsign;
+
         if (string.IsNullOrEmpty(cargo))
         {
             string[] cargoTypes = { "Medicines", "People", "Food", "Scrap" };
@@ -95,11 +109,13 @@ public class UIAirplane : MonoBehaviour
     {
         wasInitialized = true;
         callsignText.text = data.callsign;
+        realCallsign = data.callsign;
+
         logicalPosition = data.position;
         rectTransform.anchoredPosition = data.position;
         speed = data.speed;
 
-        cargo = data.cargo; 
+        cargo = data.cargo;
 
         isHolding = false;
         waypoints = new List<Vector2>(data.savedWaypoints);
@@ -141,6 +157,7 @@ public class UIAirplane : MonoBehaviour
 
     public void AddWaypoint(Vector2 clickPos)
     {
+        if (inStorm) return;
         if (dispatchStatus != DispatchStatus.Pending) return;
 
         if (waypoints.Count == 0)
@@ -203,10 +220,6 @@ public class UIAirplane : MonoBehaviour
             RebuildRouteLayer();
             UpdateVisualRotation();
         }
-        else
-        {
-            Debug.Log("[UIAirplane] Попытка удалить финальную точку маршрута заблокирована.");
-        }
     }
 
     public int GetWaypointIndexAt(Vector2 clickPos, float thresholdRadius = 30f)
@@ -220,23 +233,61 @@ public class UIAirplane : MonoBehaviour
 
     void Update()
     {
+        float distanceMoved = Vector2.Distance(logicalPosition, lastPosition);
+        lastPosition = logicalPosition;
+
+        if (!isOutOfFuel && dispatchStatus != DispatchStatus.Approved && distanceMoved > 0)
+        {
+            currentFuel -= distanceMoved / distancePerFuelUnit;
+
+            if (currentFuel <= 0)
+            {
+                currentFuel = 0;
+                isOutOfFuel = true;
+                _actualSpeed *= 0.3f; 
+                UpdateHitboxColor();
+            }
+        }
+
+        if (DynamicStorm.Instance != null)
+        {
+            bool currentlyInStorm = DynamicStorm.Instance.IsInStorm(logicalPosition);
+
+            if (currentlyInStorm && !inStorm)
+            {
+                inStorm = true;
+                callsignText.text = "NO SIGNAL";
+                if (isSelected)
+                {
+                    SetHighlight(false);
+                    if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.ClearSelection();
+                }
+                UpdateHitboxColor();
+            }
+            else if (!currentlyInStorm && inStorm)
+            {
+                inStorm = false;
+                callsignText.text = realCallsign;
+                UpdateHitboxColor();
+            }
+        }
+
+        float currentSpeed = inStorm ? (_actualSpeed * 0.5f) : _actualSpeed;
+
         if (isHolding)
         {
             holdingTimer -= Time.deltaTime;
 
             if (holdingTimer <= 0)
             {
-                Debug.Log($"[UIAirplane] {callsignText.text}: Время ожидания вышло. Самолет уходит.");
                 Deny();
             }
             else
             {
-                float angularSpeed = (_actualSpeed / holdingRadius) * Mathf.Rad2Deg;
+                float angularSpeed = (currentSpeed / holdingRadius) * Mathf.Rad2Deg;
                 currentHoldingAngle += angularSpeed * Time.deltaTime;
-
                 Vector2 circleTarget = holdingCenter + new Vector2(Mathf.Cos(currentHoldingAngle * Mathf.Deg2Rad), Mathf.Sin(currentHoldingAngle * Mathf.Deg2Rad)) * holdingRadius;
-
-                logicalPosition = Vector2.MoveTowards(logicalPosition, circleTarget, _actualSpeed * Time.deltaTime);
+                logicalPosition = Vector2.MoveTowards(logicalPosition, circleTarget, currentSpeed * Time.deltaTime);
             }
         }
         else if (waypoints.Count > 0)
@@ -252,7 +303,7 @@ public class UIAirplane : MonoBehaviour
                 }
             }
 
-            logicalPosition = Vector2.MoveTowards(logicalPosition, currentTarget, _actualSpeed * Time.deltaTime);
+            logicalPosition = Vector2.MoveTowards(logicalPosition, currentTarget, currentSpeed * Time.deltaTime);
 
             if (Vector2.Distance(logicalPosition, currentTarget) < 5f)
             {
@@ -265,17 +316,17 @@ public class UIAirplane : MonoBehaviour
                 {
                     if (dispatchStatus == DispatchStatus.Approved && Vector2.Distance(logicalPosition, Vector2.zero) < 10f)
                     {
-                        Debug.Log($"{callsignText.text} успешно сел.");
+                        if (FlightDataManager.Instance != null) FlightDataManager.Instance.MarkFlightAsLanded(realCallsign);
                         Destroy(gameObject);
                     }
                     else if (dispatchStatus == DispatchStatus.Denied || dispatchStatus == DispatchStatus.Approved)
                     {
-                        Debug.Log($"{callsignText.text} покинул зону.");
                         Destroy(gameObject);
                     }
                 }
             }
         }
+
         HandlePing();
         FadeOut();
 
@@ -302,8 +353,6 @@ public class UIAirplane : MonoBehaviour
 
         waypoints.Clear();
         RebuildRouteLayer();
-
-        Debug.Log($"[UIAirplane] {callsignText.text} вошел в зону ожидания.");
     }
 
     void HandlePing()
@@ -363,7 +412,7 @@ public class UIAirplane : MonoBehaviour
             if (canvasGroup.alpha != 1f)
             {
                 canvasGroup.alpha = 1f;
-                SyncRouteAlpha(); 
+                SyncRouteAlpha();
             }
             return;
         }
@@ -374,6 +423,7 @@ public class UIAirplane : MonoBehaviour
             SyncRouteAlpha();
         }
     }
+
     public void UpdateInternalSpeed() => _actualSpeed = speed / 10f;
 
     private void CheckZoomVisibility(float zoom)
@@ -454,9 +504,16 @@ public class UIAirplane : MonoBehaviour
 
     private void UpdateFirstSegment()
     {
-        UpdateSegmentLook(lineSegments[lineSegments.Count - 1].GetComponent<RectTransform>(),
-                          rectTransform.anchoredPosition,
-                          waypoints[0]);
+        if (waypoints.Count == 0) return;
+
+        int activeSegmentIndex = waypoints.Count - 1;
+
+        if (activeSegmentIndex >= 0 && activeSegmentIndex < lineSegments.Count)
+        {
+            UpdateSegmentLook(lineSegments[activeSegmentIndex].GetComponent<RectTransform>(),
+                              rectTransform.anchoredPosition,
+                              waypoints[0]);
+        }
     }
 
     private void UpdateSegmentLook(RectTransform segRect, Vector2 start, Vector2 end)
@@ -506,6 +563,8 @@ public class UIAirplane : MonoBehaviour
 
     public void TriggerSelection()
     {
+        if (inStorm) return;
+
         if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.SelectPlane(this);
         UIAirplane[] planes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
         foreach (var p in planes) p.SetHighlight(p == this);
@@ -550,7 +609,7 @@ public class UIAirplane : MonoBehaviour
 
     private void TriggerCollision()
     {
-        Debug.Log($"<color=red>АВАРИЯ: {callsignText.text} столкнулся!</color>");
+        Debug.Log($"<color=red>АВАРИЯ: {realCallsign} столкнулся!</color>");
         if (RadarTutorialManager.Instance != null && !RadarTutorialManager.isRadarTutorialCompleted)
         {
             RadarTutorialManager.Instance.NotifyEmergencyCollision();
@@ -591,45 +650,99 @@ public class UIAirplane : MonoBehaviour
     {
         if (hitboxVisual == null) return;
 
-        Color finalColor = Color.white;
-
-        if (isColliding)
-        {
-            finalColor = Color.red;
-        }
-        else if (isSelected)
-        {
-            finalColor = new Color(1f, 0.9f, 0f, 1f);
-        }
-        else if (isInDanger)
-        {
-            finalColor = new Color(1f, 0.5f, 0f);
-        }
+        // 1. Определяем цвета для ИКОНКИ и ТЕКСТА
+        Color iconColor = Color.white;
+        if (isColliding) iconColor = Color.red;
+        else if (inStorm) iconColor = new Color(0.4f, 0.4f, 0.4f, 0.8f);
+        else if (isSelected) iconColor = new Color(1f, 0.9f, 0f, 1f);
+        else if (isInDanger) iconColor = new Color(1f, 0.5f, 0f);
         else
         {
-            if (dispatchStatus == DispatchStatus.Approved) finalColor = Color.green;
-            else if (dispatchStatus == DispatchStatus.Denied) finalColor = Color.red;
-            else finalColor = Color.white;
+            if (dispatchStatus == DispatchStatus.Approved) iconColor = Color.green;
+            else if (dispatchStatus == DispatchStatus.Denied) iconColor = Color.red;
+            else iconColor = Color.white;
         }
 
-        if (canvasGroup != null)
+        if (canvasGroup != null) iconColor.a = canvasGroup.alpha;
+        hitboxVisual.color = iconColor;
+        callsignText.color = iconColor;
+
+        // 2. ЦВЕТА ДЛЯ ЛИНИИ МАРШРУТА (Зеленый или Желтый, если выбран)
+        // Мы используем ЯРКИЙ зеленый (или желтый), чтобы он не был белым
+        Color fuelColor = isSelected ? new Color(1f, 0.9f, 0f, iconColor.a) : new Color(0f, 1f, 0f, iconColor.a);
+        Color emptyColor = new Color(1f, 0f, 0f, iconColor.a * 0.4f); // Полупрозрачный красный для "пустого" пути
+
+        // 3. РАСЧЕТ ПРЕДЕЛА ТОПЛИВА (в пикселях)
+        float maxFlightDistance = currentFuel * distancePerFuelUnit;
+        float accumulatedDistance = 0f;
+
+        if (lineSegments != null && waypoints.Count > 0)
         {
-            finalColor.a = canvasGroup.alpha;
+            // Порядок сегментов: последний в списке - это от самолета до первой точки
+            List<int> orderedIndices = new List<int>();
+            orderedIndices.Add(waypoints.Count - 1);
+            for (int i = 0; i < waypoints.Count - 1; i++) orderedIndices.Add(i);
+
+            // Используем logicalPosition для точности расчетов (убирает дергание)
+            Vector2 lastPos = logicalPosition;
+
+            foreach (int idx in orderedIndices)
+            {
+                if (idx < lineSegments.Count && lineSegments[idx] != null)
+                {
+                    Vector2 nextPos = (idx == orderedIndices[0]) ? waypoints[0] : waypoints[idx + 1];
+                    float segLen = Vector2.Distance(lastPos, nextPos);
+
+                    // Работаем с префабом (Родитель Redline, ребенок FuelVisual)
+                    Image redLineImg = lineSegments[idx].GetComponent<Image>();
+                    if (redLineImg != null) redLineImg.color = emptyColor; // Фон всегда красный
+
+                    Transform fuelVisualTrans = lineSegments[idx].transform.Find("FuelVisual");
+                    if (fuelVisualTrans != null)
+                    {
+                        Image fuelImg = fuelVisualTrans.GetComponent<Image>();
+
+                        float distanceLeftToFuelEnd = maxFlightDistance - accumulatedDistance;
+
+                        // Рассчитываем заполнение
+                        if (distanceLeftToFuelEnd <= 0)
+                        {
+                            fuelImg.fillAmount = 0;
+                        }
+                        else if (distanceLeftToFuelEnd >= segLen)
+                        {
+                            fuelImg.fillAmount = 1;
+                            fuelImg.color = fuelColor; // ТУТ ТЕПЕРЬ ЖЕСТКИЙ ЗЕЛЕНЫЙ
+                        }
+                        else
+                        {
+                            fuelImg.fillAmount = distanceLeftToFuelEnd / segLen;
+                            fuelImg.color = fuelColor; // ТУТ ТЕПЕРЬ ЖЕСТКИЙ ЗЕЛЕНЫЙ
+                        }
+                    }
+
+                    accumulatedDistance += segLen;
+                    lastPos = nextPos;
+                }
+            }
         }
 
-        hitboxVisual.color = finalColor;
-        callsignText.color = finalColor;
-
-        if (lineSegments != null)
-        {
-            foreach (GameObject seg in lineSegments)
-                if (seg != null && seg.activeSelf) seg.GetComponent<Image>().color = finalColor;
-        }
-
+        // 4. МАРКЕРЫ (Крестики)
         if (activeMarkers != null)
         {
-            foreach (GameObject marker in activeMarkers)
-                if (marker != null && marker.activeSelf) marker.GetComponent<Image>().color = finalColor;
+            float distToMarker = 0f;
+            Vector2 markerPathPos = logicalPosition;
+            for (int i = 0; i < waypoints.Count; i++)
+            {
+                distToMarker += Vector2.Distance(markerPathPos, waypoints[i]);
+                markerPathPos = waypoints[i];
+
+                if (i < activeMarkers.Count && activeMarkers[i] != null)
+                {
+                    Image mImg = activeMarkers[i].GetComponent<Image>();
+                    mImg.color = (distToMarker > maxFlightDistance) ? Color.red : fuelColor;
+                }
+            }
         }
     }
 }

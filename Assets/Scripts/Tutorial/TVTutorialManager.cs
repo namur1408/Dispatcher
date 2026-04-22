@@ -14,6 +14,10 @@ public class TVTutorialManager : MonoBehaviour
     public Button allowButton;
     public Button denyButton;
 
+    [Header("Tab Buttons")]
+    public Button resourcesTabButton;
+    public Button backToFlightsButton; 
+
     [Header("Mentor Settings")]
     public Color mentorNormalColor = Color.green;
     public Color mentorAngryColor = Color.red;
@@ -27,11 +31,22 @@ public class TVTutorialManager : MonoBehaviour
     private bool isTargetAllowedByMistake = false;
     private string targetCallsign = "KO-677";
 
+    private bool hasOpenedResources = false;
+    private bool hasReturnedToFlights = false;
+
     private string msgIntro = "Welcome to the Dispatch Terminal. Here you make the final call on every flight.";
-    private string msgDetails = "On the right, you can see the flight's manifest and CARGO. At the bottom is your airport's CAPACITY. You can only land 5 planes per shift.";
-    private string msgTask = "Find the flight with the 'KO' prefix in the list. Select it and press DENY to reject its landing request.";
-    private string msgSuccess = "Excellent work. Now hit 'Return' and go back to the Radar. I need to show you how holding patterns work.";
-    private string msgFail = "<size=120%>WHAT ARE YOU DOING?!</size>\n'KO' flights are prohibited! You put us at risk! Hit 'Return' and go back to the Radar immediately!";
+    private string msgLock = "Listen carefully: once you press [ALLOW] or [DENY], the plane's route is LOCKED. You can NO LONGER change its path on the radar.";
+    private string msgDetails = "On the right, you can see the flight's CARGO. At the bottom is your CAPACITY. You can only land 5 planes at a time.";
+    private string msgGoToRes = "Let's look at ground ops. Click the 'Resources' tab at the bottom to continue.";
+
+    private string msgRes1 = "It's empty right now but when a plane lands, it replaces the '[ NO PLANES ]' tag.";
+    private string msgRes2 = "Then you need to click the plane's name to open details, then [UNLOAD] its cargo into our warehouse and use our stocks to [REFUEL] or [REPAIR] it.";
+    private string msgRes3 = "If you don't fully service a plane before the day ends, it will block these runways until you finish the work on that aircraft!";
+    private string msgGoBack = "Understood? Now click 'Back' to go back to the main flight list.";
+
+    private string msgTask = "Time for your first test. Find the flight with the 'KO' prefix. Select it and press DENY. We don't accept them.";
+    private string msgSuccess = "Excellent work. Now hit 'Return' at the bottom left and go back to the Radar.";
+    private string msgFail = "<size=120%>WHAT ARE YOU DOING?!</size>\n'KO' flights are prohibited! You put us at risk! Go back to the Radar immediately!";
 
     private Vector2 originalTextPos;
 
@@ -41,6 +56,12 @@ public class TVTutorialManager : MonoBehaviour
     {
         if (subtitleText != null)
             originalTextPos = subtitleText.rectTransform.anchoredPosition;
+
+        if (resourcesTabButton != null)
+            resourcesTabButton.onClick.AddListener(() => { hasOpenedResources = true; });
+
+        if (backToFlightsButton != null)
+            backToFlightsButton.onClick.AddListener(() => { hasReturnedToFlights = true; });
 
         if (isTvTutorialCompleted || DeskTutorialManager.tutorialStep < 3)
         {
@@ -66,19 +87,47 @@ public class TVTutorialManager : MonoBehaviour
 
         yield return StartCoroutine(TypeText(msgIntro, false));
         yield return new WaitUntil(() => skipRequested);
-        yield return StartCoroutine(TypeText(msgDetails, false));
+        yield return StartCoroutine(TypeText(msgLock, false));
         yield return new WaitUntil(() => skipRequested);
+        yield return StartCoroutine(TypeText(msgGoToRes, false));
+        yield return new WaitUntil(() => skipRequested);
+
+        subtitlePanel.SetActive(false);
+        skipRequested = false;
+
+        yield return new WaitUntil(() => hasOpenedResources);
+
+        subtitlePanel.SetActive(true);
+        yield return StartCoroutine(TypeText(msgRes1, false));
+        yield return new WaitUntil(() => skipRequested);
+        yield return StartCoroutine(TypeText(msgRes2, false));
+        yield return new WaitUntil(() => skipRequested);
+        yield return StartCoroutine(TypeText(msgRes3, false));
+        yield return new WaitUntil(() => skipRequested);
+
+        yield return StartCoroutine(TypeText(msgGoBack, false));
+        yield return new WaitUntil(() => skipRequested);
+
+        subtitlePanel.SetActive(false);
+        skipRequested = false;
+
+        yield return new WaitUntil(() => hasReturnedToFlights);
+
+        subtitlePanel.SetActive(true);
         yield return StartCoroutine(TypeText(msgTask, false));
         yield return new WaitUntil(() => skipRequested);
+
         subtitlePanel.SetActive(false);
         Time.timeScale = 1f;
 
         if (allowButton != null) allowButton.interactable = true;
         if (denyButton != null) denyButton.interactable = true;
+
         while (!isTargetDenied && !isTargetAllowedByMistake)
         {
             yield return null;
         }
+
         if (allowButton != null) allowButton.interactable = false;
         if (denyButton != null) denyButton.interactable = false;
 
@@ -97,6 +146,7 @@ public class TVTutorialManager : MonoBehaviour
             yield return StartCoroutine(TypeText(msgSuccess, false));
             yield return new WaitUntil(() => skipRequested);
         }
+
         subtitlePanel.SetActive(false);
         Time.timeScale = 1f;
 
@@ -110,6 +160,7 @@ public class TVTutorialManager : MonoBehaviour
 
     public void NotifyFlightAllowed(string callsign) { if (callsign == targetCallsign) isTargetAllowedByMistake = true; }
     public void NotifyFlightDenied(string callsign) { if (callsign == targetCallsign) isTargetDenied = true; }
+
     public void OnDialogueClicked() { skipRequested = true; }
 
     IEnumerator TypeText(string textToType, bool shake)

@@ -1,7 +1,6 @@
 using System.Collections;
 using UnityEngine;
 using TMPro;
-using UnityEngine.UI;
 
 public class TypewriterEffect : MonoBehaviour
 {
@@ -9,7 +8,6 @@ public class TypewriterEffect : MonoBehaviour
     public float typingSpeed = 0.05f;
 
     private TMP_Text textComponent;
-    private string currentText = "";
 
     void Awake()
     {
@@ -24,18 +22,21 @@ public class TypewriterEffect : MonoBehaviour
     public void StartTyping()
     {
         StopAllCoroutines();
-        textComponent.text = " ";
-        currentText = " ";
         StartCoroutine(TypeText());
     }
 
     private IEnumerator TypeText()
     {
-        foreach (char letter in fullText.ToCharArray())
-        {
-            currentText += letter;
-            textComponent.text = currentText;
 
+        textComponent.text = fullText;
+        textComponent.maxVisibleCharacters = 0;
+        textComponent.ForceMeshUpdate();
+
+        int totalCharacters = textComponent.textInfo.characterCount;
+
+        for (int i = 0; i <= totalCharacters; i++)
+        {
+            textComponent.maxVisibleCharacters = i;
             yield return new WaitForSeconds(typingSpeed);
         }
     }
