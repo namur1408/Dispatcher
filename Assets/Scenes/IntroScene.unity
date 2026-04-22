@@ -337,8 +337,8 @@ Canvas:
   m_GameObject: {fileID: 564836704}
   m_Enabled: 1
   serializedVersion: 3
-  m_RenderMode: 0
-  m_Camera: {fileID: 0}
+  m_RenderMode: 1
+  m_Camera: {fileID: 1816742216}
   m_PlaneDistance: 100
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
@@ -656,20 +656,20 @@ MonoBehaviour:
     text: "The world had already fallen apart. Cities burned, skies were crowded
       with desperate flights, and no one trusted the ground anymore. Runway 7 was
       our last hope! When we finally reached the airbase, it didn\u2019t look like
-      hope\u2026 \n                         but it was."
-    delayAfter: 2
+      hope\u2026 but it was."
+    delayAfter: 5
     frameSound: {fileID: 0}
   - image: {fileID: -855298285791758126, guid: cdad22149b8a16641b66d8b8a7143fba, type: 3}
     text: We landed with survivors on board. No warm welcomes. Just armed guards
       and total distrust. Before I could even help the survivors, the commander dragged
       me aside
-    delayAfter: 2
+    delayAfter: 5
     frameSound: {fileID: 0}
   - image: {fileID: 6937817954938267909, guid: cc525e0f088c6cc44a4d91725a9dd8c9, type: 3}
     text: "Inside a dim office, he didn\u2019t ask many questions. They already knew
       everything. We signed the contract . From that moment, I wasn't just survivor
       anymore. \nBack then, I didn't realize what I was getting into. "
-    delayAfter: 2
+    delayAfter: 5
     frameSound: {fileID: 0}
   - image: {fileID: -6470460504253458178, guid: 6bf71e02bb8be684d8d34f22608a7ab3, type: 3}
     text: (After I signed...)
@@ -679,7 +679,7 @@ MonoBehaviour:
     text: 'We stood before the control tower. We managed routes, fuel, and the last
       remaining resources. In a broken world, the sky was no longer freedom and I
       decide who survives! '
-    delayAfter: 2
+    delayAfter: 5
     frameSound: {fileID: 0}
   nextSceneName: SampleScene
 --- !u!4 &1711682997
