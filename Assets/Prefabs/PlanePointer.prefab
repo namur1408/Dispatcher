@@ -102,12 +102,13 @@ MonoBehaviour:
   holdingRadius: 160
   maxHoldingTime: 45
   callsignText: {fileID: 7721111432679918824}
-  routeSegmentPrefab: {fileID: 8453672744373194292, guid: 995eaa6de41a3c741b673e3cfdad61ff, type: 3}
+  routeSegmentPrefab: {fileID: 8453672744373194292, guid: fa4d9243782f57842a5b2f359c872c08, type: 3}
   waypointMarkerPrefab: {fileID: 4447171322116784114, guid: 9bd0c0c225f04744489f2a06b7489c74, type: 3}
   hitboxVisual: {fileID: 7097506196762670886}
   inStorm: 0
-  currentFuel: 50
+  currentFuel: 260
   distancePerFuelUnit: 10
+  emergencyTimer: 20
   cargo: 
   dispatchStatus: 0
 --- !u!225 &-132890971376957439

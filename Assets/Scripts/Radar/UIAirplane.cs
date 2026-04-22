@@ -32,9 +32,11 @@ public class UIAirplane : MonoBehaviour
 
     [Header("Fuel Mechanics")]
     public float currentFuel = 100f;
-    public float distancePerFuelUnit = 15f; 
+    public float distancePerFuelUnit = 15f;
+    public float emergencyTimer = 20f;
+    private float fuelAtLastPing;
     private bool isOutOfFuel = false;
-    private Vector2 lastPosition; 
+    private Vector2 lastPosition;
 
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
@@ -87,6 +89,7 @@ public class UIAirplane : MonoBehaviour
 
         realCallsign = callsignText.text;
         lastPosition = logicalPosition;
+        fuelAtLastPing = currentFuel;
 
         UpdateInternalSpeed();
         if (RadarManager.Instance != null) RadarManager.Instance.RegisterAirplane(this);
@@ -157,7 +160,7 @@ public class UIAirplane : MonoBehaviour
 
     public void AddWaypoint(Vector2 clickPos)
     {
-        if (inStorm) return;
+        if (inStorm || isOutOfFuel) return;
         if (dispatchStatus != DispatchStatus.Pending) return;
 
         if (waypoints.Count == 0)
@@ -214,6 +217,8 @@ public class UIAirplane : MonoBehaviour
 
     public void RemoveWaypoint(int index)
     {
+        if (isOutOfFuel) return; 
+
         if (index >= 0 && index < waypoints.Count - 1)
         {
             waypoints.RemoveAt(index);
@@ -244,8 +249,23 @@ public class UIAirplane : MonoBehaviour
             {
                 currentFuel = 0;
                 isOutOfFuel = true;
-                _actualSpeed *= 0.3f; 
+                _actualSpeed *= 0.3f;
                 UpdateHitboxColor();
+            }
+        }
+
+        if (isOutOfFuel)
+        {
+            emergencyTimer -= Time.deltaTime;
+
+            if (Mathf.FloorToInt(Time.time * 3) % 2 == 0) callsignText.text = "MAYDAY";
+            else callsignText.text = "";
+
+            if (emergencyTimer <= 0)
+            {
+                Debug.Log($"<color=red>АВАРИЯ: {realCallsign} рухнул из-за нехватки топлива!</color>");
+                DestroyPlane();
+                return;
             }
         }
 
@@ -256,7 +276,7 @@ public class UIAirplane : MonoBehaviour
             if (currentlyInStorm && !inStorm)
             {
                 inStorm = true;
-                callsignText.text = "NO SIGNAL";
+                if (!isOutOfFuel) callsignText.text = "NO SIGNAL"; 
                 if (isSelected)
                 {
                     SetHighlight(false);
@@ -267,7 +287,7 @@ public class UIAirplane : MonoBehaviour
             else if (!currentlyInStorm && inStorm)
             {
                 inStorm = false;
-                callsignText.text = realCallsign;
+                if (!isOutOfFuel) callsignText.text = realCallsign;
                 UpdateHitboxColor();
             }
         }
@@ -298,7 +318,7 @@ public class UIAirplane : MonoBehaviour
             {
                 if (Vector2.Distance(logicalPosition, currentTarget) <= holdingRadius)
                 {
-                    StartHolding(currentTarget);
+                    if (!isOutOfFuel) StartHolding(currentTarget);
                     return;
                 }
             }
@@ -365,8 +385,9 @@ public class UIAirplane : MonoBehaviour
         if (Mathf.Abs(Mathf.DeltaAngle(sweepAngle, planeAngle)) < 3f)
         {
             rectTransform.anchoredPosition = logicalPosition;
+            fuelAtLastPing = currentFuel;
             UpdateVisualRotation();
-
+            UpdateHitboxColor();
             canvasGroup.alpha = 1f;
             hasBeenPinged = true;
         }
@@ -528,7 +549,7 @@ public class UIAirplane : MonoBehaviour
 
     public void Approve()
     {
-        if (dispatchStatus != DispatchStatus.Pending) return;
+        if (dispatchStatus != DispatchStatus.Pending || isOutOfFuel) return; 
         dispatchStatus = DispatchStatus.Approved;
 
         if (isHolding)
@@ -544,7 +565,7 @@ public class UIAirplane : MonoBehaviour
 
     public void Deny()
     {
-        if (dispatchStatus != DispatchStatus.Pending) return;
+        if (dispatchStatus != DispatchStatus.Pending || isOutOfFuel) return; 
         dispatchStatus = DispatchStatus.Denied;
 
         isHolding = false;
@@ -578,10 +599,23 @@ public class UIAirplane : MonoBehaviour
         foreach (GameObject seg in lineSegments)
         {
             if (seg == null) continue;
-            Image img = seg.GetComponent<Image>();
-            Color c = img.color;
-            c.a = currentAlpha;
-            img.color = c;
+
+            Image parentImg = seg.GetComponent<Image>();
+            if (parentImg != null)
+            {
+                Color pc = parentImg.color;
+                pc.a = currentAlpha * 0.4f; 
+                parentImg.color = pc;
+            }
+
+            Transform fuelVisualTrans = seg.transform.Find("FuelVisual");
+            if (fuelVisualTrans != null)
+            {
+                Image childImg = fuelVisualTrans.GetComponent<Image>();
+                Color cc = childImg.color;
+                cc.a = currentAlpha; 
+                childImg.color = cc;
+            }
         }
 
         foreach (GameObject marker in activeMarkers)
@@ -650,9 +684,9 @@ public class UIAirplane : MonoBehaviour
     {
         if (hitboxVisual == null) return;
 
-        // 1. Определяем цвета для ИКОНКИ и ТЕКСТА
         Color iconColor = Color.white;
-        if (isColliding) iconColor = Color.red;
+
+        if (isColliding || isOutOfFuel) iconColor = Color.red;
         else if (inStorm) iconColor = new Color(0.4f, 0.4f, 0.4f, 0.8f);
         else if (isSelected) iconColor = new Color(1f, 0.9f, 0f, 1f);
         else if (isInDanger) iconColor = new Color(1f, 0.5f, 0f);
@@ -665,26 +699,29 @@ public class UIAirplane : MonoBehaviour
 
         if (canvasGroup != null) iconColor.a = canvasGroup.alpha;
         hitboxVisual.color = iconColor;
-        callsignText.color = iconColor;
 
-        // 2. ЦВЕТА ДЛЯ ЛИНИИ МАРШРУТА (Зеленый или Желтый, если выбран)
-        // Мы используем ЯРКИЙ зеленый (или желтый), чтобы он не был белым
+        if (!isOutOfFuel || callsignText.text != "MAYDAY")
+        {
+            callsignText.color = iconColor;
+        }
+        else
+        {
+            callsignText.color = Color.red; 
+        }
+
         Color fuelColor = isSelected ? new Color(1f, 0.9f, 0f, iconColor.a) : new Color(0f, 1f, 0f, iconColor.a);
-        Color emptyColor = new Color(1f, 0f, 0f, iconColor.a * 0.4f); // Полупрозрачный красный для "пустого" пути
+        Color emptyColor = new Color(1f, 0f, 0f, iconColor.a * 0.4f);
 
-        // 3. РАСЧЕТ ПРЕДЕЛА ТОПЛИВА (в пикселях)
-        float maxFlightDistance = currentFuel * distancePerFuelUnit;
+        float maxFlightDistance = fuelAtLastPing * distancePerFuelUnit;
         float accumulatedDistance = 0f;
 
         if (lineSegments != null && waypoints.Count > 0)
         {
-            // Порядок сегментов: последний в списке - это от самолета до первой точки
             List<int> orderedIndices = new List<int>();
             orderedIndices.Add(waypoints.Count - 1);
             for (int i = 0; i < waypoints.Count - 1; i++) orderedIndices.Add(i);
 
-            // Используем logicalPosition для точности расчетов (убирает дергание)
-            Vector2 lastPos = logicalPosition;
+            Vector2 lastPos = rectTransform.anchoredPosition;
 
             foreach (int idx in orderedIndices)
             {
@@ -693,32 +730,18 @@ public class UIAirplane : MonoBehaviour
                     Vector2 nextPos = (idx == orderedIndices[0]) ? waypoints[0] : waypoints[idx + 1];
                     float segLen = Vector2.Distance(lastPos, nextPos);
 
-                    // Работаем с префабом (Родитель Redline, ребенок FuelVisual)
                     Image redLineImg = lineSegments[idx].GetComponent<Image>();
-                    if (redLineImg != null) redLineImg.color = emptyColor; // Фон всегда красный
+                    if (redLineImg != null) redLineImg.color = emptyColor;
 
                     Transform fuelVisualTrans = lineSegments[idx].transform.Find("FuelVisual");
                     if (fuelVisualTrans != null)
                     {
                         Image fuelImg = fuelVisualTrans.GetComponent<Image>();
+                        float distLeft = maxFlightDistance - accumulatedDistance;
 
-                        float distanceLeftToFuelEnd = maxFlightDistance - accumulatedDistance;
-
-                        // Рассчитываем заполнение
-                        if (distanceLeftToFuelEnd <= 0)
-                        {
-                            fuelImg.fillAmount = 0;
-                        }
-                        else if (distanceLeftToFuelEnd >= segLen)
-                        {
-                            fuelImg.fillAmount = 1;
-                            fuelImg.color = fuelColor; // ТУТ ТЕПЕРЬ ЖЕСТКИЙ ЗЕЛЕНЫЙ
-                        }
-                        else
-                        {
-                            fuelImg.fillAmount = distanceLeftToFuelEnd / segLen;
-                            fuelImg.color = fuelColor; // ТУТ ТЕПЕРЬ ЖЕСТКИЙ ЗЕЛЕНЫЙ
-                        }
+                        if (distLeft <= 0) fuelImg.fillAmount = 0;
+                        else if (distLeft >= segLen) { fuelImg.fillAmount = 1; fuelImg.color = fuelColor; }
+                        else { fuelImg.fillAmount = distLeft / segLen; fuelImg.color = fuelColor; }
                     }
 
                     accumulatedDistance += segLen;
@@ -727,16 +750,14 @@ public class UIAirplane : MonoBehaviour
             }
         }
 
-        // 4. МАРКЕРЫ (Крестики)
         if (activeMarkers != null)
         {
             float distToMarker = 0f;
-            Vector2 markerPathPos = logicalPosition;
+            Vector2 markerPathPos = rectTransform.anchoredPosition; 
             for (int i = 0; i < waypoints.Count; i++)
             {
                 distToMarker += Vector2.Distance(markerPathPos, waypoints[i]);
                 markerPathPos = waypoints[i];
-
                 if (i < activeMarkers.Count && activeMarkers[i] != null)
                 {
                     Image mImg = activeMarkers[i].GetComponent<Image>();
