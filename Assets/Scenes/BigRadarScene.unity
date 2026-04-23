@@ -157,7 +157,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.76166487, y: 0.158}
   m_AnchorMax: {x: 0.76166487, y: 0.158}
-  m_AnchoredPosition: {x: 0, y: 139}
+  m_AnchoredPosition: {x: 65, y: 99}
   m_SizeDelta: {x: 570.5, y: 194.32}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &190368956
@@ -917,14 +917,14 @@ RectTransform:
   m_GameObject: {fileID: 529750217}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.99996257, y: 0.99996257, z: 0.99996257}
+  m_LocalScale: {x: 1.1156067, y: 0.99996257, z: 0.99996257}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 724232715}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -11.95, y: -82.32}
+  m_AnchoredPosition: {x: -11.95, y: 25}
   m_SizeDelta: {x: 2334.33, y: 1965.9}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &529750220
@@ -961,7 +961,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 1402627292799575379, guid: e19131fa10b6ff24a9f5e85835338650, type: 3}
+  m_Sprite: {fileID: 6330969168363139030, guid: 3db1bcceadc7e8540a3d4bd03171b69f, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1753,8 +1753,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -19, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchoredPosition: {x: -19, y: -24}
+  m_SizeDelta: {x: 106.55, y: 106.55}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1121889816
 MonoBehaviour:
@@ -2195,7 +2195,7 @@ RectTransform:
   m_GameObject: {fileID: 1259543948}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2.8957396, y: 7.5150204, z: 0.009261057}
+  m_LocalScale: {x: 3.2939038, y: 7.5150204, z: 0.009261057}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1026364684}
@@ -2473,7 +2473,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.76166487, y: 0.158}
   m_AnchorMax: {x: 0.76166487, y: 0.158}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 65, y: -40}
   m_SizeDelta: {x: 570.5, y: 194.32}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1406159263

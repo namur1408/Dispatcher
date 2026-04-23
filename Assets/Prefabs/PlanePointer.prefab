@@ -93,7 +93,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9ba75acf317f624da4f937207f02dff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIAirplane
-  speed: 150
+  speed: 100
   despawnRadius: 1000
   fadeSpeed: 0.3
   minAlpha: 0.7

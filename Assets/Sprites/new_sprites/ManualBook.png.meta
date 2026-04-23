@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 5a6f03f43c27f7d4789bfa145999530f
+guid: c5e2613e46d413d4aa399c3d76c93c40
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -7026016388576000086
-    second: Radar_highlighted_0
+      213: -1713478271056411236
+    second: ManualBook_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -96,17 +96,30 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Radar_highlighted_0
+      name: ManualBook_0
       rect:
         serializedVersion: 2
-        x: 627
-        y: 87
-        width: 1494
-        height: 1370
+        x: 455
+        y: 61
+        width: 1766
+        height: 1413
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: aa7cadce1539e7e90800000000000000
-      internalID: -7026016388576000086
+      spriteID: c95055347908838e0800000000000000
+      internalID: -1713478271056411236
       vertices: []
       indices: 
       edges: []
@@ -135,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Radar_highlighted_0: -7026016388576000086
+      ManualBook_0: -1713478271056411236
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

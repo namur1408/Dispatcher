@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 40b955337feafb54585f687917543f5c
+guid: f73df32dd198a3e489d63709e417d8ff
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 1875917246518206917
-    second: radio_0
+      213: -8070686850402279387
+    second: Radio_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: radio_0
+      name: Radio_0
       rect:
         serializedVersion: 2
-        x: 366
-        y: 58
-        width: 1949
-        height: 1426
+        x: 743
+        y: 280
+        width: 1450
+        height: 1032
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5c12fb2fbc8980a10800000000000000
-      internalID: 1875917246518206917
+      spriteID: 5202b54e1192fff80800000000000000
+      internalID: -8070686850402279387
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      radio_0: 1875917246518206917
+      Radio_0: -8070686850402279387
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

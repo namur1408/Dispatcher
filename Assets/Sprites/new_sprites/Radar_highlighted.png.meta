@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 36af381a3b76f694ba90c2ea1151d84b
+guid: 5a6f03f43c27f7d4789bfa145999530f
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 3843231544584785974
-    second: book_0
+      213: -7026016388576000086
+    second: Radar_highlighted_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: book_0
+      name: Radar_highlighted_0
       rect:
         serializedVersion: 2
-        x: 455
-        y: 60
-        width: 1766
-        height: 1414
+        x: 627
+        y: 87
+        width: 1494
+        height: 1370
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 6305d8c3ab6e55530800000000000000
-      internalID: 3843231544584785974
+      spriteID: aa7cadce1539e7e90800000000000000
+      internalID: -7026016388576000086
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      book_0: 3843231544584785974
+      Radar_highlighted_0: -7026016388576000086
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
