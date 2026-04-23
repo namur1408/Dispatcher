@@ -659,7 +659,7 @@ MonoBehaviour:
       hope\u2026 but it was."
     delayAfter: 5
     frameSound: {fileID: 0}
-  - image: {fileID: -855298285791758126, guid: cdad22149b8a16641b66d8b8a7143fba, type: 3}
+  - image: {fileID: 2061219240541987770, guid: 998299098553fea40807cb431155edc3, type: 3}
     text: We landed with survivors on board. No warm welcomes. Just armed guards
       and total distrust. Before I could even help the survivors, the commander dragged
       me aside
