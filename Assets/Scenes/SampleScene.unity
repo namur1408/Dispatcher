@@ -2069,7 +2069,7 @@ MonoBehaviour:
   tvTransition: {fileID: 530142710}
   typeSpeed: 0.04
   msgWaitTime: 4.5
-  disableTutorialsForTesting: 0
+  disableTutorialsForTesting: 1
 --- !u!1 &899131672
 GameObject:
   m_ObjectHideFlags: 0
