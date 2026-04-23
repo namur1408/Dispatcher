@@ -335,8 +335,12 @@ public class UIAirplane : MonoBehaviour
                 else
                 {
                     if (dispatchStatus == DispatchStatus.Approved && Vector2.Distance(logicalPosition, Vector2.zero) < 10f)
-                    {
-                        if (FlightDataManager.Instance != null) FlightDataManager.Instance.MarkFlightAsLanded(realCallsign);
+                {
+                         if (FlightDataManager.Instance != null) FlightDataManager.Instance.MarkFlightAsLanded(realCallsign);
+
+                         if (LandingAnimation.Instance != null)
+                         LandingAnimation.Instance.PlayLanding();
+
                         Destroy(gameObject);
                     }
                     else if (dispatchStatus == DispatchStatus.Denied || dispatchStatus == DispatchStatus.Approved)
