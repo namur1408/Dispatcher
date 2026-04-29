@@ -68,6 +68,7 @@ public class BigRadarLoader : MonoBehaviour
 
         foreach (FlightData data in FlightDataManager.Instance.savedFlights)
         {
+            if (data.hasLanded) continue;
             GameObject newPlane = Instantiate(airplanePrefab, radarContent, false);
             UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
 

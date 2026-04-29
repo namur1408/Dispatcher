@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.Events;
+using UnityEngine.Rendering.Universal; 
 
 public class ZoomTransition : MonoBehaviour, IPointerClickHandler
 {
@@ -28,7 +29,7 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         isTransitioning = true;
         if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager();
 
-        onZoomStart?.Invoke(); 
+        onZoomStart?.Invoke();
 
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneToLoad);
         asyncLoad.allowSceneActivation = false;
@@ -42,16 +43,32 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         Vector2 localTargetPos = new Vector2(localTargetPos3D.x, localTargetPos3D.y);
         Vector2 targetPos = startPos - (localTargetPos * (targetScale.x - startScale.x));
 
+        Light2D[] lights = rootContainer.GetComponentsInChildren<Light2D>();
+        float[] initialOuter = new float[lights.Length];
+        float[] initialInner = new float[lights.Length];
+        for (int i = 0; i < lights.Length; i++)
+        {
+            initialOuter[i] = lights[i].pointLightOuterRadius;
+            initialInner[i] = lights[i].pointLightInnerRadius;
+        }
+
         float elapsedTime = 0f;
 
         while (elapsedTime < zoomDuration)
         {
-            elapsedTime += Time.unscaledDeltaTime; 
+            elapsedTime += Time.unscaledDeltaTime;
             float smooth = elapsedTime / zoomDuration;
             smooth = smooth * smooth * (3f - 2f * smooth);
 
             rootContainer.localScale = Vector3.Lerp(startScale, targetScale, smooth);
             rootContainer.anchoredPosition = Vector2.Lerp(startPos, targetPos, smooth);
+
+            float currentScaleRatio = rootContainer.localScale.x / startScale.x;
+            for (int i = 0; i < lights.Length; i++)
+            {
+                lights[i].pointLightOuterRadius = initialOuter[i] * currentScaleRatio;
+                lights[i].pointLightInnerRadius = initialInner[i] * currentScaleRatio;
+            }
 
             yield return null;
         }

@@ -15,6 +15,7 @@ public class FlightData
     public bool decisionMade;
     public bool approved;
     public bool hasLanded;
+    public bool hasBeenPinged;
 
     public bool isUnloaded;
     public bool isRefueled;
@@ -29,7 +30,6 @@ public class FlightData
     public bool isRepaired;
     public bool isRepairing;
     public float repairTimer;
-
     public FlightData(string callsign, Vector2 position, Vector2 target, List<Vector2> incomingWaypoints, float speed, string cargo)
     {
         this.callsign = callsign;
@@ -38,6 +38,7 @@ public class FlightData
         this.savedWaypoints = new List<Vector2>(incomingWaypoints);
         this.speed = speed;
         this.cargo = cargo;
+        this.hasBeenPinged = false;
 
         if (cargo == "Medicines") this.cargoAmount = Random.Range(1, 4);
         else if (cargo == "People") this.cargoAmount = Random.Range(30, 71);

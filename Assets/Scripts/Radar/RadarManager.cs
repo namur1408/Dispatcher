@@ -39,6 +39,7 @@ public class RadarManager : MonoBehaviour
 
     void RestoreAirplane(FlightData data)
     {
+        if (data.hasLanded) return;
         AirplaneSpawner spawner = FindFirstObjectByType<AirplaneSpawner>();
         if (spawner == null) return;
 

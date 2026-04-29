@@ -651,34 +651,81 @@ MonoBehaviour:
   mainBGMSource: {fileID: 128448108}
   frameSoundSource: {fileID: 832755768}
   typingSpeed: 0.03
+  pauseDuration: 1
   frames:
   - image: {fileID: 5088316998373936774, guid: 603e3c4b550e0ee439dd323756b59fc2, type: 3}
-    text: "The world had already fallen apart. Cities burned, skies were crowded
-      with desperate flights, and no one trusted the ground anymore. Runway 7 was
-      our last hope! When we finally reached the airbase, it didn\u2019t look like
-      hope\u2026 but it was."
+    talkingImage: {fileID: 0}
+    talkSpeed: 0
+    text: The world didn't end all at once. It burned piece by piece. The ground
+      belongs to the dead now, but the sky... the sky is choked with desperate flights.
+      'Runway 7' was a rumor. A fortified airbase. When we finally landed, it didn't
+      look like salvation. But it was all we had.
     delayAfter: 5
     frameSound: {fileID: 0}
-  - image: {fileID: 2061219240541987770, guid: e401f0fee25615a41941d023a898525f, type: 3}
-    text: We landed with survivors on board. No warm welcomes. Just armed guards
-      and total distrust. Before I could even help the survivors, the commander dragged
-      me aside
+  - image: {fileID: -2619831015951649506, guid: 25a8702c5bd40f34792efbc5c6b763b9, type: 3}
+    talkingImage: {fileID: 0}
+    talkSpeed: 0
+    text: There were no warm welcomes. Just armed guards, blinding searchlights,
+      and total distrust. Before I could even check on the passengers, their commander
+      dragged me into the shadows.
     delayAfter: 5
     frameSound: {fileID: 0}
-  - image: {fileID: 6937817954938267909, guid: cc525e0f088c6cc44a4d91725a9dd8c9, type: 3}
-    text: "Inside a dim office, he didn\u2019t ask many questions. They already knew
-      everything. We signed the contract . From that moment, I wasn't just survivor
-      anymore. \nBack then, I didn't realize what I was getting into. "
+  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
+    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+    talkSpeed: 0.3
+    text: Take a good look around, Dispatcher.
+    delayAfter: 1
+    frameSound: {fileID: 0}
+  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
+    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+    talkSpeed: 0.3
+    text: 'Before the fall, this was a classified military black site.| Now It is
+      the only lit runway left in a thousand miles of wasteland.| '
+    delayAfter: 2
+    frameSound: {fileID: 0}
+  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
+    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+    talkSpeed: 0.3
+    text: 'Yesterday, you were just another rat scavenging in the ashes. But you
+      proved yourself useful.| So I brought you up here, to the tower.| '
+    delayAfter: 5
+    frameSound: {fileID: 0}
+  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
+    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+    talkSpeed: 0.3
+    text: There is no rescue coming. The old world burned because it was weak. We
+      will not make the same mistake.| Here at Runway 7, we are building a new order,
+      piece by piece.|
+    delayAfter: 5
+    frameSound: {fileID: 0}
+  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
+    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+    talkSpeed: 0.3
+    text: But we can't let the rot in. The sky is full of infected, marauders, and
+      desperate fools burning their last fumes to reach us.| Our space is limited.|
+      Our resources are finite.|
+    delayAfter: 5
+    frameSound: {fileID: 0}
+  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
+    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+    talkSpeed: 0.3
+    text: I don't need a humanitarian in that chair. I need a filter. You are the
+      wall between our new world and the abyss.| Keep us safe. Welcome to Runway
+      7.|
     delayAfter: 5
     frameSound: {fileID: 0}
   - image: {fileID: -6470460504253458178, guid: 6bf71e02bb8be684d8d34f22608a7ab3, type: 3}
+    talkingImage: {fileID: 0}
+    talkSpeed: 0
     text: (After I signed...)
     delayAfter: 3.5
     frameSound: {fileID: 8300000, guid: 61ce93de9c8835348bc8c499039ebe3a, type: 3}
   - image: {fileID: -4178046375966092550, guid: 80882926148ec324383ed75b7f62989d, type: 3}
-    text: 'We stood before the control tower. We managed routes, fuel, and the last
-      remaining resources. In a broken world, the sky was no longer freedom and I
-      decide who survives! '
+    talkingImage: {fileID: 0}
+    talkSpeed: 0
+    text: 'They put me in the control tower. Routes, fuel, cargo... the last resources
+      of a dying world. The sky isn''t freedom anymore. It''s a queue for survival.
+      And I''m the one holding the stamp. '
     delayAfter: 5
     frameSound: {fileID: 0}
   nextSceneName: SampleScene
@@ -866,10 +913,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 564836705}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.000030518, y: 0}
-  m_SizeDelta: {x: 1920, y: 1080}
+  m_AnchorMin: {x: 0.5, y: 0.46623728}
+  m_AnchorMax: {x: 0.5, y: 0.46623728}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 1920, y: 1191.16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1887345610
 CanvasRenderer:

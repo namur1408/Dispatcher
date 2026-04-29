@@ -93,7 +93,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9ba75acf317f624da4f937207f02dff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIAirplane
-  speed: 160
+  speed: 150
   despawnRadius: 1000
   fadeSpeed: 0.3
   minAlpha: 0.7
@@ -106,9 +106,10 @@ MonoBehaviour:
   waypointMarkerPrefab: {fileID: 4447171322116784114, guid: 9bd0c0c225f04744489f2a06b7489c74, type: 3}
   hitboxVisual: {fileID: 7097506196762670886}
   inStorm: 0
-  currentFuel: 260
+  currentFuel: 300
   distancePerFuelUnit: 10
   emergencyTimer: 20
+  hasBeenPinged: 0
   cargo: 
   dispatchStatus: 0
 --- !u!225 &-132890971376957439

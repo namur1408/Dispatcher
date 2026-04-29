@@ -51,7 +51,8 @@ public class UIAirplane : MonoBehaviour
     private Vector2 logicalPosition;
     private bool wasInitialized = false;
     private bool isSelected = false;
-    private bool hasBeenPinged = false;
+
+    public bool hasBeenPinged = false;
 
     private bool isHolding = false;
     private float holdingTimer = 0f;
@@ -120,11 +121,18 @@ public class UIAirplane : MonoBehaviour
 
         cargo = data.cargo;
 
+        currentFuel = data.currentFuel;
+        fuelAtLastPing = currentFuel;
+        isOutOfFuel = (currentFuel <= 0);
+
         isHolding = false;
         waypoints = new List<Vector2>(data.savedWaypoints);
 
-        UpdateVisualRotation();
-        RebuildRouteLayer();
+        hasBeenPinged = data.hasBeenPinged;
+        if (hasBeenPinged && canvasGroup != null)
+        {
+            canvasGroup.alpha = 1f;
+        }
 
         if (data.decisionMade)
         {
@@ -134,14 +142,22 @@ public class UIAirplane : MonoBehaviour
             {
                 waypoints.Clear();
                 waypoints.Add(logicalPosition.normalized * (despawnRadius + 300f));
-                RebuildRouteLayer();
+            }
+            else
+            {
+                // ИСПРАВЛЕНИЕ: Если одобрен, но почему-то потерял маршрут — направляем в центр
+                if (waypoints.Count == 0) waypoints.Add(Vector2.zero);
             }
         }
         else
         {
             dispatchStatus = DispatchStatus.Pending;
+            // ИСПРАВЛЕНИЕ: Если самолет потерял маршрут (например, был в ожидании при переходе между сценами)
+            if (waypoints.Count == 0) waypoints.Add(Vector2.zero);
         }
 
+        UpdateVisualRotation();
+        RebuildRouteLayer();
         UpdateHitboxColor();
     }
 
@@ -160,7 +176,7 @@ public class UIAirplane : MonoBehaviour
 
     public void AddWaypoint(Vector2 clickPos)
     {
-        if (inStorm || isOutOfFuel) return;
+        if (inStorm || isHolding || isOutOfFuel) return;
         if (dispatchStatus != DispatchStatus.Pending) return;
 
         if (waypoints.Count == 0)
@@ -217,7 +233,7 @@ public class UIAirplane : MonoBehaviour
 
     public void RemoveWaypoint(int index)
     {
-        if (isOutOfFuel) return; 
+        if (inStorm || isHolding || isOutOfFuel) return;
 
         if (index >= 0 && index < waypoints.Count - 1)
         {
@@ -276,7 +292,7 @@ public class UIAirplane : MonoBehaviour
             if (currentlyInStorm && !inStorm)
             {
                 inStorm = true;
-                if (!isOutOfFuel) callsignText.text = "NO SIGNAL"; 
+                if (!isOutOfFuel) callsignText.text = "NO SIGNAL";
                 if (isSelected)
                 {
                     SetHighlight(false);
@@ -337,6 +353,10 @@ public class UIAirplane : MonoBehaviour
                     if (dispatchStatus == DispatchStatus.Approved && Vector2.Distance(logicalPosition, Vector2.zero) < 10f)
                     {
                         if (FlightDataManager.Instance != null) FlightDataManager.Instance.MarkFlightAsLanded(realCallsign);
+
+                        if (VideoLandingManager.Instance != null)
+                            VideoLandingManager.Instance.RequestLandingVideo();
+
                         Destroy(gameObject);
                     }
                     else if (dispatchStatus == DispatchStatus.Denied || dispatchStatus == DispatchStatus.Approved)
@@ -388,7 +408,7 @@ public class UIAirplane : MonoBehaviour
             fuelAtLastPing = currentFuel;
             UpdateVisualRotation();
             UpdateHitboxColor();
-            canvasGroup.alpha = 1f;
+            if (canvasGroup != null) canvasGroup.alpha = 1f;
             hasBeenPinged = true;
         }
     }
@@ -424,7 +444,8 @@ public class UIAirplane : MonoBehaviour
     {
         if (!hasBeenPinged)
         {
-            canvasGroup.alpha = 0f;
+            if (canvasGroup != null) canvasGroup.alpha = 0f;
+            SyncRouteAlpha();
             return;
         }
 
@@ -438,7 +459,7 @@ public class UIAirplane : MonoBehaviour
             return;
         }
 
-        if (canvasGroup.alpha > minAlpha)
+        if (canvasGroup != null && canvasGroup.alpha > minAlpha)
         {
             canvasGroup.alpha = Mathf.Max(minAlpha, canvasGroup.alpha - fadeSpeed * Time.deltaTime);
             SyncRouteAlpha();
@@ -547,31 +568,36 @@ public class UIAirplane : MonoBehaviour
         segRect.rotation = Quaternion.Euler(0, 0, (Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg) - 90f);
     }
 
+    // ИСПРАВЛЕНИЕ: Бронебойная логика посадки
     public void Approve()
     {
-        if (dispatchStatus != DispatchStatus.Pending || isOutOfFuel) return; 
+        if (dispatchStatus != DispatchStatus.Pending || isOutOfFuel) return;
         dispatchStatus = DispatchStatus.Approved;
 
-        if (isHolding)
+        isHolding = false;
+
+        // Если у самолета нет точек или последняя точка НЕ центр — направляем его ровно в центр
+        if (waypoints.Count == 0 || waypoints[waypoints.Count - 1] != Vector2.zero)
         {
-            isHolding = false;
-            waypoints.Clear();
             waypoints.Add(Vector2.zero);
-            RebuildRouteLayer();
         }
 
+        UpdateVisualRotation(); // Моментально разворачиваем нос к центру
+        RebuildRouteLayer();
         UpdateHitboxColor();
     }
 
     public void Deny()
     {
-        if (dispatchStatus != DispatchStatus.Pending || isOutOfFuel) return; 
+        if (dispatchStatus != DispatchStatus.Pending || isOutOfFuel) return;
         dispatchStatus = DispatchStatus.Denied;
 
         isHolding = false;
 
         waypoints.Clear();
         waypoints.Add(logicalPosition.normalized * (despawnRadius + 300f));
+
+        UpdateVisualRotation();
         RebuildRouteLayer();
         UpdateHitboxColor();
     }
@@ -584,7 +610,7 @@ public class UIAirplane : MonoBehaviour
 
     public void TriggerSelection()
     {
-        if (inStorm) return;
+        if (inStorm || isHolding) return;
 
         if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.SelectPlane(this);
         UIAirplane[] planes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
@@ -604,7 +630,7 @@ public class UIAirplane : MonoBehaviour
             if (parentImg != null)
             {
                 Color pc = parentImg.color;
-                pc.a = currentAlpha * 0.4f; 
+                pc.a = currentAlpha * 0.4f;
                 parentImg.color = pc;
             }
 
@@ -613,7 +639,7 @@ public class UIAirplane : MonoBehaviour
             {
                 Image childImg = fuelVisualTrans.GetComponent<Image>();
                 Color cc = childImg.color;
-                cc.a = currentAlpha; 
+                cc.a = currentAlpha;
                 childImg.color = cc;
             }
         }
@@ -706,7 +732,7 @@ public class UIAirplane : MonoBehaviour
         }
         else
         {
-            callsignText.color = Color.red; 
+            callsignText.color = Color.red;
         }
 
         Color fuelColor = isSelected ? new Color(1f, 0.9f, 0f, iconColor.a) : new Color(0f, 1f, 0f, iconColor.a);
@@ -753,7 +779,7 @@ public class UIAirplane : MonoBehaviour
         if (activeMarkers != null)
         {
             float distToMarker = 0f;
-            Vector2 markerPathPos = rectTransform.anchoredPosition; 
+            Vector2 markerPathPos = rectTransform.anchoredPosition;
             for (int i = 0; i < waypoints.Count; i++)
             {
                 distToMarker += Vector2.Distance(markerPathPos, waypoints[i]);
@@ -761,7 +787,7 @@ public class UIAirplane : MonoBehaviour
                 if (i < activeMarkers.Count && activeMarkers[i] != null)
                 {
                     Image mImg = activeMarkers[i].GetComponent<Image>();
-                    mImg.color = (distToMarker > maxFlightDistance) ? Color.red : fuelColor;
+                    mImg.color = (distToMarker > maxFlightDistance) ? new Color(1f, 0f, 0f, iconColor.a) : fuelColor;
                 }
             }
         }

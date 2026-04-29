@@ -292,7 +292,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 3.7191, y: -97.5906}
+  m_AnchoredPosition: {x: 3.7191, y: -217}
   m_SizeDelta: {x: 460.63, y: 140.7726}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &173763482
@@ -699,7 +699,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 3.7199, y: 79.7595}
+  m_AnchoredPosition: {x: 3.7199, y: -39.64991}
   m_SizeDelta: {x: 460.6268, y: 159.5181}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &641592696
@@ -1088,7 +1088,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: -1
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 5dfb7fef195e3be499f918df04b56fcb, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -1109,8 +1109,8 @@ Transform:
   m_GameObject: {fileID: 1479294905}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.0991, y: -0.1358, z: 0}
-  m_LocalScale: {x: 1.335969, y: 1.3473158, z: 1.2448959}
+  m_LocalPosition: {x: 0.1313, y: -0.2202, z: 0}
+  m_LocalScale: {x: 1.4631948, y: 1.258575, z: 1.1773179}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -1149,10 +1149,10 @@ RectTransform:
   - {fileID: 173763481}
   m_Father: {fileID: 2112826353}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -155}
-  m_SizeDelta: {x: -701.7671, y: -436.7321}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 2118, y: 978}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1992509425
 MonoBehaviour:
@@ -1274,8 +1274,8 @@ Canvas:
   m_GameObject: {fileID: 2112826348}
   m_Enabled: 1
   serializedVersion: 3
-  m_RenderMode: 0
-  m_Camera: {fileID: 0}
+  m_RenderMode: 1
+  m_Camera: {fileID: 118197881}
   m_PlaneDistance: 100
   m_PixelPerfect: 0
   m_ReceivesEvents: 1

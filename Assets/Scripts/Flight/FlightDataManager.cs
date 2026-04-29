@@ -126,6 +126,8 @@ public class FlightDataManager : MonoBehaviour
                     plane.cargo
                 );
 
+                newData.hasBeenPinged = plane.hasBeenPinged;
+
                 if (plane.dispatchStatus == UIAirplane.DispatchStatus.Approved)
                 {
                     newData.decisionMade = true;

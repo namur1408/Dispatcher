@@ -17,6 +17,11 @@ public class DeskTutorialManager : MonoBehaviour
     public GameObject radarHighlight;
     public GameObject tvHighlight;
 
+    [Header("Tutorial Lights")]
+    public GameObject[] radioLights; 
+    public GameObject radarLight;
+    public GameObject tvLight;
+
     [Header("Interactions (Transitions & Buttons)")]
     public Button radioButton;
     public ZoomTransition bookTransition;
@@ -46,9 +51,9 @@ public class DeskTutorialManager : MonoBehaviour
         Instance = this;
         if (disableTutorialsForTesting)
         {
-            tutorialStep = 99; 
-            RadarTutorialManager.isRadarTutorialCompleted = true; 
-            TVTutorialManager.isTvTutorialCompleted = true; 
+            tutorialStep = 99;
+            RadarTutorialManager.isRadarTutorialCompleted = true;
+            TVTutorialManager.isTvTutorialCompleted = true;
         }
 #if !UNITY_EDITOR
         disableTutorialsForTesting = false;
@@ -64,6 +69,11 @@ public class DeskTutorialManager : MonoBehaviour
         if (bookHighlight) bookHighlight.SetActive(false);
         if (radarHighlight) radarHighlight.SetActive(false);
         if (tvHighlight) tvHighlight.SetActive(false);
+
+        SetRadioLights(false);
+        if (radarLight) radarLight.SetActive(false);
+        if (tvLight) tvLight.SetActive(false);
+
         subtitleText.text = "";
 
         if (tutorialStep == 0) StartCoroutine(Part1_RadioAndBook());
@@ -81,22 +91,38 @@ public class DeskTutorialManager : MonoBehaviour
         if (tvTransition) tvTransition.canClick = state;
     }
 
+    void SetRadioLights(bool state)
+    {
+        if (radioLights != null)
+        {
+            foreach (GameObject lightObj in radioLights)
+            {
+                if (lightObj != null) lightObj.SetActive(state);
+            }
+        }
+    }
+
     IEnumerator Part1_RadioAndBook()
     {
         Time.timeScale = 0f;
+
         if (radioHighlight) radioHighlight.SetActive(true);
+        SetRadioLights(true); 
         if (radioButton) radioButton.interactable = true;
+
         subtitlePanel.SetActive(true);
         yield return StartCoroutine(TypeText(msg1));
         yield return new WaitUntil(() => isRadioClicked);
 
         if (radioHighlight) radioHighlight.SetActive(false);
+        SetRadioLights(false); 
         if (radioButton) radioButton.interactable = false;
         subtitleText.text = "";
 
         yield return new WaitUntil(() => isRadioClicked);
 
         if (radioHighlight) radioHighlight.SetActive(false);
+        SetRadioLights(false);
         if (radioButton) radioButton.interactable = false;
         subtitleText.text = "";
 
@@ -133,6 +159,7 @@ public class DeskTutorialManager : MonoBehaviour
 
         if (radarTransition) radarTransition.canClick = true;
         if (radarHighlight) radarHighlight.SetActive(true);
+        if (radarLight) radarLight.SetActive(true); 
 
         yield return new WaitUntil(() => isRadarClicked);
     }
@@ -151,6 +178,7 @@ public class DeskTutorialManager : MonoBehaviour
 
         if (tvTransition) tvTransition.canClick = true;
         if (tvHighlight) tvHighlight.SetActive(true);
+        if (tvLight) tvLight.SetActive(true); 
 
         yield return new WaitUntil(() => isTvClicked);
     }
@@ -169,6 +197,7 @@ public class DeskTutorialManager : MonoBehaviour
 
         if (radarTransition) radarTransition.canClick = true;
         if (radarHighlight) radarHighlight.SetActive(true);
+        if (radarLight) radarLight.SetActive(true); 
 
         yield return new WaitUntil(() => isRadarClicked);
     }
@@ -183,7 +212,8 @@ public class DeskTutorialManager : MonoBehaviour
         isBookClicked = true;
         tutorialStep = 1;
         Time.timeScale = 1f;
-        subtitlePanel.SetActive(false); 
+        subtitlePanel.SetActive(false);
+
     }
 
     public void PlayerClickedRadar()
@@ -192,7 +222,10 @@ public class DeskTutorialManager : MonoBehaviour
         if (tutorialStep == 1) tutorialStep = 2;
         else if (tutorialStep == 4) tutorialStep = 5;
         Time.timeScale = 1f;
-        subtitlePanel.SetActive(false); 
+        subtitlePanel.SetActive(false);
+
+        if (radarHighlight) radarHighlight.SetActive(false);
+        if (radarLight) radarLight.SetActive(false);
     }
 
     public void PlayerClickedTV()
@@ -200,7 +233,10 @@ public class DeskTutorialManager : MonoBehaviour
         isTvClicked = true;
         tutorialStep = 3;
         Time.timeScale = 1f;
-        subtitlePanel.SetActive(false); 
+        subtitlePanel.SetActive(false);
+
+        if (tvHighlight) tvHighlight.SetActive(false);
+        if (tvLight) tvLight.SetActive(false);
     }
 
     public void OnDialogueClicked() { skipRequested = true; }

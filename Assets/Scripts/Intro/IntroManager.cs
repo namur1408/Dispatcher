@@ -8,15 +8,20 @@ using UnityEngine.InputSystem;
 [System.Serializable]
 public struct StoryFrame
 {
+    [Header("Визуал")]
     public Sprite image;
+
+    public Sprite talkingImage;
+
+    public float talkSpeed;
+
+    [Header("Текст")]
     [TextArea(3, 5)]
     public string text;
 
-    [Tooltip("Задержка перед переходом к следующему кадру")]
     public float delayAfter;
 
     [Header("Аудио (Опционально)")]
-    [Tooltip("Звук/Музыка для этого кадра. Если указан, основная музыка встанет на паузу.")]
     public AudioClip frameSound;
 }
 
@@ -27,13 +32,12 @@ public class IntroManager : MonoBehaviour
     public TextMeshProUGUI displayText;
 
     [Header("Аудио")]
-    [Tooltip("Источник для основной фоновой музыки")]
     public AudioSource mainBGMSource;
-    [Tooltip("Источник для звуков/музыки конкретных кадров")]
     public AudioSource frameSoundSource;
 
     [Header("Настройки текста")]
     public float typingSpeed = 0.05f;
+    public float pauseDuration = 1.0f; 
 
     [Header("Сюжет")]
     public StoryFrame[] frames;
@@ -42,14 +46,14 @@ public class IntroManager : MonoBehaviour
     public string nextSceneName = "Main Menu";
 
     private bool isTyping = false;
+    private bool isSpeaking = false; 
     private bool skipRequested = false;
 
     void Start()
     {
-        // Запускаем основную музыку, если она назначена
         if (mainBGMSource != null && mainBGMSource.clip != null)
         {
-            mainBGMSource.loop = true; // Зацикливаем фон
+            mainBGMSource.loop = true;
             mainBGMSource.Play();
         }
 
@@ -73,11 +77,11 @@ public class IntroManager : MonoBehaviour
         {
             if (isTyping)
             {
-                isTyping = false;
+                isTyping = false; 
             }
             else
             {
-                skipRequested = true;
+                skipRequested = true; 
             }
         }
     }
@@ -88,13 +92,9 @@ public class IntroManager : MonoBehaviour
         {
             skipRequested = false;
 
-            // --- ЛОГИКА АУДИО ---
             if (frames[i].frameSound != null)
             {
-                // Если у кадра есть свой звук: ставим фон на паузу и играем звук кадра
-                if (mainBGMSource != null && mainBGMSource.isPlaying)
-                    mainBGMSource.Pause();
-
+                if (mainBGMSource != null && mainBGMSource.isPlaying) mainBGMSource.Pause();
                 if (frameSoundSource != null)
                 {
                     frameSoundSource.clip = frames[i].frameSound;
@@ -103,21 +103,29 @@ public class IntroManager : MonoBehaviour
             }
             else
             {
-                // Если у кадра нет своего звука: останавливаем звук прошлого кадра и возвращаем фон
-                if (frameSoundSource != null)
-                    frameSoundSource.Stop();
-
-                if (mainBGMSource != null && !mainBGMSource.isPlaying)
-                    mainBGMSource.UnPause();
+                if (frameSoundSource != null) frameSoundSource.Stop();
+                if (mainBGMSource != null && !mainBGMSource.isPlaying) mainBGMSource.UnPause();
             }
 
-            // 1. Устанавливаем картинку
             if (frames[i].image != null) displayImage.sprite = frames[i].image;
 
-            // 2. Печатаем текст
+            isTyping = true;
+            isSpeaking = true; 
+
+            Coroutine talkingCoroutine = null;
+            if (frames[i].talkingImage != null)
+            {
+                talkingCoroutine = StartCoroutine(AnimateMouth(frames[i]));
+            }
+
             yield return StartCoroutine(TypeText(frames[i].text));
 
-            // 3. Ждем задержку или клик
+            if (talkingCoroutine != null)
+            {
+                StopCoroutine(talkingCoroutine);
+                if (frames[i].image != null) displayImage.sprite = frames[i].image;
+            }
+
             float timer = 0;
             while (timer < frames[i].delayAfter && !skipRequested)
             {
@@ -129,6 +137,28 @@ public class IntroManager : MonoBehaviour
         LoadNextScene();
     }
 
+    IEnumerator AnimateMouth(StoryFrame frame)
+    {
+        float speed = frame.talkSpeed > 0f ? frame.talkSpeed : 0.15f;
+        bool isOpen = false;
+
+        while (isTyping)
+        {
+            if (isSpeaking)
+            {
+                isOpen = !isOpen;
+                displayImage.sprite = isOpen ? frame.talkingImage : frame.image;
+                yield return new WaitForSeconds(speed);
+            }
+            else
+            {
+                isOpen = false;
+                displayImage.sprite = frame.image;
+                yield return null; 
+            }
+        }
+    }
+
     IEnumerator TypeText(string fullText)
     {
         displayText.text = "";
@@ -136,21 +166,38 @@ public class IntroManager : MonoBehaviour
         if (string.IsNullOrEmpty(fullText))
         {
             isTyping = false;
+            isSpeaking = false;
             yield break;
         }
 
-        isTyping = true;
-
-        foreach (char c in fullText)
+        for (int i = 0; i < fullText.Length; i++)
         {
-            if (!isTyping) break;
+            if (!isTyping) break; 
+
+            char c = fullText[i];
+
+            if (c == '|')
+            {
+                isSpeaking = false; 
+
+                float pTimer = 0;
+                while (pTimer < pauseDuration && isTyping)
+                {
+                    pTimer += Time.deltaTime;
+                    yield return null;
+                }
+
+                isSpeaking = true; 
+                continue; 
+            }
 
             displayText.text += c;
             yield return new WaitForSeconds(typingSpeed);
         }
 
-        displayText.text = fullText;
+        displayText.text = fullText.Replace("|", "");
         isTyping = false;
+        isSpeaking = false;
     }
 
     void LoadNextScene()
