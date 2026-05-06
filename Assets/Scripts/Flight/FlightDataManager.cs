@@ -77,6 +77,18 @@ public class FlightDataManager : MonoBehaviour
             }
         }
         ProcessFoodConsumption();
+
+        if (landedPlanes >= maxPlanes)
+        {
+            for (int i = 0; i < savedFlights.Count; i++)
+            {
+                var flight = savedFlights[i];
+                if (flight.targetPosition == Vector2.zero && !flight.decisionMade)
+                {
+                    AddDecision(flight.callsign, false);
+                }
+            }
+        }
     }
 
     private void ProcessFoodConsumption()
@@ -119,9 +131,9 @@ public class FlightDataManager : MonoBehaviour
 
         foreach (var plane in airplanes)
         {
-            if (plane == null || plane.callsignText == null) continue;
+            if (plane == null) continue;
 
-            string callsign = plane.callsignText.text;
+            string callsign = plane.originalCallsign;
             FlightData existing = savedFlights.Find(f => f.callsign == callsign);
 
             if (existing != null)
@@ -130,6 +142,8 @@ public class FlightDataManager : MonoBehaviour
                 existing.savedWaypoints = plane.GetWaypoints();
                 existing.hasBeenPinged = plane.hasBeenPinged;
                 existing.currentFuel = Mathf.RoundToInt(plane.currentFuel);
+
+                existing.isInStorm = (plane.callsignText.text == "NO SIGNAL");
 
                 if (plane.dispatchStatus == UIAirplane.DispatchStatus.Approved) { existing.decisionMade = true; existing.approved = true; }
                 else if (plane.dispatchStatus == UIAirplane.DispatchStatus.Denied) { existing.decisionMade = true; existing.approved = false; }
@@ -146,6 +160,9 @@ public class FlightDataManager : MonoBehaviour
                     plane.speed,
                     plane.cargo
                 );
+
+                newData.isInStorm = (plane.callsignText.text == "NO SIGNAL");
+
                 updatedList.Add(newData);
             }
         }
@@ -173,20 +190,18 @@ public class FlightDataManager : MonoBehaviour
 
         if (dayNumber == 1)
         {
-            FlightData ge102 = new FlightData("GE-102", new Vector2(-900, 200), Vector2.zero, new List<Vector2>(), 80f, "Fuel");
-            ge102.manifestOrigin = "Bastion-3";
+            FlightData ge102 = new FlightData("GE-102", new Vector2(-900, 200), Vector2.zero, new List<Vector2>(), 80f, "Fuel", 150, "Fuel", 150, 250f, "Bastion-3");
             scriptedFlightsQueue.Enqueue(ge102);
             scriptedDelaysQueue.Enqueue(20f);
 
-            scriptedFlightsQueue.Enqueue(new FlightData("AX-999", new Vector2(-800, -600), new Vector2(700, 1000), new List<Vector2>(), 100f, "None", 0));
+            scriptedFlightsQueue.Enqueue(new FlightData("AX-999", new Vector2(-800, -600), new Vector2(700, 1000), new List<Vector2>(), 100f, "None", 0, "None", 0, 9999f, "Unknown"));
             scriptedDelaysQueue.Enqueue(25f);
 
-            FlightData qy884 = new FlightData("QY-884", new Vector2(736, -600), Vector2.zero, new List<Vector2>(), 95f, "Medicines", 2);
-            qy884.manifestOrigin = "Bastion-5";
+            FlightData qy884 = new FlightData("QY-884", new Vector2(736, -600), Vector2.zero, new List<Vector2>(), 95f, "Medicines", 2, "Medicines", 2, 160f, "Bastion-5");
             scriptedFlightsQueue.Enqueue(qy884);
             scriptedDelaysQueue.Enqueue(25f);
 
-            scriptedFlightsQueue.Enqueue(new FlightData("ZX-771", new Vector2(700, 800), new Vector2(-400, -900), new List<Vector2>(), 100f, "None", 0));
+            scriptedFlightsQueue.Enqueue(new FlightData("ZX-771", new Vector2(700, 800), new Vector2(-400, -900), new List<Vector2>(), 100f, "None", 0, "None", 0, 9999f, "Unknown"));
             scriptedDelaysQueue.Enqueue(20f);
 
             FlightData tr404 = new FlightData("TR-404", new Vector2(0, 900), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Food", 50, 85f, "Sector-Z");

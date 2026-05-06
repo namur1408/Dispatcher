@@ -9,37 +9,37 @@ public class EmailData
     public string sender;
     public string date;
     public string subject;
-    [TextArea(5, 15)] 
+    [TextArea(5, 15)]
     public string body;
 }
 
 public class AegisMailApp : MonoBehaviour
 {
-    public static List<EmailData> pendingEmails = new List<EmailData>();
+    public static List<EmailData> globalInbox = new List<EmailData>();
 
-    [Header("Настройки левой панели")]
+    private static bool isInitialized = false;
+
     public Transform emailListContent;
     public GameObject emailButtonPrefab;
-
-    [Header("Настройки правой панели (Чтение)")]
     public GameObject emptyStateVisual;
     public GameObject readingContentVisual;
 
     public TextMeshProUGUI readingSenderText;
     public TextMeshProUGUI readingSubjectText;
     public TextMeshProUGUI readingBodyText;
+    public List<EmailData> defaultInbox = new List<EmailData>();
 
-    [Header("База данных писем")]
-    public List<EmailData> inbox = new List<EmailData>();
+    void Awake()
+    {
+        if (!isInitialized)
+        {
+            globalInbox.AddRange(defaultInbox);
+            isInitialized = true;
+        }
+    }
 
     void OnEnable()
     {
-        if (pendingEmails.Count > 0)
-        {
-            inbox.InsertRange(0, pendingEmails); 
-            pendingEmails.Clear(); 
-        }
-
         RefreshInbox();
         ShowEmptyState();
     }
@@ -51,7 +51,7 @@ public class AegisMailApp : MonoBehaviour
             Destroy(child.gameObject);
         }
 
-        foreach (EmailData email in inbox)
+        foreach (EmailData email in globalInbox)
         {
             GameObject btnObj = Instantiate(emailButtonPrefab, emailListContent);
             EmailButtonHelper helper = btnObj.GetComponent<EmailButtonHelper>();
@@ -61,7 +61,9 @@ public class AegisMailApp : MonoBehaviour
                 helper.senderText.text = email.sender;
                 helper.subjectText.text = email.subject;
                 helper.dateText.text = email.date;
-                helper.button.onClick.AddListener(() => OpenEmail(email));
+
+                EmailData emailToOpen = email;
+                helper.button.onClick.AddListener(() => OpenEmail(emailToOpen));
             }
         }
     }
@@ -82,13 +84,14 @@ public class AegisMailApp : MonoBehaviour
         readingContentVisual.SetActive(false);
     }
 
-    public void ReceiveNewEmail(EmailData newEmail)
+    public static void ReceiveNewEmail(EmailData newEmail)
     {
-        inbox.Insert(0, newEmail);
+        globalInbox.Insert(0, newEmail);
 
-        if (gameObject.activeInHierarchy)
+        AegisMailApp app = FindFirstObjectByType<AegisMailApp>();
+        if (app != null && app.gameObject.activeInHierarchy)
         {
-            RefreshInbox();
+            app.RefreshInbox();
         }
     }
 }

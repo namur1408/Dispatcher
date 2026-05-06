@@ -38,6 +38,7 @@ public class UIAirplane : MonoBehaviour
     private bool isOutOfFuel = false;
     private Vector2 lastPosition;
 
+    public string originalCallsign = "";
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
     private Transform sweepLine;
@@ -153,7 +154,7 @@ public class UIAirplane : MonoBehaviour
             dispatchStatus = DispatchStatus.Pending;
             if (waypoints.Count == 0) waypoints.Add(Vector2.zero);
         }
-
+        originalCallsign = data.callsign;
         UpdateVisualRotation();
         RebuildRouteLayer();
         UpdateHitboxColor();
@@ -211,6 +212,14 @@ public class UIAirplane : MonoBehaviour
             bestIndex = waypoints.Count;
         }
 
+        if (waypoints.Count > 0 && waypoints[waypoints.Count - 1] != Vector2.zero)
+        {
+            if (bestIndex == waypoints.Count)
+            {
+                bestIndex = waypoints.Count - 1;
+            }
+        }
+
         waypoints.Insert(bestIndex, clickPos);
 
         RebuildRouteLayer();
@@ -255,7 +264,7 @@ public class UIAirplane : MonoBehaviour
         float distanceMoved = Vector2.Distance(logicalPosition, lastPosition);
         lastPosition = logicalPosition;
 
-        if (!isOutOfFuel && dispatchStatus != DispatchStatus.Approved && distanceMoved > 0)
+        if (!isOutOfFuel && distanceMoved > 0)
         {
             float fuelConsumed = distanceMoved / distancePerFuelUnit;
             currentFuel -= fuelConsumed;

@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 using UnityEngine.SceneManagement;
-using UnityEngine.InputSystem;
+using UnityEngine.InputSystem; 
 
 [System.Serializable]
 public struct StoryFrame
@@ -37,7 +37,7 @@ public class IntroManager : MonoBehaviour
 
     [Header("Настройки текста")]
     public float typingSpeed = 0.05f;
-    public float pauseDuration = 1.0f; 
+    public float pauseDuration = 1.0f;
 
     [Header("Сюжет")]
     public StoryFrame[] frames;
@@ -46,7 +46,7 @@ public class IntroManager : MonoBehaviour
     public string nextSceneName = "Main Menu";
 
     private bool isTyping = false;
-    private bool isSpeaking = false; 
+    private bool isSpeaking = false;
     private bool skipRequested = false;
 
     void Start()
@@ -73,15 +73,18 @@ public class IntroManager : MonoBehaviour
         if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             inputPressed = true;
 
+        if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
+            inputPressed = true;
+
         if (inputPressed)
         {
             if (isTyping)
             {
-                isTyping = false; 
+                isTyping = false;
             }
             else
             {
-                skipRequested = true; 
+                skipRequested = true;
             }
         }
     }
@@ -110,7 +113,7 @@ public class IntroManager : MonoBehaviour
             if (frames[i].image != null) displayImage.sprite = frames[i].image;
 
             isTyping = true;
-            isSpeaking = true; 
+            isSpeaking = true;
 
             Coroutine talkingCoroutine = null;
             if (frames[i].talkingImage != null)
@@ -154,7 +157,7 @@ public class IntroManager : MonoBehaviour
             {
                 isOpen = false;
                 displayImage.sprite = frame.image;
-                yield return null; 
+                yield return null;
             }
         }
     }
@@ -172,13 +175,13 @@ public class IntroManager : MonoBehaviour
 
         for (int i = 0; i < fullText.Length; i++)
         {
-            if (!isTyping) break; 
+            if (!isTyping) break;
 
             char c = fullText[i];
 
             if (c == '|')
             {
-                isSpeaking = false; 
+                isSpeaking = false;
 
                 float pTimer = 0;
                 while (pTimer < pauseDuration && isTyping)
@@ -187,8 +190,8 @@ public class IntroManager : MonoBehaviour
                     yield return null;
                 }
 
-                isSpeaking = true; 
-                continue; 
+                isSpeaking = true;
+                continue;
             }
 
             displayText.text += c;

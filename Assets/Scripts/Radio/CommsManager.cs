@@ -3,7 +3,7 @@ using TMPro;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI; // <-- ДОБАВЛЕНО ДЛЯ РАБОТЫ СО СКРОЛЛОМ
+using UnityEngine.UI;
 
 public class CommsManager : MonoBehaviour
 {
@@ -19,7 +19,7 @@ public class CommsManager : MonoBehaviour
     [Header("UI General")]
     public Transform deskArea;
     public TextMeshProUGUI chatHistoryText;
-    public ScrollRect chatScroll; // <-- НОВАЯ ПЕРЕМЕННАЯ ДЛЯ СКРОЛЛА
+    public ScrollRect chatScroll;
     public GameObject confrontButton;
     public GameObject endCommsButton;
 
@@ -64,7 +64,16 @@ public class CommsManager : MonoBehaviour
                 askedSpeed = currentData.askedSpeed;
 
                 GenerateDocuments();
-                StartCoroutine(Routine_StartChat());
+
+                if (string.IsNullOrEmpty(currentData.chatHistory))
+                {
+                    StartCoroutine(Routine_StartChat());
+                }
+                else
+                {
+                    chatHistoryText.text = currentData.chatHistory;
+                    ScrollToBottom();
+                }
             }
         }
     }
@@ -301,11 +310,17 @@ public class CommsManager : MonoBehaviour
         }
 
         if (isValid && !isLie && (firstFactID.Contains("cargo") || secondID.Contains("cargo")))
-            currentData.isCargoKnown = true;
+        {
+            if (currentData.manifestCargo.ToUpper() == currentData.cargo.ToUpper())
+            {
+                currentData.isCargoKnown = true;
+            }
+        }
 
         StartCoroutine(ResetColorRoutine(firstFactScanner, firstFactIndex, 2f));
         StartCoroutine(ResetColorRoutine(secondScanner, secondIndex, 2f));
         firstFactID = "";
+
     }
 
     bool CheckPair(string i1, string i2, string t1, string t2) => (i1 == t1 && i2 == t2) || (i1 == t2 && i2 == t1);
@@ -324,6 +339,11 @@ public class CommsManager : MonoBehaviour
     {
         if (isTyping) return;
 
+        if (currentLieTopic == "cargo")
+        {
+            currentData.isCargoKnown = true;
+        }
+
         string exp = "Atmospheric interference, dispatcher. Everything is normal.";
 
         if (currentLieTopic == "cargo" && !string.IsNullOrEmpty(currentData.explanationCargo)) exp = currentData.explanationCargo;
@@ -336,17 +356,14 @@ public class CommsManager : MonoBehaviour
         StartCoroutine(Routine_TypewriterChat("Explain this discrepancy.", exp, ""));
     }
 
-    // --- ФУНКЦИЯ ДЛЯ ПРОКРУТКИ ВНИЗ ---
     void ScrollToBottom()
     {
         if (chatScroll != null)
         {
-            Canvas.ForceUpdateCanvases(); // Заставляем Unity моментально пересчитать высоту текста
-            chatScroll.verticalNormalizedPosition = 0f; // 0f - это самый низ, 1f - это самый верх
+            Canvas.ForceUpdateCanvases();
+            chatScroll.verticalNormalizedPosition = 0f;
         }
     }
-
-    // --- ОБНОВЛЕННЫЕ АНИМАЦИИ С ПРОКРУТКОЙ ---
 
     IEnumerator Routine_StartChat()
     {
@@ -362,7 +379,7 @@ public class CommsManager : MonoBehaviour
         while (elapsed < thinkTime)
         {
             chatHistoryText.text = prefix + new string('.', dots);
-            ScrollToBottom(); // Скроллим
+            ScrollToBottom();
 
             dots = (dots % 3) + 1;
             float step = 0.3f;
@@ -374,11 +391,13 @@ public class CommsManager : MonoBehaviour
         foreach (char c in message)
         {
             chatHistoryText.text += c;
-            ScrollToBottom(); // Скроллим после каждой напечатанной буквы
+            ScrollToBottom();
             yield return new WaitForSeconds(0.03f);
         }
         chatHistoryText.text += "\n";
         ScrollToBottom();
+
+        currentData.chatHistory = chatHistoryText.text;
 
         isTyping = false;
     }
@@ -388,7 +407,7 @@ public class CommsManager : MonoBehaviour
         isTyping = true;
 
         chatHistoryText.text += $"\n<b>[YOU]:</b> {question}\n";
-        ScrollToBottom(); // Скроллим после нашего вопроса
+        ScrollToBottom();
 
         yield return new WaitForSeconds(0.5f);
 
@@ -402,7 +421,7 @@ public class CommsManager : MonoBehaviour
         while (elapsed < thinkTime)
         {
             chatHistoryText.text = baseText + prefix + new string('.', dots);
-            ScrollToBottom(); // Скроллим во время "раздумий"
+            ScrollToBottom();
 
             dots = (dots % 3) + 1;
             float step = 0.3f;
@@ -414,11 +433,13 @@ public class CommsManager : MonoBehaviour
         foreach (char c in answer)
         {
             chatHistoryText.text += c;
-            ScrollToBottom(); // Скроллим во время печати текста
+            ScrollToBottom();
             yield return new WaitForSeconds(0.03f);
         }
         chatHistoryText.text += "\n";
         ScrollToBottom();
+
+        currentData.chatHistory = chatHistoryText.text;
 
         if (dataTopicToUpdate == "cargo") { askedCargo = true; currentData.askedCargo = true; }
         else if (dataTopicToUpdate == "origin") { askedOrigin = true; currentData.askedOrigin = true; }

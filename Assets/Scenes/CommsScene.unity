@@ -926,6 +926,7 @@ MonoBehaviour:
   defaultDocPrefab: {fileID: 4657660372318533875, guid: a84e33c489a3e60448c43ef902a8f44b, type: 3}
   deskArea: {fileID: 1787890807}
   chatHistoryText: {fileID: 1711209245}
+  chatScroll: {fileID: 1369418032}
   confrontButton: {fileID: 1745985353}
   endCommsButton: {fileID: 2087495144}
   askButton: {fileID: 774904138}
@@ -1075,7 +1076,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ScrollRect
   m_Content: {fileID: 257944496}
-  m_Horizontal: 1
+  m_Horizontal: 0
   m_Vertical: 1
   m_MovementType: 1
   m_Elasticity: 0.1

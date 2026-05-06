@@ -25,7 +25,12 @@ public class BigRadarTerminal : MonoBehaviour
         SetPlaneCount(0);
         yield return new WaitUntil(() => !topInfoText.IsTyping);
         isStartupSequenceDone = true;
-        ClearSelection();
+
+        // ИСПРАВЛЕНИЕ 1: Очищаем экран только если игрок еще никого не выбрал
+        if (currentSelectedPlane == null)
+        {
+            ClearSelection();
+        }
     }
 
     void Update()
@@ -64,7 +69,8 @@ public class BigRadarTerminal : MonoBehaviour
 
     public void SelectPlane(UIAirplane plane)
     {
-        if (!isStartupSequenceDone || plane == null) return;
+        // ИСПРАВЛЕНИЕ 2: Убрали блокировку выбора во время загрузки (!isStartupSequenceDone)
+        if (plane == null) return;
         if (currentSelectedPlane == plane) return;
 
         currentSelectedPlane = plane;
@@ -77,11 +83,12 @@ public class BigRadarTerminal : MonoBehaviour
 
         bool isTransit = currentSelectedPlane.targetPosition != Vector2.zero;
 
+        // Блокируем рацию для транзитных самолетов
         if (isTransit)
         {
             if (RadioManager.activeCallsign == currentSelectedPlane.callsignText.text)
             {
-                RadioManager.activeCallsign = ""; 
+                RadioManager.activeCallsign = "";
             }
         }
         else
@@ -170,7 +177,7 @@ public class BigRadarTerminal : MonoBehaviour
         currentSelectedPlane = null;
         lastDisplayedCallsign = "";
 
-        RadioManager.activeCallsign = ""; 
+        RadioManager.activeCallsign = "";
 
         if (selectedPlaneText != null && isStartupSequenceDone)
         {
