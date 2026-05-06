@@ -13,6 +13,11 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
     public RectTransform rootContainer;
     public RectTransform zoomTarget;
 
+    [Header("Звук перехода")]
+    public AudioClip transitionSound;
+    [Range(0f, 1f)]
+    public float soundVolume = 0.8f;
+
     public UnityEvent onZoomStart;
 
     private bool isTransitioning = false;
@@ -27,18 +32,25 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
     private IEnumerator ZoomAndLoadAsync()
     {
         isTransitioning = true;
+
+        // 1. Запускаем звук
+        if (transitionSound != null && ButtonSoundManager.instance != null)
+        {
+            ButtonSoundManager.instance.PlaySpecialSound(transitionSound, soundVolume);
+        }
+
         if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager();
 
         onZoomStart?.Invoke();
 
-        // --- �����: ���������� ��� ��������, � ������� �� ������� ---
         Transform targetTransform = zoomTarget != null ? zoomTarget : transform;
         ZoomReturnManager.pendingReturnTargetName = targetTransform.name;
-        // -------------------------------------------------------------
 
+        // Начинаем загрузку новой сцены заранее
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneToLoad);
         asyncLoad.allowSceneActivation = false;
 
+        // 2. Анимация Зума (она задает темп)
         Vector3 startScale = rootContainer.localScale;
         Vector3 targetScale = startScale * zoomMultiplier;
         Vector2 startPos = rootContainer.anchoredPosition;
@@ -57,7 +69,6 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         }
 
         float elapsedTime = 0f;
-
         while (elapsedTime < zoomDuration)
         {
             elapsedTime += Time.unscaledDeltaTime;
@@ -73,14 +84,23 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
                 lights[i].pointLightOuterRadius = initialOuter[i] * currentScaleRatio;
                 lights[i].pointLightInnerRadius = initialInner[i] * currentScaleRatio;
             }
-
             yield return null;
         }
 
         rootContainer.localScale = targetScale;
         rootContainer.anchoredPosition = targetPos;
 
-        while (asyncLoad.progress < 0.9f) yield return null;
+        while (asyncLoad.progress < 0.9f)
+        {
+            yield return null;
+        }
+
+        if (ButtonSoundManager.instance != null)
+        {
+            ButtonSoundManager.instance.StopAllSounds();
+        }
+
+        // Активируем новую сцену
         asyncLoad.allowSceneActivation = true;
     }
 }
