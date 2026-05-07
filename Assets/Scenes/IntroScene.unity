@@ -392,7 +392,8 @@ MonoBehaviour:
   displayImage: {fileID: 1887345611}
   displayText: {fileID: 1147638321}
   frameSoundSource: {fileID: 1711682998}
-  bgmReducedVolume: 0.14
+  frameSoundVolume: 0.066
+  bgmReducedVolume: 0.147
   fadeSpeed: 0.5
   typingSpeed: 0.03
   pauseDuration: 1
@@ -482,7 +483,7 @@ MonoBehaviour:
     delayAfter: 5
     frameSound: {fileID: 8300000, guid: 0b5f6f449ac35f64abdbf74ad7a34c46, type: 3}
     soundDuration: 3
-  nextSceneName: SampleScene
+  mainSceneName: SampleScene
 --- !u!4 &1711682997
 Transform:
   m_ObjectHideFlags: 0

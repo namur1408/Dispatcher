@@ -1101,6 +1101,7 @@ GameObject:
   - component: {fileID: 731479687}
   - component: {fileID: 731479686}
   - component: {fileID: 731479685}
+  - component: {fileID: 731479689}
   m_Layer: 5
   m_Name: BackButton
   m_TagString: Untagged
@@ -1247,6 +1248,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 731479683}
   m_CullTransparentMesh: 1
+--- !u!114 &731479689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 731479683}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 93e9242ab4d19f84aaf4f22c0c97f2ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonSoundTrigger
+  customSound: {fileID: 8300000, guid: db4bb1a50f1768b49bbae338dd1c9a1b, type: 3}
+  volumeMultiplier: 1
 --- !u!1 &911341423
 GameObject:
   m_ObjectHideFlags: 0

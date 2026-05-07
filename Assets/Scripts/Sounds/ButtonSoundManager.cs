@@ -6,7 +6,7 @@ public class ButtonSoundManager : MonoBehaviour
 {
     public static ButtonSoundManager instance;
 
-    [Header("Настройки звука")]
+    [Header("Настройки звука по умолчанию")]
     public AudioClip clickSound;
 
     [Range(0f, 1f)]
@@ -46,30 +46,33 @@ public class ButtonSoundManager : MonoBehaviour
         foreach (Button btn in allButtons)
         {
             if (btn.gameObject.scene.name == null) continue;
-            btn.onClick.RemoveListener(PlayClickSound);
-            btn.onClick.AddListener(PlayClickSound);
+
+            if (btn.GetComponent<ButtonSoundTrigger>() == null)
+            {
+                btn.gameObject.AddComponent<ButtonSoundTrigger>();
+            }
         }
     }
 
-    void PlayClickSound()
+    public void PlayDefaultClick()
     {
         if (clickSound != null && audioSource != null)
         {
-            // Используем PlayOneShot с параметром громкости
             audioSource.PlayOneShot(clickSound, volume);
         }
     }
 
-    public void SetVolume(float newVolume)
-    {
-        volume = Mathf.Clamp01(newVolume);
-    }
     public void PlaySpecialSound(AudioClip clip, float customVolume)
     {
         if (clip != null && audioSource != null)
         {
             audioSource.PlayOneShot(clip, customVolume);
         }
+    }
+
+    public void SetVolume(float newVolume)
+    {
+        volume = Mathf.Clamp01(newVolume);
     }
 
     public void StopAllSounds()
@@ -79,7 +82,4 @@ public class ButtonSoundManager : MonoBehaviour
             audioSource.Stop();
         }
     }
-
-
-
 }

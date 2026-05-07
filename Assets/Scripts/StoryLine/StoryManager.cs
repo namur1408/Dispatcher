@@ -24,7 +24,6 @@ public class StoryManager : MonoBehaviour
 
     private EventSystem cachedEventSystem;
     public static bool isFirstGameLoad = true;
-
     public static int currentDay = 1;
 
     void Awake()
@@ -46,24 +45,15 @@ public class StoryManager : MonoBehaviour
 
         cachedEventSystem = Object.FindFirstObjectByType<EventSystem>();
 
-        bool willStartDay = skipTutorialAndStartDay1 || PlayerPrefs.HasKey("StartDayNumber");
-
-        if (isFirstGameLoad || willStartDay)
+        // Включаем черный экран ПРИ СТАРТЕ только если это реальное начало дня или самый первый запуск
+        if (isFirstGameLoad || PlayerPrefs.HasKey("StartDayNumber") || skipTutorialAndStartDay1)
         {
             LockPlayerInput(true);
-            if (transitionScreen != null)
-            {
-                transitionScreen.SetActive(true);
-                if (transitionCanvasGroup != null)
-                {
-                    transitionCanvasGroup.alpha = 1f;
-                    transitionCanvasGroup.blocksRaycasts = true;
-                }
-                if (dayText != null) dayText.text = "";
-            }
+            ForceBlackScreen();
         }
         else
         {
+            // Во всех остальных случаях (например, возврат из Comms) - жестко выключаем экран
             if (transitionScreen != null) transitionScreen.SetActive(false);
             if (transitionCanvasGroup != null) transitionCanvasGroup.blocksRaycasts = false;
         }
@@ -74,17 +64,21 @@ public class StoryManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (scene.name != mainSceneName && PlayerPrefs.HasKey("StartDayNumber"))
+        // Этот метод сработает, когда мы загрузили Главное меню ПОСЛЕ окончания смены
+        if (PlayerPrefs.HasKey("StartDayNumber"))
         {
             isFirstGameLoad = false;
             currentDay = PlayerPrefs.GetInt("StartDayNumber");
-            PlayerPrefs.DeleteKey("StartDayNumber");
+            PlayerPrefs.DeleteKey("StartDayNumber"); // Удаляем, чтобы при походе в Comms экран не сработал снова
+
+            ForceBlackScreen();
             StartCoroutine(WaitAndStartDay(currentDay, true));
         }
     }
 
     void Start()
     {
+        // Этот метод сработает только один раз при самом первом появлении менеджера на сцене
         if (skipTutorialAndStartDay1)
         {
             isFirstGameLoad = false;
@@ -101,24 +95,40 @@ public class StoryManager : MonoBehaviour
         }
         else if (isFirstGameLoad)
         {
+            // САМЫЙ ПЕРВЫЙ ЗАПУСК ИГРЫ (После Интро)
             isFirstGameLoad = false;
-            StartCoroutine(QuickFadeInTutorial());
+            currentDay = 1;
+            StartCoroutine(WaitAndStartDay(1, true));
+        }
+    }
+
+    private void ForceBlackScreen()
+    {
+        if (transitionScreen != null)
+        {
+            Canvas canvas = transitionScreen.GetComponentInParent<Canvas>();
+            if (canvas != null)
+            {
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.sortingOrder = 32000;
+            }
+            RectTransform rt = transitionScreen.GetComponent<RectTransform>();
+            if (rt != null) rt.localScale = Vector3.one;
+
+            transitionScreen.SetActive(true);
+
+            if (transitionCanvasGroup != null)
+            {
+                transitionCanvasGroup.alpha = 1f;
+                transitionCanvasGroup.blocksRaycasts = true;
+            }
+            if (dayText != null) dayText.text = "";
         }
     }
 
     private void LockPlayerInput(bool isLocked)
     {
         if (cachedEventSystem != null) cachedEventSystem.enabled = !isLocked;
-    }
-
-    private IEnumerator QuickFadeInTutorial()
-    {
-        yield return new WaitForSecondsRealtime(0.2f);
-        yield return StartCoroutine(Fade(1f, 0f, 0.5f));
-
-        if (transitionCanvasGroup != null) transitionCanvasGroup.blocksRaycasts = false;
-        if (transitionScreen != null) transitionScreen.SetActive(false);
-        LockPlayerInput(false);
     }
 
     private IEnumerator WaitAndStartDay(int dayNumber, bool isScreenAlreadyBlack = false)
@@ -149,78 +159,36 @@ public class StoryManager : MonoBehaviour
             FlightDataManager.Instance.isShiftActive = false;
         }
 
-        int finishedDay = currentDay;
-        currentDay++;
-        PlayerPrefs.SetInt("StartDayNumber", currentDay);
-        PlayerPrefs.Save();
-
         // 1. Уходим в черный экран на Радаре
-        if (transitionScreen != null)
-        {
-            Canvas canvas = transitionScreen.GetComponentInParent<Canvas>();
-            if (canvas != null)
-            {
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvas.sortingOrder = 32000;
-            }
-            RectTransform rt = transitionScreen.GetComponent<RectTransform>();
-            if (rt != null) rt.localScale = Vector3.one;
-
-            transitionScreen.SetActive(true);
-        }
-
-        if (dayText != null) dayText.text = "";
-
+        ForceBlackScreen();
+        if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 0f;
         yield return StartCoroutine(Fade(0f, 1f, 1.5f));
 
-        if (transitionCanvasGroup != null) transitionCanvasGroup.blocksRaycasts = true;
-
-        // 2. Печатаем итоги завершенной смены (всё еще в черном экране)
-        string endText = $"<size=150%>SHIFT {finishedDay} COMPLETED</size>\r\n\r\n\r\n<color=#888888><size=70%>PROCESSING DATA...</size></color>";
+        // 2. Печатаем итоги завершенной смены
+        string endText = $"<size=150%>SHIFT {currentDay} COMPLETED</size>\r\n\r\n\r\n<color=#888888><size=70%>PROCESSING DATA...</size></color>";
         yield return StartCoroutine(TypeText(endText));
 
         yield return new WaitForSecondsRealtime(3f);
 
-        // 3. Стираем текст итогов
+        // 3. Стираем текст и готовим следующий день
         if (dayText != null) dayText.text = "";
-        yield return new WaitForSecondsRealtime(1f);
 
-        // 4. Мгновенно грузим главную сцену
+        currentDay++;
+        PlayerPrefs.SetInt("StartDayNumber", currentDay);
+        PlayerPrefs.Save();
+
+        // 4. Грузим главную сцену. 
+        // Как только она загрузится, сработает OnSceneLoaded и автоматически запустит интро нового дня!
         if (!string.IsNullOrEmpty(mainSceneName) && mainSceneName != SceneManager.GetActiveScene().name)
         {
             AsyncOperation op = SceneManager.LoadSceneAsync(mainSceneName);
             while (!op.isDone) yield return null;
         }
-
-        yield return new WaitForEndOfFrame();
-
-        // Форсируем настройки UI в новой сцене
-        if (transitionScreen != null)
+        else
         {
-            Canvas canvas = transitionScreen.GetComponentInParent<Canvas>();
-            if (canvas != null)
-            {
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvas.sortingOrder = 32000;
-            }
-            transitionScreen.SetActive(true);
+            // На случай если ты тестируешь и уже находишься в нужной сцене
+            StartCoroutine(WaitAndStartDay(currentDay, true));
         }
-        if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 1f;
-
-        // 5. Печатаем заставку нового дня поверх загруженной сцены
-        string displayDate = (18 + currentDay) + ".08.2038";
-        string targetText = $"<size=150%>SHIFT {currentDay}</size>\r\n\r\n\r\n<color=#888888><size=70%>{displayDate}</size></color>";
-
-        yield return StartCoroutine(TypeText(targetText));
-
-        yield return new WaitForSecondsRealtime(2.5f);
-
-        // 6. Плавно убираем экран
-        yield return StartCoroutine(Fade(1f, 0f, 1.5f));
-
-        if (transitionScreen != null) transitionScreen.SetActive(false);
-        if (transitionCanvasGroup != null) transitionCanvasGroup.blocksRaycasts = false;
-        LockPlayerInput(false);
     }
 
     private void EvaluateShiftResults(int shiftDay)
@@ -305,25 +273,9 @@ public class StoryManager : MonoBehaviour
         }
 
         LockPlayerInput(true);
-
-        if (transitionScreen != null) transitionScreen.SetActive(true);
-        if (transitionCanvasGroup != null) transitionCanvasGroup.blocksRaycasts = true;
-        if (dayText != null) dayText.text = "";
-
-        if (transitionScreen != null)
-        {
-            Canvas canvas = transitionScreen.GetComponentInParent<Canvas>();
-            if (canvas != null)
-            {
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvas.sortingOrder = 32000;
-            }
-            RectTransform rt = transitionScreen.GetComponent<RectTransform>();
-            if (rt != null) rt.localScale = Vector3.one;
-        }
+        ForceBlackScreen(); // Страхуемся, чтобы канвас точно был поверх всего
 
         if (!isScreenAlreadyBlack) yield return StartCoroutine(Fade(0f, 1f, 1.0f));
-        else if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 1f;
 
         if (dayNumber == 1)
         {
@@ -334,18 +286,16 @@ public class StoryManager : MonoBehaviour
             }
         }
 
-        // Печатаем заставку только если мы загружаемся впервые (не после завершения смены)
-        if (!isScreenAlreadyBlack)
-        {
-            string displayDate = (18 + dayNumber) + ".08.2038";
-            string targetText = $"<size=150%>SHIFT {dayNumber}</size>\r\n\r\n\r\n<color=#888888><size=70%>{displayDate}</size></color>";
+        // Печатаем заставку нового дня
+        string displayDate = (18 + dayNumber) + ".08.2038";
+        string targetText = $"<size=150%>SHIFT {dayNumber}</size>\r\n\r\n\r\n<color=#888888><size=70%>{displayDate}</size></color>";
 
-            yield return StartCoroutine(TypeText(targetText));
-            yield return new WaitForSecondsRealtime(2.5f);
-        }
+        yield return StartCoroutine(TypeText(targetText));
+        yield return new WaitForSecondsRealtime(2.5f);
 
         if (dayNumber == 1) SendDay1Directives();
 
+        // Плавно открываем игру
         yield return StartCoroutine(Fade(1f, 0f, 1.5f));
 
         if (transitionScreen != null) transitionScreen.SetActive(false);

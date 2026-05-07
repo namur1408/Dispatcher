@@ -20,7 +20,7 @@ public struct StoryFrame
 
     [Header("Аудио")]
     public AudioClip frameSound;
-    public float soundDuration; // СКОЛЬКО секунд играть этот звук
+    public float soundDuration;
 }
 
 public class IntroManager : MonoBehaviour
@@ -30,12 +30,15 @@ public class IntroManager : MonoBehaviour
     public TextMeshProUGUI displayText;
 
     [Header("Аудио Источники")]
-    public AudioSource frameSoundSource; // Источник для звуков кадров
+    public AudioSource frameSoundSource;
+
+    [Range(0f, 1f)]
+    public float frameSoundVolume = 1.0f;
 
     [Header("Настройки приглушения")]
     [Range(0f, 1f)]
-    public float bgmReducedVolume = 0.2f; // Громкость фона при "дакинге"
-    public float fadeSpeed = 0.5f;        // Скорость перехода громкости
+    public float bgmReducedVolume = 0.2f;
+    public float fadeSpeed = 0.5f;
 
     [Header("Настройки текста")]
     public float typingSpeed = 0.05f;
@@ -45,7 +48,7 @@ public class IntroManager : MonoBehaviour
     public StoryFrame[] frames;
 
     [Header("Загрузка")]
-    public string mainSceneName = "MainMenu"; // Заменил переменную под твой стандарт
+    public string mainSceneName = "MainMenu";
 
     private AudioSource mainBGMSource;
     private float originalVolume = 1f;
@@ -55,7 +58,6 @@ public class IntroManager : MonoBehaviour
 
     void Start()
     {
-        // Ищем фоновую музыку (объект из первого скрипта)
         GameObject bgmObject = GameObject.Find("MusicManager");
         if (bgmObject != null)
         {
@@ -100,21 +102,20 @@ public class IntroManager : MonoBehaviour
             skipRequested = false;
             StoryFrame currentFrame = frames[i];
 
-            // 1. ЗАПУСК ЗВУКА КАДРА И ПРИГЛУШЕНИЕ ФОНА
             if (currentFrame.frameSound != null)
             {
                 if (mainBGMSource != null) StartCoroutine(FadeVolume(mainBGMSource, bgmReducedVolume));
 
                 if (frameSoundSource != null)
                 {
+                    frameSoundSource.volume = frameSoundVolume;
+
                     frameSoundSource.clip = currentFrame.frameSound;
                     frameSoundSource.Play();
-                    // Запускаем корутину остановки звука через заданное время
                     StartCoroutine(StopSoundAfterTime(currentFrame.soundDuration));
                 }
             }
 
-            // 2. ВИЗУАЛ И ТЕКСТ
             if (currentFrame.image != null) displayImage.sprite = currentFrame.image;
 
             isTyping = true;
@@ -132,7 +133,6 @@ public class IntroManager : MonoBehaviour
                 if (currentFrame.image != null) displayImage.sprite = currentFrame.image;
             }
 
-            // 3. ОЖИДАНИЕ ЗАВЕРШЕНИЯ КАДРА
             float timer = 0;
             while (timer < currentFrame.delayAfter && !skipRequested)
             {
@@ -144,14 +144,12 @@ public class IntroManager : MonoBehaviour
         LoadNextScene();
     }
 
-    // Корутина, которая выключит звук и вернет фон ровно тогда, когда ты указал
     IEnumerator StopSoundAfterTime(float duration)
     {
         yield return new WaitForSeconds(duration);
 
         if (frameSoundSource != null) frameSoundSource.Stop();
 
-        // Возвращаем громкость фоновой музыки
         if (mainBGMSource != null)
             StartCoroutine(FadeVolume(mainBGMSource, originalVolume));
     }

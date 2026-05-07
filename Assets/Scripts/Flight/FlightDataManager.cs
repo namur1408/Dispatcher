@@ -190,7 +190,7 @@ public class FlightDataManager : MonoBehaviour
 
         if (dayNumber == 1)
         {
-            FlightData ge102 = new FlightData("GE-102", new Vector2(-900, 200), Vector2.zero, new List<Vector2>(), 80f, "Fuel", 150, "Fuel", 150, 250f, "Bastion-3");
+            FlightData ge102 = new FlightData("GE-102", new Vector2(-900, 200), Vector2.zero, new List<Vector2>(), 80f, "Fuel", 500, "Fuel", 500, 250f, "Bastion-3");
             scriptedFlightsQueue.Enqueue(ge102);
             scriptedDelaysQueue.Enqueue(20f);
 
@@ -204,7 +204,7 @@ public class FlightDataManager : MonoBehaviour
             scriptedFlightsQueue.Enqueue(new FlightData("ZX-771", new Vector2(700, 800), new Vector2(-400, -900), new List<Vector2>(), 100f, "None", 0, "None", 0, 9999f, "Unknown"));
             scriptedDelaysQueue.Enqueue(20f);
 
-            FlightData tr404 = new FlightData("TR-404", new Vector2(0, 900), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Food", 50, 85f, "Sector-Z");
+            FlightData tr404 = new FlightData("TR-404", new Vector2(0, 900), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Food", 50, 100f, "Sector-Z");
             tr404.spokenCargo = "Food";
             tr404.spokenOrigin = "Bastion-4";
             tr404.explanationOrigin = "Sector Z has been destroyed, Control. We barely managed to escape! We probably made a mistake in the rush.";

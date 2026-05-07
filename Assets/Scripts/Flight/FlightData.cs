@@ -10,7 +10,7 @@ public class FlightData
     public List<Vector2> savedWaypoints = new List<Vector2>();
     public float speed;
     public float currentFuel;
-    public int planeMaxFuel = 500;
+    public int planeMaxFuel = 250;
     public string status = "APPROACHING";
 
     public string cargo;

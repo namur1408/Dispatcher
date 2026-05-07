@@ -8,6 +8,15 @@ public class BackgroundMusic : MonoBehaviour
     private static BackgroundMusic instance;
     private AudioSource audioSource;
 
+    [Header("Аудио Треки")]
+    public AudioClip menuMusic;
+    public AudioClip introMusic;
+    public AudioClip gameMusic;
+
+    [Header("Настройки сцен")]
+    public string menuSceneName = "MainMenu";
+    public string introSceneName = "IntroScene"; 
+
     [Header("Настройки громкости")]
     public float normalVolume = 0.7f;
     public float quietVolume = 0.03f;
@@ -22,6 +31,8 @@ public class BackgroundMusic : MonoBehaviour
         "TVInfoScene"
     };
 
+    private Coroutine fadeCoroutine;
+
     void Awake()
     {
         if (instance == null)
@@ -29,7 +40,6 @@ public class BackgroundMusic : MonoBehaviour
             instance = this;
             DontDestroyOnLoad(gameObject);
             audioSource = GetComponent<AudioSource>();
-            normalVolume = audioSource.volume;
         }
         else
         {
@@ -50,25 +60,60 @@ public class BackgroundMusic : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        StopAllCoroutines();
+        AudioClip targetClip = gameMusic;
+        float targetVolume = quietScenes.Contains(scene.name) ? quietVolume : normalVolume;
 
-        if (quietScenes.Contains(scene.name))
+        if (scene.name == menuSceneName)
         {
-            StartCoroutine(FadeVolume(quietVolume));
+            targetClip = menuMusic;
+            targetVolume = normalVolume;
+        }
+        else if (scene.name == introSceneName)
+        {
+            targetClip = introMusic;
+            targetVolume = normalVolume;
+        }
+
+        if (fadeCoroutine != null)
+        {
+            StopCoroutine(fadeCoroutine);
+        }
+
+        fadeCoroutine = StartCoroutine(SwitchTrackAndFade(targetClip, targetVolume));
+    }
+
+    IEnumerator SwitchTrackAndFade(AudioClip newClip, float targetVol)
+    {
+        if (audioSource.clip == newClip)
+        {
+            if (!audioSource.isPlaying) audioSource.Play();
+
+            while (!Mathf.Approximately(audioSource.volume, targetVol))
+            {
+                audioSource.volume = Mathf.MoveTowards(audioSource.volume, targetVol, fadeSpeed * Time.deltaTime);
+                yield return null;
+            }
+            audioSource.volume = targetVol;
         }
         else
         {
-            StartCoroutine(FadeVolume(normalVolume));
-        }
-    }
+            if (audioSource.isPlaying)
+            {
+                while (audioSource.volume > 0)
+                {
+                    audioSource.volume = Mathf.MoveTowards(audioSource.volume, 0, fadeSpeed * Time.deltaTime);
+                    yield return null;
+                }
+            }
+            audioSource.clip = newClip;
+            audioSource.Play();
 
-    IEnumerator FadeVolume(float target)
-    {
-        while (!Mathf.Approximately(audioSource.volume, target))
-        {
-            audioSource.volume = Mathf.MoveTowards(audioSource.volume, target, fadeSpeed * Time.deltaTime);
-            yield return null;
+            while (!Mathf.Approximately(audioSource.volume, targetVol))
+            {
+                audioSource.volume = Mathf.MoveTowards(audioSource.volume, targetVol, fadeSpeed * Time.deltaTime);
+                yield return null;
+            }
+            audioSource.volume = targetVol;
         }
-        audioSource.volume = target;
     }
 }
