@@ -37,16 +37,13 @@ public class AirplaneSpawner : MonoBehaviour
 
             int currentCount = GetCurrentPlanesCount(currentContent);
 
-            // Если на радаре есть место для нового самолета
             if (currentCount < maxAirplanes)
             {
-                // Если в очереди есть СЮЖЕТНЫЙ самолет
                 if (FlightDataManager.Instance.scriptedFlightsQueue.Count > 0)
                 {
-                    // Достаем самолет и таймер до следующего
                     FlightData data = FlightDataManager.Instance.scriptedFlightsQueue.Dequeue();
 
-                    float nextDelay = 5f; // Страховочное значение
+                    float nextDelay = 5f;
                     if (FlightDataManager.Instance.scriptedDelaysQueue.Count > 0)
                     {
                         nextDelay = FlightDataManager.Instance.scriptedDelaysQueue.Dequeue();
@@ -54,10 +51,8 @@ public class AirplaneSpawner : MonoBehaviour
 
                     SpawnStoryPlane(data, currentContent);
 
-                    // Устанавливаем долгую задержку из сценария
                     FlightDataManager.Instance.globalSpawnTimer = nextDelay;
                 }
-                // Иначе — спавним ОБЫЧНЫЙ рандомный самолет
                 else
                 {
                     SpawnRandomAirplane(currentContent);
@@ -66,8 +61,6 @@ public class AirplaneSpawner : MonoBehaviour
             }
             else
             {
-                // Если мест на радаре нет (уже кружат 5 бортов), спавнер ждет 3 секунды и пробует снова,
-                // НЕ сбрасывая долгий таймер (чтобы не сломать сюжет).
                 FlightDataManager.Instance.globalSpawnTimer = 3f;
             }
         }
@@ -75,7 +68,6 @@ public class AirplaneSpawner : MonoBehaviour
 
     void SpawnStoryPlane(FlightData data, Transform contentParent)
     {
-        // 1. Берем ЖЕСТКИЕ заскриптованные позиции из FlightData (ИСПРАВЛЕНО: targetPosition)
         Vector2 startPos = data.position;
         Vector2 targetPos = data.targetPosition;
 
@@ -86,8 +78,6 @@ public class AirplaneSpawner : MonoBehaviour
         {
             planeScript.InitializeFromData(data);
             planeScript.SetFlightPath(startPos, targetPos);
-
-            // --- КРИТИЧЕСКИ ВАЖНО: Сразу регистрируем данные в глобальном списке ---
             if (FlightDataManager.Instance != null && !FlightDataManager.Instance.savedFlights.Contains(data))
             {
                 FlightDataManager.Instance.savedFlights.Add(data);
@@ -112,12 +102,50 @@ public class AirplaneSpawner : MonoBehaviour
             targetPos = new Vector2(Mathf.Cos(endAngle), Mathf.Sin(endAngle)) * (spawnRadius + 200f);
         }
 
+        string[] prefixes = { "GE", "TR", "QY" };
+        string prefix = prefixes[Random.Range(0, prefixes.Length)];
+        string callsign = $"{prefix}-{Random.Range(100, 999)}";
+
+        float speed = 80f;
+        string cargo = "None";
+        int amount = 10;
+
+        string[] goods = { "Food", "Fuel", "Medicines" };
+
+        if (prefix == "GE") 
+        {
+            speed = Random.Range(60, 84); 
+            cargo = goods[Random.Range(0, goods.Length)];
+            amount = Random.Range(51, 500); 
+        }
+        else if (prefix == "TR") 
+        {
+            speed = Random.Range(70, 78); 
+            cargo = "People";
+            amount = Random.Range(20, 250);
+        }
+        else if (prefix == "QY") 
+        {
+            speed = Random.Range(81, 105); 
+            cargo = goods[Random.Range(0, goods.Length)];
+            amount = Random.Range(1, 50); 
+        }
+
+        FlightData randomData = new FlightData(callsign, startPos, targetPos, new List<Vector2>(), speed, cargo, amount);
+
         GameObject newPlane = Instantiate(airplanePrefab, contentParent, false);
         UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
 
         if (planeScript != null)
         {
+            planeScript.InitializeFromData(randomData);
             planeScript.SetFlightPath(startPos, targetPos);
+
+            if (FlightDataManager.Instance != null && !FlightDataManager.Instance.savedFlights.Contains(randomData))
+            {
+                FlightDataManager.Instance.savedFlights.Add(randomData);
+            }
+
             if (RadarManager.Instance != null)
             {
                 RadarManager.Instance.RegisterAirplane(planeScript);

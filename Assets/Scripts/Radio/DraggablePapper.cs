@@ -1,31 +1,34 @@
 using UnityEngine;
-using UnityEngine.EventSystems; // Обязательно для работы с мышкой в UI
+using UnityEngine.EventSystems;
 
 public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler
 {
+    [Header("Аудио")] 
+    public AudioClip pickupSound;
+    [Range(0f, 1f)] public float soundVolume = 0.8f;
+
     private RectTransform rectTransform;
     private Canvas canvas;
 
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
-        // Ищем главный Canvas, чтобы правильно рассчитывать масштаб мыши
         canvas = GetComponentInParent<Canvas>();
     }
 
-    // Срабатывает в момент КЛИКА по бумажке
     public void OnPointerDown(PointerEventData eventData)
     {
-        // Выносим эту бумажку поверх всех остальных!
         rectTransform.SetAsLastSibling();
+
+        if (pickupSound != null && Camera.main != null)
+        {
+            AudioSource.PlayClipAtPoint(pickupSound, Camera.main.transform.position, soundVolume);
+        }
     }
 
-    // Срабатывает, когда мы ТЯНЕМ мышку с зажатой кнопкой
     public void OnDrag(PointerEventData eventData)
     {
         if (canvas == null) return;
-
-        // Двигаем бумажку за мышкой с учетом масштаба интерфейса (Canvas)
         rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
     }
 }

@@ -16,7 +16,6 @@ public class TVDisplayInfo : MonoBehaviour
     public TextMeshProUGUI selectedLabel;
     public Button approveButton;
     public Button denyButton;
-    public TextMeshProUGUI baseStatsText;
 
     [Header("Panels & Resources UI")]
     public GameObject flightsPanel;
@@ -40,7 +39,7 @@ public class TVDisplayInfo : MonoBehaviour
 
     [Header("Shift Management")]
     public Button endShiftButton;
-
+    public bool forceEndShiftDebug = false;
     private int selectedIndex = -1;
 
     private const string COL_HEADER = "#00FF41";
@@ -352,21 +351,58 @@ public class TVDisplayInfo : MonoBehaviour
 
     void UpdateBaseStatsUI()
     {
-        if (baseStatsText == null) return;
         var fdm = FlightDataManager.Instance;
-        if (fdm == null) return;
 
-        string capCol = fdm.landedPlanes >= fdm.maxPlanes ? COL_DENIED : COL_APPROVED;
-
-        baseStatsText.text = $"<color=white>CAPACITY:</color> <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n" +
-                             $"<color=#FFD700>MED: {fdm.totalMedicines} | PPL: {fdm.totalPeople} | FOOD: {fdm.totalFood} | FUEL: {fdm.totalFuel}</color>";
-
-        if (endShiftButton != null && RadarManager.Instance != null)
+        if (endShiftButton != null)
         {
-            bool isFull = fdm.landedPlanes >= fdm.maxPlanes;
-            bool noPlanesOnRadar = RadarManager.Instance.GetPlanesCount() == 0;
+            if (forceEndShiftDebug)
+            {
+                endShiftButton.interactable = true;
+                TextMeshProUGUI btnText = endShiftButton.GetComponentInChildren<TextMeshProUGUI>();
+                if (btnText != null)
+                {
+                    btnText.text = "DEBUG SKIP";
+                    btnText.fontSize = 45;
+                }
+                return;
+            }
 
-            endShiftButton.interactable = (isFull && noPlanesOnRadar);
+            bool isFull = fdm != null && fdm.landedPlanes >= fdm.maxPlanes;
+
+            int approachingPlanesOnRadar = 0;
+            UIAirplane[] activePlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
+
+            foreach (var plane in activePlanes)
+            {
+                if (plane.targetPosition == Vector2.zero)
+                {
+                    approachingPlanesOnRadar++;
+                }
+            }
+
+            bool noApproachingPlanes = (approachingPlanesOnRadar == 0);
+
+            endShiftButton.interactable = (isFull && noApproachingPlanes);
+
+            TextMeshProUGUI normalBtnText = endShiftButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (normalBtnText != null)
+            {
+                if (!isFull)
+                {
+                    normalBtnText.text = "FILL BASE\nTO END";
+                    normalBtnText.fontSize = 40;
+                }
+                else if (!noApproachingPlanes)
+                {
+                    normalBtnText.text = "WAIT FOR\nDEPARTURE";
+                    normalBtnText.fontSize = 40;
+                }
+                else
+                {
+                    normalBtnText.text = "END SHIFT";
+                    normalBtnText.fontSize = 50;
+                }
+            }
         }
     }
 
@@ -403,23 +439,25 @@ public class TVDisplayInfo : MonoBehaviour
                 txt.fontSize = 70;
                 txt.alignment = TextAlignmentOptions.Left;
 
+                string displayName = data.isInStorm ? "NO SIGNAL" : data.callsign;
+                string nameColor = data.isInStorm ? "#888888" : COL_CALLSIGN;
+
                 if (data.decisionMade)
                 {
                     string decCol = data.approved ? COL_APPROVED : COL_DENIED;
                     string decIcon = data.approved ? "ALLOWED" : "DENIED ";
-                    txt.text = $"<color={COL_CALLSIGN}><b>{data.callsign}</b></color>  " +
+                    txt.text = $"<color={nameColor}><b>{displayName}</b></color>  " +
                                $"<color={decCol}>[{decIcon}]</color>";
                 }
                 else
                 {
-                    // ИСПРАВЛЕНО: Проверяем транзит по targetPosition
                     bool isTransit = data.targetPosition != Vector2.zero;
                     string currentStatus = isTransit ? "TRANSIT" : "APPROACHING";
 
                     string stCol = currentStatus == "APPROACHING" ? COL_APPROACH : COL_TRANSIT;
                     string stIcon = currentStatus == "APPROACHING" ? "↓ LAND" : "→ XSIT";
 
-                    txt.text = $"<color={COL_CALLSIGN}><b>{data.callsign}</b></color>  " +
+                    txt.text = $"<color={nameColor}><b>{displayName}</b></color>  " +
                                $"<color={stCol}>{stIcon}</color>  " +
                                $"<color={COL_SPEED}>SPD:{data.speed:F0}</color>";
                 }
@@ -533,22 +571,23 @@ public class TVDisplayInfo : MonoBehaviour
         string callsign = flights[index].callsign;
         var data = flights[index];
 
-        // ИСПРАВЛЕНО: Проверяем транзит по targetPosition
         bool isTransit = data.targetPosition != Vector2.zero;
         string currentStatus = isTransit ? "TRANSIT" : "APPROACHING";
+
+        string displayName = data.isInStorm ? "NO SIGNAL" : callsign;
 
         if (selectedLabel != null)
         {
             string stCol = currentStatus == "APPROACHING" ? COL_APPROACH : COL_TRANSIT;
             selectedLabel.text = $"<color={COL_HEADER}>SELECTED ►</color> " +
-                                 $"<color={COL_SELECTED}><b>{callsign}</b></color>  " +
+                                 $"<color={COL_SELECTED}><b>{displayName}</b></color>  " +
                                  $"<color={stCol}>{currentStatus}</color>";
         }
 
         if (detailedInfoText != null)
         {
             string infoString = $"<color=white><b>FLIGHT DETAILS:</b>\n\n</color>";
-            infoString += $"Callsign: <b>{callsign}</b>\n";
+            infoString += $"Callsign: <b>{displayName}</b>\n";
             infoString += $"Status: {currentStatus}\n";
             infoString += $"Speed: {data.speed:F0}\n";
 
@@ -580,6 +619,7 @@ public class TVDisplayInfo : MonoBehaviour
 
         bool hasSpace = true;
         bool isTransit = false;
+        bool isInStorm = false;
 
         if (FlightDataManager.Instance != null)
         {
@@ -587,14 +627,13 @@ public class TVDisplayInfo : MonoBehaviour
 
             if (canDecide && selectedIndex < FlightDataManager.Instance.savedFlights.Count)
             {
-                // Проверяем, транзитный ли это самолет
                 isTransit = FlightDataManager.Instance.savedFlights[selectedIndex].targetPosition != Vector2.zero;
+                isInStorm = FlightDataManager.Instance.savedFlights[selectedIndex].isInStorm;
             }
         }
 
-        // Блокируем кнопки, если самолет транзитный
-        bool canApprove = canDecide && hasSpace && !isTransit;
-        bool canDeny = canDecide && !isTransit;
+        bool canApprove = canDecide && hasSpace && !isTransit && !isInStorm;
+        bool canDeny = canDecide && !isTransit && !isInStorm;
 
         if (canDecide && TVTutorialManager.Instance != null && !TVTutorialManager.isTvTutorialCompleted)
         {
@@ -632,9 +671,12 @@ public class TVDisplayInfo : MonoBehaviour
         {
             selectedLabel.text = $"<color={COL_SEPARATOR}>► SELECT FLIGHT FROM LIST</color>";
         }
-        else if (isTransit && selectedLabel != null && !selectedLabel.text.Contains("TRANSIT FLIGHT"))
+        else if (isInStorm && selectedLabel != null && !selectedLabel.text.Contains("COMM LOSS"))
         {
-            // Подсказка, почему кнопки заблокированы
+            selectedLabel.text += "  <color=#FF0000>[ COMM LOSS: IN STORM ]</color>";
+        }
+        else if (isTransit && !isInStorm && selectedLabel != null && !selectedLabel.text.Contains("TRANSIT FLIGHT"))
+        {
             selectedLabel.text += "  <color=#00BFFF>[ TRANSIT FLIGHT ]</color>";
         }
     }
@@ -692,9 +734,14 @@ public class TVDisplayInfo : MonoBehaviour
 
     void OnEndShiftClicked()
     {
+        Debug.Log("<color=magenta>[TVDisplayInfo] Кнопка End Shift нажата!</color>");
         if (StoryManager.Instance != null)
         {
             StoryManager.Instance.EndCurrentShift();
+        }
+        else
+        {
+            Debug.LogError("[TVDisplayInfo] ОШИБКА: StoryManager.Instance отсутствует на сцене!");
         }
     }
 }

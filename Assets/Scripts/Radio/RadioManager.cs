@@ -4,32 +4,68 @@ using UnityEngine.SceneManagement;
 public class RadioManager : MonoBehaviour
 {
     public static RadioManager Instance;
+
+    [Header("Визуал")]
     public GameObject blinkingLight;
     public float blinkSpeed = 2f;
 
+    [Header("Звук вызова")]
+    public AudioClip ringSound;
+    [Range(0f, 1f)] public float ringVolume = 0.6f;
+    private AudioSource audioSource;
+
     public static string activeCallsign = "";
-    public static bool isNewCall = false;     
+    public static bool isNewCall = false;
 
     private float blinkTimer = 0f;
 
     void Awake()
     {
         Instance = this;
+
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
+
+        audioSource.playOnAwake = false;
+
+        audioSource.loop = true;
+
         if (blinkingLight != null) blinkingLight.SetActive(activeCallsign != "");
     }
 
     void Update()
     {
-        if (activeCallsign != "" && blinkingLight != null)
+        if (activeCallsign != "")
         {
             if (isNewCall)
             {
                 blinkTimer += Time.deltaTime * blinkSpeed;
-                blinkingLight.SetActive(Mathf.Sin(blinkTimer) > 0);
+                if (blinkingLight != null) blinkingLight.SetActive(Mathf.Sin(blinkTimer) > 0);
+
+                if (ringSound != null && audioSource != null && !audioSource.isPlaying)
+                {
+                    audioSource.clip = ringSound;
+                    audioSource.volume = ringVolume;
+                    audioSource.Play();
+                }
             }
             else
             {
-                blinkingLight.SetActive(true); 
+                if (blinkingLight != null) blinkingLight.SetActive(true);
+
+                if (audioSource != null && audioSource.isPlaying)
+                {
+                    audioSource.Stop();
+                }
+            }
+        }
+        else
+        {
+            if (blinkingLight != null) blinkingLight.SetActive(false);
+
+            if (audioSource != null && audioSource.isPlaying)
+            {
+                audioSource.Stop();
             }
         }
     }
@@ -38,7 +74,10 @@ public class RadioManager : MonoBehaviour
     {
         if (activeCallsign != "")
         {
-            isNewCall = false; 
+            isNewCall = false;
+
+            if (audioSource != null) audioSource.Stop();
+
             SceneManager.LoadScene("CommsScene");
         }
     }

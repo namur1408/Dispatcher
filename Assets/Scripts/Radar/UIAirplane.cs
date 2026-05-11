@@ -38,6 +38,13 @@ public class UIAirplane : MonoBehaviour
     private bool isOutOfFuel = false;
     private Vector2 lastPosition;
 
+    [Header("Audio")]
+    public AudioClip pingSound;
+    [Range(0f, 1f)] public float pingVolume = 0.6f; // <-- НОВОЕ: Ползунок громкости
+    private AudioSource audioSource;
+    private float lastPingTime = 0f;
+
+    public string originalCallsign = "";
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
     private Transform sweepLine;
@@ -71,6 +78,10 @@ public class UIAirplane : MonoBehaviour
         rectTransform = GetComponent<RectTransform>();
         canvasGroup = GetComponent<CanvasGroup>();
 
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+
+        audioSource.volume = pingVolume; // <-- НОВОЕ: Применяем громкость при старте
         if (canvasGroup != null) canvasGroup.alpha = 0f;
 
         GameObject foundScanner = GameObject.Find("SweepLine");
@@ -153,7 +164,7 @@ public class UIAirplane : MonoBehaviour
             dispatchStatus = DispatchStatus.Pending;
             if (waypoints.Count == 0) waypoints.Add(Vector2.zero);
         }
-
+        originalCallsign = data.callsign;
         UpdateVisualRotation();
         RebuildRouteLayer();
         UpdateHitboxColor();
@@ -211,6 +222,14 @@ public class UIAirplane : MonoBehaviour
             bestIndex = waypoints.Count;
         }
 
+        if (waypoints.Count > 0 && waypoints[waypoints.Count - 1] != Vector2.zero)
+        {
+            if (bestIndex == waypoints.Count)
+            {
+                bestIndex = waypoints.Count - 1;
+            }
+        }
+
         waypoints.Insert(bestIndex, clickPos);
 
         RebuildRouteLayer();
@@ -255,7 +274,7 @@ public class UIAirplane : MonoBehaviour
         float distanceMoved = Vector2.Distance(logicalPosition, lastPosition);
         lastPosition = logicalPosition;
 
-        if (!isOutOfFuel && dispatchStatus != DispatchStatus.Approved && distanceMoved > 0)
+        if (!isOutOfFuel && distanceMoved > 0)
         {
             float fuelConsumed = distanceMoved / distancePerFuelUnit;
             currentFuel -= fuelConsumed;
@@ -416,6 +435,13 @@ public class UIAirplane : MonoBehaviour
             UpdateVisualRotation();
             UpdateHitboxColor();
             if (canvasGroup != null) canvasGroup.alpha = 1f;
+
+            // --- НОВОЕ: Применяем настроенную громкость при каждом пике ---
+            if (pingSound != null && Time.time - lastPingTime > 1.0f)
+            {
+                audioSource.PlayOneShot(pingSound, pingVolume);
+                lastPingTime = Time.time;
+            }
             hasBeenPinged = true;
         }
     }
@@ -587,7 +613,7 @@ public class UIAirplane : MonoBehaviour
             waypoints.Add(Vector2.zero);
         }
 
-        UpdateVisualRotation(); 
+        UpdateVisualRotation();
         RebuildRouteLayer();
         UpdateHitboxColor();
     }
