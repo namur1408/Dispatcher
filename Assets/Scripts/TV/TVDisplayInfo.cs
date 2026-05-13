@@ -243,19 +243,9 @@ public class TVDisplayInfo : MonoBehaviour
                         }
                         else
                         {
-                            if (flight.cargo == "Fuel")
-                            {
-                                if (flight.isRepairing)
-                                {
-                                    float progress = 1f - (flight.repairTimer / FlightDataManager.REPAIR_TIME);
-                                    leftInfo += $"    {CreateProgressBar(progress, "#FF8C00")}\n";
-                                }
-                                else if (!flight.isRepaired)
-                                {
-                                    leftInfo += $"    <link=\"REPAIR_{flight.callsign}\"><color=#FF8C00><b>[ REPAIRING ]</b></color></link>\n";
-                                }
-                            }
-                            else
+                            float fuelPercentage = (flight.currentFuel / flight.planeMaxFuel) * 100f;
+
+                            if (fuelPercentage > 50f)
                             {
                                 if (flight.isRefueling)
                                 {
@@ -273,6 +263,18 @@ public class TVDisplayInfo : MonoBehaviour
                                     {
                                         leftInfo += $"    <color=#FF3030>[ NOT ENOUGH FUEL ON WAREHOUSE ]</color>\n";
                                     }
+                                }
+                            }
+                            else
+                            {
+                                if (flight.isRepairing)
+                                {
+                                    float progress = 1f - (flight.repairTimer / FlightDataManager.REPAIR_TIME);
+                                    leftInfo += $"    {CreateProgressBar(progress, "#FF8C00")}\n";
+                                }
+                                else if (!flight.isRepaired)
+                                {
+                                    leftInfo += $"    <link=\"REPAIR_{flight.callsign}\"><color=#FF8C00><b>[ START REPAIRING ]</b></color></link>\n";
                                 }
                             }
                         }

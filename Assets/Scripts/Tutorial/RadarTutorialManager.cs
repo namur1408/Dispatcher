@@ -1,4 +1,4 @@
-using System.Collections;
+п»їusing System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -29,7 +29,6 @@ public class RadarTutorialManager : MonoBehaviour
     private bool isEmergencyMessageActive = false;
     public static bool isRadarTutorialCompleted = false;
 
-    // --- Флаг для погодного фильтра ---
     private bool isWeatherFilterToggled = false;
 
     private string msgIntro = "Welcome to the Radar screen. This is your main tool for managing the airspace.";
@@ -42,7 +41,7 @@ public class RadarTutorialManager : MonoBehaviour
     private string msgStep2 = "Click anywhere on the radar to create a WAYPOINT. And most importantly, if flight paths cross, planes will COLLIDE!";
     private string msgStep3 = "Need to fix a route? Click an existing waypoint to REMOVE it.";
 
-    // --- НОВОЕ: Тексты для погодного фильтра ---
+    
     private string msgWeather1 = "One more thing. Severe storms can completely prevent communication with the aircraft.";
     private string msgWeather2 = "Find the WEATHER FILTER button and click it to toggle cloud visibility.";
 
@@ -52,9 +51,10 @@ public class RadarTutorialManager : MonoBehaviour
     private string msgProactiveSuccess = "Excellent foresight, Dispatcher. You diverted them early. Good job.";
 
     private string msgFinalStep1 = "A new flight appeared. SELECT it to check its details.";
-    private string msgFinalStep2 = "Its prefix is 'KO'. For the purpose of this training, you must turn this plane away.";
+    private string msgFinalStep2 = "For the purpose of this training, you must turn this plane away.";
+    private string msgRadioInstruction = "Before you deny them, you need to interrogate the pilot. Click the blinking radio on your desk to open communications.";
     private string msgFinalStep3 = "You need to learn how to reject a flight. They cannot land here.";
-    private string msgFinalTask = "Click 'Return', open the terminal on your desk, and DENY their entry.";
+    private string msgFinalTask = "Click 'Return'";
 
     private string[] angryResponses = {
         "<size=120%>WHAT HAVE YOU DONE?</size>\nYou just let two planes collide! This is gross negligence!",
@@ -80,7 +80,7 @@ public class RadarTutorialManager : MonoBehaviour
         if (returnButton != null) returnButton.interactable = false;
         subtitlePanel.SetActive(false);
 
-        if (DeskTutorialManager.tutorialStep == 5)
+        if (DeskTutorialManager.tutorialStep == 6)
         {
             StartCoroutine(HoldingPatternTutorial());
         }
@@ -275,6 +275,10 @@ public class RadarTutorialManager : MonoBehaviour
         Time.timeScale = 0f;
 
         yield return StartCoroutine(TypeText(msgFinalStep2, false));
+        skipRequested = false;
+        yield return new WaitUntil(() => skipRequested);
+
+        yield return StartCoroutine(TypeText(msgRadioInstruction, false));
         skipRequested = false;
         yield return new WaitUntil(() => skipRequested);
 

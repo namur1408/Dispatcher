@@ -4,9 +4,12 @@ using UnityEngine.Video;
 public class VideoLandingManager : MonoBehaviour
 {
     public static VideoLandingManager Instance;
-    public VideoPlayer mainVideoPlayer;
 
-    public float ambientEndTime = 5.0f;
+    public VideoPlayer backgroundVideoPlayer;
+    public VideoPlayer landingVideoPlayer;
+
+    public VideoClip ambientClip;
+    public VideoClip landingClip;
 
     private int landingQueue = 0;
     private bool isLandingCurrentlyPlaying = false;
@@ -18,47 +21,64 @@ public class VideoLandingManager : MonoBehaviour
 
     void Start()
     {
-        if (mainVideoPlayer != null)
+        if (backgroundVideoPlayer != null)
         {
-            mainVideoPlayer.loopPointReached += OnVideoFinished;
+            backgroundVideoPlayer.clip = ambientClip;
+            backgroundVideoPlayer.isLooping = true;
+            backgroundVideoPlayer.Play();
+        }
 
-            mainVideoPlayer.isLooping = true;
-
-            if (!mainVideoPlayer.isPlaying) mainVideoPlayer.Play();
+        if (landingVideoPlayer != null)
+        {
+            landingVideoPlayer.loopPointReached += OnLandingVideoFinished;
+            landingVideoPlayer.gameObject.SetActive(false);
         }
     }
 
-    void Update()
+    private void PlayLanding()
     {
-        if (mainVideoPlayer != null && mainVideoPlayer.isPlaying)
+        if (landingVideoPlayer != null)
         {
-            if (!isLandingCurrentlyPlaying && mainVideoPlayer.time >= ambientEndTime)
-            {
-                if (landingQueue > 0)
-                {
-                    isLandingCurrentlyPlaying = true;
-                    landingQueue--;
-                }
-                else
-                {
-                    mainVideoPlayer.time = 0f;
-                }
-            }
+            isLandingCurrentlyPlaying = true;
+            landingVideoPlayer.gameObject.SetActive(true);
+            landingVideoPlayer.clip = landingClip;
+            landingVideoPlayer.isLooping = false;
+            landingVideoPlayer.Play();
         }
     }
 
     public void RequestLandingVideo()
     {
-        landingQueue++;
+        if (isLandingCurrentlyPlaying)
+        {
+            landingQueue++;
+        }
+        else
+        {
+            PlayLanding();
+        }
     }
 
-    private void OnVideoFinished(VideoPlayer vp)
+    private void OnLandingVideoFinished(VideoPlayer vp)
     {
         isLandingCurrentlyPlaying = false;
+
+        if (landingQueue > 0)
+        {
+            landingQueue--;
+            PlayLanding();
+        }
+        else
+        {
+            landingVideoPlayer.gameObject.SetActive(false);
+        }
     }
 
     void OnDestroy()
     {
-        if (mainVideoPlayer != null) mainVideoPlayer.loopPointReached -= OnVideoFinished;
+        if (landingVideoPlayer != null)
+        {
+            landingVideoPlayer.loopPointReached -= OnLandingVideoFinished;
+        }
     }
 }

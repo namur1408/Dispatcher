@@ -43,7 +43,7 @@ public class DeskTutorialManager : MonoBehaviour
 
     public static bool tutorialWasSkipped = false;
 
-    private string msg1 = "Click on the radio to listen to the incoming message.";
+    private string msg1 = "Click on the radio to listen to the incoming message. You'll use it to interrogate pilots.";
     private string msg2 = "Welcome to your first shift, Dispatcher! Let me show you around your new workplace!";
     private string msgBook = "See that book on the desk? It's your manual. It contains descriptions of all equipment and daily rules. Open it to take a quick look.";
     private string msgRadar = "Excellent. Now it's time to manage the airspace.\nClick on the Radar monitor to open it.";
@@ -98,8 +98,9 @@ public class DeskTutorialManager : MonoBehaviour
 
         if (tutorialStep == 0) StartCoroutine(Part1_RadioAndBook());
         else if (tutorialStep == 1) StartCoroutine(Part2_Radar());
-        else if (tutorialStep == 2) StartCoroutine(Part3_TV());
-        else if (tutorialStep == 4) StartCoroutine(Part4_BackToRadar());
+        else if (tutorialStep == 2) StartCoroutine(Part2_5_Radio());
+        else if (tutorialStep == 3) StartCoroutine(Part3_TV());
+        else if (tutorialStep == 5) StartCoroutine(Part4_BackToRadar());
         else SetAllInteractions(true);
     }
 
@@ -170,6 +171,25 @@ public class DeskTutorialManager : MonoBehaviour
         yield return new WaitUntil(() => isRadarClicked);
     }
 
+    IEnumerator Part2_5_Radio()
+    {
+        SetAllInteractions(false);
+        yield return new WaitForSecondsRealtime(0.5f);
+        Time.timeScale = 0f;
+
+        subtitlePanel.SetActive(true);
+        yield return StartCoroutine(TypeText("Now you need to interrogate the pilot. Click on the blinking radio to open communications."));
+
+        skipRequested = false;
+        yield return new WaitUntil(() => skipRequested);
+
+        if (radioButton) radioButton.interactable = true;
+        if (radioHighlight) radioHighlight.SetActive(true);
+        SetRadioLights(true);
+
+        yield return new WaitUntil(() => isRadioClicked);
+    }
+
     IEnumerator Part3_TV()
     {
         SetAllInteractions(false);
@@ -211,6 +231,16 @@ public class DeskTutorialManager : MonoBehaviour
     public void PlayerClickedRadio()
     {
         isRadioClicked = true;
+
+        // After radio interrogation (step 2), move to TV tutorial (step 3)
+        if (tutorialStep == 2)
+        {
+            tutorialStep = 3;
+            Time.timeScale = 1f;
+            subtitlePanel.SetActive(false);
+            if (radioHighlight) radioHighlight.SetActive(false);
+            SetRadioLights(false);
+        }
     }
 
     public void PlayerClickedBook()
@@ -228,7 +258,7 @@ public class DeskTutorialManager : MonoBehaviour
         isRadarClicked = true;
 
         if (tutorialStep == 1) tutorialStep = 2;
-        else if (tutorialStep == 4) tutorialStep = 5;
+        else if (tutorialStep == 5) tutorialStep = 6;
 
         Time.timeScale = 1f;
         subtitlePanel.SetActive(false);
@@ -240,7 +270,7 @@ public class DeskTutorialManager : MonoBehaviour
     public void PlayerClickedTV()
     {
         isTvClicked = true;
-        tutorialStep = 3;
+        tutorialStep = 4;
         Time.timeScale = 1f;
         subtitlePanel.SetActive(false);
 

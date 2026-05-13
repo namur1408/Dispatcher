@@ -171,8 +171,7 @@ public class FlightDataManager : MonoBehaviour
         {
             if (oldFlight.decisionMade && oldFlight.approved && oldFlight.hasLanded)
             {
-                bool isFullyProcessed = oldFlight.isUnloaded && oldFlight.isRefueled && oldFlight.isRepaired;
-                if (!isFullyProcessed && !updatedList.Exists(f => f.callsign == oldFlight.callsign))
+                if (!updatedList.Exists(f => f.callsign == oldFlight.callsign))
                 {
                     updatedList.Add(oldFlight);
                 }
@@ -184,9 +183,40 @@ public class FlightDataManager : MonoBehaviour
 
     public void StartDaySpawning(int dayNumber)
     {
+        // Don't spawn mission planes during tutorial
+        if (TutorialManager.isTutorialActive)
+        {
+            Debug.Log("<color=yellow>StartDaySpawning skipped - tutorial is active</color>");
+            return;
+        }
+
         isShiftActive = true;
+
+        Debug.Log($"<color=magenta>StartDaySpawning called for day {dayNumber}. Queue count before: {scriptedFlightsQueue.Count}</color>");
+
+        Queue<FlightData> departingPlanes = new Queue<FlightData>(scriptedFlightsQueue);
+        Queue<float> departingDelays = new Queue<float>(scriptedDelaysQueue);
+
         scriptedFlightsQueue.Clear();
         scriptedDelaysQueue.Clear();
+
+        while (departingPlanes.Count > 0)
+        {
+            FlightData plane = departingPlanes.Dequeue();
+            scriptedFlightsQueue.Enqueue(plane);
+            Debug.Log($"<color=magenta>Re-enqueued departing plane: {plane.callsign}</color>");
+            if (departingDelays.Count > 0)
+            {
+                scriptedDelaysQueue.Enqueue(departingDelays.Dequeue());
+            }
+        }
+
+        Debug.Log($"<color=magenta>Queue count after re-enqueue: {scriptedFlightsQueue.Count}</color>");
+
+        if (AirplaneSpawner.Instance != null)
+        {
+            AirplaneSpawner.Instance.ResetStoryPlaneFlag();
+        }
 
         if (dayNumber == 1)
         {
@@ -208,7 +238,7 @@ public class FlightDataManager : MonoBehaviour
             tr404.spokenCargo = "Food";
             tr404.spokenOrigin = "Bastion-4";
             tr404.explanationOrigin = "Sector Z has been destroyed, Control. We barely managed to escape! We probably made a mistake in the rush.";
-            tr404.explanationCargo = "Listen, we’ve had to reclassify the cargo just to stay safe, we’re completely out of fuel, and we’re about to crash! We have refugees on board. Please let us through—there are children on board!";
+            tr404.explanationCargo = "Listen, weï¿½ve had to reclassify the cargo just to stay safe, weï¿½re completely out of fuel, and weï¿½re about to crash! We have refugees on board. Please let us throughï¿½there are children on board!";
             scriptedFlightsQueue.Enqueue(tr404);
             scriptedDelaysQueue.Enqueue(15f);
         }
@@ -223,7 +253,6 @@ public class FlightDataManager : MonoBehaviour
             {
                 savedFlights[i].decisionMade = true;
                 savedFlights[i].approved = isApproved;
-                if (isApproved) landedPlanes++;
                 return;
             }
         }
@@ -244,8 +273,17 @@ public class FlightDataManager : MonoBehaviour
         var flight = savedFlights.Find(f => f.callsign == callsign);
         if (flight != null && !flight.isRefueled && !flight.isRefueling && flight.isUnloaded)
         {
-            flight.isRefueling = true;
-            flight.refuelTimer = REFUEL_TIME;
+            float fuelPercentage = (flight.currentFuel / flight.planeMaxFuel) * 100f;
+
+            if (fuelPercentage > 50f)
+            {
+                flight.isRefueling = true;
+                flight.refuelTimer = REFUEL_TIME;
+            }
+            else
+            {
+                flight.isRefueled = true;
+            }
         }
     }
 
@@ -254,8 +292,17 @@ public class FlightDataManager : MonoBehaviour
         var flight = savedFlights.Find(f => f.callsign == callsign);
         if (flight != null && !flight.isRepaired && !flight.isRepairing && flight.isUnloaded)
         {
-            flight.isRepairing = true;
-            flight.repairTimer = REPAIR_TIME;
+            float fuelPercentage = (flight.currentFuel / flight.planeMaxFuel) * 100f;
+
+            if (fuelPercentage <= 50f)
+            {
+                flight.isRepairing = true;
+                flight.repairTimer = REPAIR_TIME;
+            }
+            else
+            {
+                flight.isRepaired = true;
+            }
         }
     }
 
@@ -281,26 +328,59 @@ public class FlightDataManager : MonoBehaviour
 
         totalFuel -= actualFuelTaken;
         flight.currentFuel += actualFuelTaken;
-
-        if (flight.isRepaired) landedPlanes--;
     }
 
     private void CompleteRepair(FlightData flight)
     {
         flight.isRepairing = false;
         flight.isRepaired = true;
-
-        if (flight.isRefueled) landedPlanes--;
     }
 
     public void MarkFlightAsLanded(string callsign)
     {
         var flight = savedFlights.Find(f => f.callsign == callsign);
-        if (flight != null) flight.hasLanded = true;
+        if (flight != null)
+        {
+            flight.hasLanded = true;
+            landedPlanes++;
+        }
+    }
+
+    public bool ShouldPlaneDepart(FlightData flight)
+    {
+        return flight.hasLanded && flight.isUnloaded && flight.isRefueled && flight.isRepaired;
+    }
+
+    public Vector2 GetDepartureTarget(FlightData flight)
+    {
+        float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+        return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 600f;
+    }
+
+    public void RemoveDepartedPlane(string callsign)
+    {
+        savedFlights.RemoveAll(f => f.callsign == callsign);
     }
 
     public void ResetForNewShift(int startFuel, int startFood, int startPeople, int startMeds)
     {
+        List<FlightData> servicedPlanes = new List<FlightData>();
+
+        Debug.Log($"<color=yellow>Checking {savedFlights.Count} flights for serviced planes...</color>");
+
+        foreach (var flight in savedFlights)
+        {
+            Debug.Log($"<color=cyan>Flight {flight.callsign}: hasLanded={flight.hasLanded}, isUnloaded={flight.isUnloaded}, isRefueled={flight.isRefueled}, isRepaired={flight.isRepaired}</color>");
+
+            if (flight.hasLanded && flight.isUnloaded)
+            {
+                servicedPlanes.Add(flight);
+                Debug.Log($"<color=green>Found serviced plane for departure: {flight.callsign}</color>");
+            }
+        }
+
+        Debug.Log($"<color=yellow>Total serviced planes to depart: {servicedPlanes.Count}</color>");
+
         savedFlights.Clear();
         landedPlanes = 0;
         accumulatedFoodConsumption = 0f;
@@ -320,5 +400,44 @@ public class FlightDataManager : MonoBehaviour
         isShiftActive = false;
         scriptedFlightsQueue.Clear();
         scriptedDelaysQueue.Clear();
+
+        if (servicedPlanes.Count > 0)
+        {
+            EnqueueDepartingPlanes(servicedPlanes);
+        }
+    }
+
+    private void EnqueueDepartingPlanes(List<FlightData> servicedPlanes)
+    {
+        float departureDelay = 5f;
+
+        foreach (var plane in servicedPlanes)
+        {
+            float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+            Vector2 exitPoint = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 1500f;
+
+            FlightData departingPlane = new FlightData(
+                plane.callsign,
+                Vector2.zero,
+                exitPoint,
+                new List<Vector2>(),
+                plane.speed,
+                "None",
+                0
+            );
+            departingPlane.currentFuel = plane.planeMaxFuel;
+            departingPlane.manifestCargo = "None";
+            departingPlane.manifestCargoAmount = 0;
+            departingPlane.manifestOrigin = "Bastion-1";
+
+            scriptedFlightsQueue.Enqueue(departingPlane);
+            scriptedDelaysQueue.Enqueue(departureDelay);
+
+            Debug.Log($"<color=cyan>Enqueued departing plane: {departingPlane.callsign} with delay {departureDelay}s, exit point: {exitPoint}</color>");
+
+            departureDelay += 8f;
+        }
+
+        Debug.Log($"<color=cyan>Total planes in queue after enqueue: {scriptedFlightsQueue.Count}</color>");
     }
 }

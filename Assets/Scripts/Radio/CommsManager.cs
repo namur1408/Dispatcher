@@ -26,6 +26,9 @@ public class CommsManager : MonoBehaviour
     [Header("Single Question Button")]
     public GameObject askButton;
     public TextMeshProUGUI askButtonText;
+    
+    [Header("Teletype Settings")]
+    public float typeDelay = 0.05f; 
 
     private FlightData currentData;
     private string firstFactID = "";
@@ -42,12 +45,19 @@ public class CommsManager : MonoBehaviour
     private DocumentUI pilotReportDoc;
 
     private bool isTyping = false;
+    private Coroutine scrollCoroutine;
+    private bool isAnimatingPaper = false;
 
     void Awake()
     {
         Instance = this;
         if (confrontButton != null) confrontButton.SetActive(false);
         if (askButton != null) askButton.SetActive(false);
+
+        if (chatHistoryText != null)
+        {
+            chatHistoryText.alignment = TextAlignmentOptions.TopLeft;
+        }
     }
 
     void Start()
@@ -85,10 +95,13 @@ public class CommsManager : MonoBehaviour
 
     void GenerateDocuments()
     {
+        string highlightStart = (TutorialManager.isTutorialActive && RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted) ? "<color=yellow>" : "";
+        string highlightEnd = (TutorialManager.isTutorialActive && RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted) ? "</color>" : "";
+
         string manifestText = $"<align=center><b>FLIGHT MANIFEST</b></align>\n\n" +
                               $"<b>FLIGHT:</b> {currentData.callsign}\n" +
                               $"<link=\"unlock_origin\"><b>ORIGIN:</b></link> <link=\"man_origin\">{currentData.manifestOrigin}</link>\n" +
-                              $"<b>CARGO:</b> <link=\"man_cargo\">{currentData.manifestCargo.ToUpper()}</link>\n" +
+                              $"<b>CARGO:</b> {highlightStart}<link=\"man_cargo\">{currentData.manifestCargo.ToUpper()}</link>{highlightEnd}\n" +
                               $"<link=\"unlock_weight\"><b>WEIGHT:</b></link> <link=\"man_weight\">{currentData.manifestCargoAmount} UNITS</link>\n";
 
         SpawnDocument(manifestPrefab, manifestText, new Vector2(-380, 80));
@@ -96,20 +109,23 @@ public class CommsManager : MonoBehaviour
         string radarLogText = $"<align=center><b>RADAR REPORT</b></align>\n\n" +
                               $"<link=\"unlock_speed\"><b>SPEED:</b></link> <link=\"rad_speed\">{currentData.speed * 10f} KTS</link>\n" +
                               $"<b>CLASS:</b> {GetPlaneClass()}\n" +
-                              $"<link=\"unlock_cargo\"><b>SENSOR:</b></link> UNKNOWN\n";
+                              $"{highlightStart}<link=\"unlock_cargo\"><b>SENSOR:</b></link>{highlightEnd} UNKNOWN\n";
         SpawnDocument(radarPrefab, radarLogText, new Vector2(-150, -20));
 
-        string cheatSheetText = $"<size=80%><b>QUICK REF:</b>\n\n" +
-                                $"<b>[GE] Heavy Cargo</b>\n" +
-                                $"<link=\"rule_ge_speed\">Speed: < 850 KTS</link>\n" +
-                                $"<link=\"rule_ge_weight\">Max Wt: 500 UNITS</link>\n\n" +
-                                $"<b>[TR] Passenger</b>\n" +
-                                $"<link=\"rule_tr_cargo\">Cargo: PEOPLE ONLY</link>\n" +
-                                $"<link=\"rule_tr_speed\">Speed: 700-780 KTS</link>\n\n" +
-                                $"<b>[QY] Light Courier</b>\n" +
-                                $"<link=\"rule_qy_speed\">Speed: > 800 KTS</link>\n" +
-                                $"<link=\"rule_qy_weight\">Max Wt: 50 UNITS</link>\n</size>";
-        SpawnDocument(cheatSheetPrefab, cheatSheetText, new Vector2(210, 140));
+        if (!TutorialManager.isTutorialActive)
+        {
+            string cheatSheetText = $"<size=80%><b>QUICK REF:</b>\n\n" +
+                                    $"<b>[GE] Heavy Cargo</b>\n" +
+                                    $"<link=\"rule_ge_speed\">Speed: < 850 KTS</link>\n" +
+                                    $"<link=\"rule_ge_weight\">Max Wt: 500 UNITS</link>\n\n" +
+                                    $"<b>[TR] Passenger</b>\n" +
+                                    $"<link=\"rule_tr_cargo\">Cargo: PEOPLE ONLY</link>\n" +
+                                    $"<link=\"rule_tr_speed\">Speed: 700-780 KTS</link>\n\n" +
+                                    $"<b>[QY] Light Courier</b>\n" +
+                                    $"<link=\"rule_qy_speed\">Speed: > 800 KTS</link>\n" +
+                                    $"<link=\"rule_qy_weight\">Max Wt: 50 UNITS</link>\n</size>";
+            SpawnDocument(cheatSheetPrefab, cheatSheetText, new Vector2(210, 140));
+        }
 
         GameObject reportObj = Instantiate(pilotReportPrefab != null ? pilotReportPrefab : defaultDocPrefab, deskArea);
         reportObj.GetComponent<RectTransform>().anchoredPosition = new Vector2(100, -120);
@@ -119,6 +135,9 @@ public class CommsManager : MonoBehaviour
 
     void UpdatePilotReport()
     {
+        string highlightStart = (TutorialManager.isTutorialActive && RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted) ? "<color=yellow>" : "";
+        string highlightEnd = (TutorialManager.isTutorialActive && RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted) ? "</color>" : "";
+
         string reportText = $"<align=center><b>PILOT'S STATEMENT</b></align>\n\n";
         if (!askedCargo && !askedOrigin && !askedWeight && !askedSpeed)
         {
@@ -127,7 +146,7 @@ public class CommsManager : MonoBehaviour
         else
         {
             if (askedOrigin) reportText += $"<b>ORIGIN:</b> <link=\"rep_origin\">{GetStatedOrigin()}</link>\n";
-            if (askedCargo) reportText += $"<b>CARGO:</b> <link=\"rep_cargo\">{GetStatedCargo().ToUpper()}</link>\n";
+            if (askedCargo) reportText += $"<b>CARGO:</b> {highlightStart}<link=\"rep_cargo\">{GetStatedCargo().ToUpper()}</link>{highlightEnd}\n";
             if (askedWeight) reportText += $"<b>WEIGHT:</b> <link=\"rep_weight\">{GetStatedWeight()} UNITS</link>\n";
             if (askedSpeed) reportText += $"<b>SPEED:</b> <link=\"rep_speed\">{GetStatedSpeed()} KTS</link>\n";
         }
@@ -137,6 +156,11 @@ public class CommsManager : MonoBehaviour
     public void SelectFact(string factID, string factText, FactScanner scanner, int linkIndex)
     {
         if (isTyping) return;
+
+        if (RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted)
+        {
+            RadioTutorialManager.Instance.NotifyDocumentClicked();
+        }
 
         if (factID.StartsWith("unlock_"))
         {
@@ -202,11 +226,21 @@ public class CommsManager : MonoBehaviour
         askButton.SetActive(false);
         pendingQuestionTopic = "";
 
+        if (RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted)
+        {
+            RadioTutorialManager.Instance.NotifyQuestionAsked();
+        }
+
         StartCoroutine(Routine_TypewriterChat(question, answer, topic));
     }
 
     void CheckContradiction(string secondID, FactScanner secondScanner, int secondIndex)
     {
+        if (RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted)
+        {
+            RadioTutorialManager.Instance.NotifyFactsCompared();
+        }
+
         bool isValid = false;
         bool isLie = false;
 
@@ -275,7 +309,9 @@ public class CommsManager : MonoBehaviour
             }
             else if (CheckPair(firstFactID, secondID, "rad_sensor", "man_cargo") || CheckPair(firstFactID, secondID, "rad_sensor", "rep_cargo"))
             {
-                isValid = true; isLie = false;
+                isValid = true;
+                string cargoToCompare = (secondID == "man_cargo" || firstFactID == "man_cargo") ? currentData.manifestCargo : GetStatedCargo();
+                isLie = (currentData.cargo.ToUpper() != cargoToCompare.ToUpper());
             }
             else if (CheckPair(firstFactID, secondID, "man_cargo", "rep_cargo"))
             {
@@ -307,6 +343,11 @@ public class CommsManager : MonoBehaviour
             else if (firstFactID.Contains("speed") || secondID.Contains("speed")) currentLieTopic = "speed";
 
             confrontButton.SetActive(true);
+
+            if (RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted)
+            {
+                RadioTutorialManager.Instance.NotifyContradictionFound();
+            }
         }
 
         if (isValid && !isLie && (firstFactID.Contains("cargo") || secondID.Contains("cargo")))
@@ -327,7 +368,7 @@ public class CommsManager : MonoBehaviour
 
     IEnumerator ResetColorRoutine(FactScanner s, int i, float d)
     {
-        yield return new WaitForSeconds(d);
+        yield return new WaitForSecondsRealtime(d);
         if (s != null)
         {
             Color32 originalColor = s.GetComponent<TextMeshProUGUI>().color;
@@ -356,12 +397,89 @@ public class CommsManager : MonoBehaviour
         StartCoroutine(Routine_TypewriterChat("Explain this discrepancy.", exp, ""));
     }
 
-    void ScrollToBottom()
+    void ScrollToBottom(bool animate = false)
     {
-        if (chatScroll != null)
+        if (chatScroll != null && chatHistoryText != null)
         {
             Canvas.ForceUpdateCanvases();
-            chatScroll.verticalNormalizedPosition = 0f;
+            chatScroll.movementType = ScrollRect.MovementType.Unrestricted;
+            
+            RectTransform contentRect = chatScroll.content;
+            RectTransform viewportRect = chatScroll.viewport;
+            
+            float textHeight = chatHistoryText.preferredHeight;
+            float viewportHeight = viewportRect.rect.height;
+            
+            float targetY = textHeight - viewportHeight + 50f; 
+            
+            if (animate)
+            {
+                if (scrollCoroutine != null) StopCoroutine(scrollCoroutine);
+                scrollCoroutine = StartCoroutine(Routine_AnimatePaperUp(contentRect, targetY));
+            }
+            else
+            {
+                contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, targetY);
+            }
+        }
+    }
+
+    IEnumerator Routine_AnimatePaperUp(RectTransform contentRect, float targetY)
+    {
+        isAnimatingPaper = true;
+        chatScroll.velocity = Vector2.zero;
+
+        float startY = contentRect.anchoredPosition.y;
+        if (targetY <= startY) 
+        {
+            contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, targetY);
+            isAnimatingPaper = false;
+            yield break;
+        }
+
+        float currentY = startY;
+        float distance = targetY - startY;
+        
+        int jerks = Random.Range(4, 8);
+        float step = distance / jerks;
+
+        for (int i = 0; i < jerks; i++)
+        {
+            yield return new WaitForSecondsRealtime(Random.Range(0.05f, 0.15f));
+            
+            currentY += step;
+            if (i == jerks - 1) currentY = targetY; 
+
+            contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, currentY);
+        }
+
+        isAnimatingPaper = false;
+    }
+
+    void LateUpdate()
+    {
+        if (chatScroll != null && chatHistoryText != null && !isAnimatingPaper)
+        {
+            RectTransform contentRect = chatScroll.content;
+            float textHeight = chatHistoryText.preferredHeight;
+            float viewportHeight = chatScroll.viewport.rect.height;
+            
+            float targetY = textHeight - viewportHeight + 50f;
+            
+            // Разрешаем прятать бумагу вниз, но оставляем видимым верхний край (пустую часть до текста)
+            // Оставляем торчать примерно 70 пикселей
+            float minY = -viewportHeight + 70f; 
+            float maxY = targetY;
+
+            if (minY > maxY) minY = maxY;
+
+            float clampedY = Mathf.Clamp(contentRect.anchoredPosition.y, minY, maxY);
+            
+            if (contentRect.anchoredPosition.y != clampedY)
+            {
+                contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, clampedY);
+                chatScroll.velocity = Vector2.zero; 
+            }
         }
     }
 
@@ -373,32 +491,12 @@ public class CommsManager : MonoBehaviour
         string prefix = $"<b>[{currentData.callsign}]:</b> ";
         string message = "Bastion-7, requesting landing corridor.";
 
-        float thinkTime = Random.Range(1f, 3f);
-        float elapsed = 0f;
-        int dots = 1;
-        while (elapsed < thinkTime)
-        {
-            chatHistoryText.text = prefix + new string('.', dots);
-            ScrollToBottom();
-
-            dots = (dots % 3) + 1;
-            float step = 0.3f;
-            elapsed += step;
-            yield return new WaitForSeconds(step);
-        }
-
-        chatHistoryText.text = prefix;
-        foreach (char c in message)
-        {
-            chatHistoryText.text += c;
-            ScrollToBottom();
-            yield return new WaitForSeconds(0.03f);
-        }
-        chatHistoryText.text += "\n";
-        ScrollToBottom();
+        chatHistoryText.text += prefix + message + "\n\n";
+        
+        ScrollToBottom(true);
+        yield return new WaitForSecondsRealtime(1f); // Ждем пока бумага выедет
 
         currentData.chatHistory = chatHistoryText.text;
-
         isTyping = false;
     }
 
@@ -406,38 +504,16 @@ public class CommsManager : MonoBehaviour
     {
         isTyping = true;
 
-        chatHistoryText.text += $"\n<b>[YOU]:</b> {question}\n";
-        ScrollToBottom();
-
-        yield return new WaitForSeconds(0.5f);
+        chatHistoryText.text += $"<b>[YOU]:</b> {question}\n\n";
+        ScrollToBottom(true);
+        
+        yield return new WaitForSecondsRealtime(Random.Range(2f, 3f)); // Пауза 2-3 секунды перед ответом
 
         string prefix = $"<b>[{currentData.callsign}]:</b> ";
-        string baseText = chatHistoryText.text;
-
-        float thinkTime = Random.Range(1.5f, 4.0f);
-        float elapsed = 0f;
-        int dots = 1;
-
-        while (elapsed < thinkTime)
-        {
-            chatHistoryText.text = baseText + prefix + new string('.', dots);
-            ScrollToBottom();
-
-            dots = (dots % 3) + 1;
-            float step = 0.3f;
-            elapsed += step;
-            yield return new WaitForSeconds(step);
-        }
-
-        chatHistoryText.text = baseText + prefix;
-        foreach (char c in answer)
-        {
-            chatHistoryText.text += c;
-            ScrollToBottom();
-            yield return new WaitForSeconds(0.03f);
-        }
-        chatHistoryText.text += "\n";
-        ScrollToBottom();
+        chatHistoryText.text += prefix + answer + "\n\n";
+        
+        ScrollToBottom(true);
+        yield return new WaitForSecondsRealtime(1f); // Ждем пока бумага выедет с ответом
 
         currentData.chatHistory = chatHistoryText.text;
 

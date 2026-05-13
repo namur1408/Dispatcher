@@ -66,16 +66,40 @@ public class BigRadarLoader : MonoBehaviour
     {
         if (FlightDataManager.Instance == null || FlightDataManager.Instance.savedFlights.Count == 0) return;
 
+        float departureDelay = 0f;
+        float delayIncrement = 10f;
+
         foreach (FlightData data in FlightDataManager.Instance.savedFlights)
         {
-            if (data.hasLanded) continue;
-            GameObject newPlane = Instantiate(airplanePrefab, radarContent, false);
-            UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
-
-            if (planeScript != null)
+            if (FlightDataManager.Instance.ShouldPlaneDepart(data))
             {
-                planeScript.InitializeFromData(data);
+                StartCoroutine(SpawnDepartingPlane(data, departureDelay));
+                departureDelay += delayIncrement;
             }
+            else if (!data.hasLanded)
+            {
+                GameObject newPlane = Instantiate(airplanePrefab, radarContent, false);
+                UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
+
+                if (planeScript != null)
+                {
+                    planeScript.InitializeFromData(data);
+                }
+            }
+        }
+    }
+
+    private System.Collections.IEnumerator SpawnDepartingPlane(FlightData data, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        GameObject newPlane = Instantiate(airplanePrefab, radarContent, false);
+        UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
+
+        if (planeScript != null)
+        {
+            data.targetPosition = FlightDataManager.Instance.GetDepartureTarget(data);
+            planeScript.InitializeFromData(data);
         }
     }
 
@@ -89,6 +113,13 @@ public class BigRadarLoader : MonoBehaviour
             FlightDataManager.Instance.UpdateFlights(new List<UIAirplane>(allPlanesOnScene));
         }
 
+        Time.timeScale = 1f;
+
         SceneManager.LoadScene(mainSceneName);
+    }
+
+    void OnDestroy()
+    {
+        Time.timeScale = 1f;
     }
 }

@@ -1,9 +1,9 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 using UnityEngine.EventSystems;
 
 public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler
 {
-    [Header("¿Û‰ËÓ")] 
+    [Header("Audio")] 
     public AudioClip pickupSound;
     [Range(0f, 1f)] public float soundVolume = 0.8f;
 
@@ -23,6 +23,11 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler
         if (pickupSound != null && Camera.main != null)
         {
             AudioSource.PlayClipAtPoint(pickupSound, Camera.main.transform.position, soundVolume);
+        }
+
+        if (RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted)
+        {
+            RadioTutorialManager.Instance.NotifyDocumentClicked();
         }
     }
 

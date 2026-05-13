@@ -306,6 +306,12 @@ public class UIAirplane : MonoBehaviour
             if (emergencyTimer <= 0)
             {
                 Debug.Log($"<color=red>АВАРИЯ: {realCallsign} рухнул из-за нехватки топлива!</color>");
+
+                if (AirplaneSpawner.Instance != null)
+                {
+                    AirplaneSpawner.Instance.NotifyStoryPlaneCrashed();
+                }
+
                 DestroyPlane();
                 return;
             }
@@ -356,7 +362,7 @@ public class UIAirplane : MonoBehaviour
         {
             Vector2 currentTarget = waypoints[0];
 
-            if (waypoints.Count == 1 && dispatchStatus == DispatchStatus.Pending)
+            if (waypoints.Count == 1 && dispatchStatus == DispatchStatus.Pending && currentTarget == Vector2.zero)
             {
                 if (Vector2.Distance(logicalPosition, currentTarget) <= holdingRadius)
                 {
@@ -385,7 +391,15 @@ public class UIAirplane : MonoBehaviour
 
                         Destroy(gameObject);
                     }
-                    else if (dispatchStatus == DispatchStatus.Denied || dispatchStatus == DispatchStatus.Approved)
+                    else if (dispatchStatus == DispatchStatus.Denied)
+                    {
+                        Destroy(gameObject);
+                    }
+                    else if (dispatchStatus == DispatchStatus.Pending && currentTarget != Vector2.zero)
+                    {
+                        Destroy(gameObject);
+                    }
+                    else if (dispatchStatus == DispatchStatus.Approved && Vector2.Distance(logicalPosition, Vector2.zero) >= 10f)
                     {
                         Destroy(gameObject);
                     }
@@ -405,7 +419,17 @@ public class UIAirplane : MonoBehaviour
         if (lineSegments.Count > 0 && !isHolding) UpdateFirstSegment();
 
         if (Vector2.Distance(Vector2.zero, logicalPosition) > despawnRadius)
+        {
+            if (FlightDataManager.Instance != null)
+            {
+                var flight = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
+                if (flight != null && flight.hasLanded && FlightDataManager.Instance.ShouldPlaneDepart(flight))
+                {
+                    FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
+                }
+            }
             Destroy(gameObject);
+        }
     }
 
     private void StartHolding(Vector2 center)
@@ -701,6 +725,12 @@ public class UIAirplane : MonoBehaviour
     private void TriggerCollision()
     {
         Debug.Log($"<color=red>АВАРИЯ: {realCallsign} столкнулся!</color>");
+
+        if (AirplaneSpawner.Instance != null)
+        {
+            AirplaneSpawner.Instance.NotifyStoryPlaneCrashed();
+        }
+
         if (RadarTutorialManager.Instance != null && !RadarTutorialManager.isRadarTutorialCompleted)
         {
             RadarTutorialManager.Instance.NotifyEmergencyCollision();

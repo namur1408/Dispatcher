@@ -2077,7 +2077,7 @@ MonoBehaviour:
   denyPressedColor: {r: 0.9, g: 0.1, b: 0.1, a: 1}
   disabledColor: {r: 0.15, g: 0.15, b: 0.15, a: 0.6}
   endShiftButton: {fileID: 1791148848}
-  forceEndShiftDebug: 0
+  forceEndShiftDebug: 1
 --- !u!4 &612919793
 Transform:
   m_ObjectHideFlags: 0

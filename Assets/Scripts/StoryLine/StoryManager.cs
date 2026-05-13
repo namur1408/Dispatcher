@@ -45,7 +45,6 @@ public class StoryManager : MonoBehaviour
 
         cachedEventSystem = Object.FindFirstObjectByType<EventSystem>();
 
-        // Включаем черный экран ПРИ СТАРТЕ только если это реальное начало дня или самый первый запуск
         if (isFirstGameLoad || PlayerPrefs.HasKey("StartDayNumber") || skipTutorialAndStartDay1)
         {
             LockPlayerInput(true);
@@ -53,7 +52,6 @@ public class StoryManager : MonoBehaviour
         }
         else
         {
-            // Во всех остальных случаях (например, возврат из Comms) - жестко выключаем экран
             if (transitionScreen != null) transitionScreen.SetActive(false);
             if (transitionCanvasGroup != null) transitionCanvasGroup.blocksRaycasts = false;
         }
@@ -64,12 +62,11 @@ public class StoryManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Этот метод сработает, когда мы загрузили Главное меню ПОСЛЕ окончания смены
         if (PlayerPrefs.HasKey("StartDayNumber"))
         {
             isFirstGameLoad = false;
             currentDay = PlayerPrefs.GetInt("StartDayNumber");
-            PlayerPrefs.DeleteKey("StartDayNumber"); // Удаляем, чтобы при походе в Comms экран не сработал снова
+            PlayerPrefs.DeleteKey("StartDayNumber"); 
 
             ForceBlackScreen();
             StartCoroutine(WaitAndStartDay(currentDay, true));
@@ -78,7 +75,6 @@ public class StoryManager : MonoBehaviour
 
     void Start()
     {
-        // Этот метод сработает только один раз при самом первом появлении менеджера на сцене
         if (skipTutorialAndStartDay1)
         {
             isFirstGameLoad = false;
@@ -95,11 +91,33 @@ public class StoryManager : MonoBehaviour
         }
         else if (isFirstGameLoad)
         {
-            // САМЫЙ ПЕРВЫЙ ЗАПУСК ИГРЫ (После Интро)
             isFirstGameLoad = false;
             currentDay = 1;
-            StartCoroutine(WaitAndStartDay(1, true));
+
+            if (TutorialManager.isTutorialActive)
+            {
+                StartCoroutine(TutorialTransitionSequence());
+            }
+            else
+            {
+                StartCoroutine(WaitAndStartDay(1, true));
+            }
         }
+    }
+
+    private IEnumerator TutorialTransitionSequence()
+    {
+        LockPlayerInput(true);
+        ForceBlackScreen();
+
+        yield return new WaitForSecondsRealtime(0.5f);
+
+        yield return StartCoroutine(Fade(1f, 0f, 1.0f));
+
+        if (transitionScreen != null) transitionScreen.SetActive(false);
+        if (transitionCanvasGroup != null) transitionCanvasGroup.blocksRaycasts = false;
+
+        LockPlayerInput(false);
     }
 
     private void ForceBlackScreen()
@@ -159,26 +177,21 @@ public class StoryManager : MonoBehaviour
             FlightDataManager.Instance.isShiftActive = false;
         }
 
-        // 1. Уходим в черный экран на Радаре
         ForceBlackScreen();
         if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 0f;
         yield return StartCoroutine(Fade(0f, 1f, 1.5f));
 
-        // 2. Печатаем итоги завершенной смены
         string endText = $"<size=150%>SHIFT {currentDay} COMPLETED</size>\r\n\r\n\r\n<color=#888888><size=70%>PROCESSING DATA...</size></color>";
         yield return StartCoroutine(TypeText(endText));
 
         yield return new WaitForSecondsRealtime(3f);
 
-        // 3. Стираем текст и готовим следующий день
         if (dayText != null) dayText.text = "";
 
         currentDay++;
         PlayerPrefs.SetInt("StartDayNumber", currentDay);
         PlayerPrefs.Save();
 
-        // 4. Грузим главную сцену. 
-        // Как только она загрузится, сработает OnSceneLoaded и автоматически запустит интро нового дня!
         if (!string.IsNullOrEmpty(mainSceneName) && mainSceneName != SceneManager.GetActiveScene().name)
         {
             AsyncOperation op = SceneManager.LoadSceneAsync(mainSceneName);
@@ -186,7 +199,6 @@ public class StoryManager : MonoBehaviour
         }
         else
         {
-            // На случай если ты тестируешь и уже находишься в нужной сцене
             StartCoroutine(WaitAndStartDay(currentDay, true));
         }
     }
@@ -273,20 +285,28 @@ public class StoryManager : MonoBehaviour
         }
 
         LockPlayerInput(true);
-        ForceBlackScreen(); // Страхуемся, чтобы канвас точно был поверх всего
+        ForceBlackScreen(); 
 
         if (!isScreenAlreadyBlack) yield return StartCoroutine(Fade(0f, 1f, 1.0f));
 
-        if (dayNumber == 1)
+        if (FlightDataManager.Instance != null)
         {
-            if (FlightDataManager.Instance != null)
+            if (dayNumber == 1)
             {
-                FlightDataManager.Instance.ResetForNewShift(150, 40, 220, 5);
+                FlightDataManager.Instance.ResetForNewShift(300, 140, 180, 5);
                 FlightDataManager.Instance.maxPlanes = 3;
+            }
+            else if (dayNumber == 2)
+            {
+                FlightDataManager.Instance.ResetForNewShift(
+                    FlightDataManager.Instance.totalFuel,
+                    FlightDataManager.Instance.totalFood,
+                    FlightDataManager.Instance.totalPeople,
+                    FlightDataManager.Instance.totalMedicines
+                );
             }
         }
 
-        // Печатаем заставку нового дня
         string displayDate = (18 + dayNumber) + ".08.2038";
         string targetText = $"<size=150%>SHIFT {dayNumber}</size>\r\n\r\n\r\n<color=#888888><size=70%>{displayDate}</size></color>";
 
@@ -295,7 +315,6 @@ public class StoryManager : MonoBehaviour
 
         if (dayNumber == 1) SendDay1Directives();
 
-        // Плавно открываем игру
         yield return StartCoroutine(Fade(1f, 0f, 1.5f));
 
         if (transitionScreen != null) transitionScreen.SetActive(false);

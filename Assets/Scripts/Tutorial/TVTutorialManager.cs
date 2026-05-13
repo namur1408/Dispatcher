@@ -195,7 +195,7 @@ public class TVTutorialManager : MonoBehaviour
 
         isTvTutorialCompleted = true;
 
-        DeskTutorialManager.tutorialStep = 4;
+        DeskTutorialManager.tutorialStep = 5;
     }
 
     public void NotifyFlightAllowed(string callsign) { if (callsign == targetCallsign) isTargetAllowedByMistake = true; }
