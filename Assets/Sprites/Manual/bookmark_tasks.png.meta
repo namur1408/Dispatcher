@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 23c4584cbf52c2b4ba4027475b84e1a3
+guid: 0546e18a1b9a72a43b99847449da9336
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1741885297918618584
-    second: Radio_Pencil_0
+      213: 8490375524103351071
+    second: bookmark_tasks_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -96,30 +96,17 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: iOS
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Radio_Pencil_0
+      name: bookmark_tasks_0
       rect:
         serializedVersion: 2
-        x: 103
+        x: 0
         y: 0
-        width: 533
-        height: 337
+        width: 726
+        height: 1047
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 824d51aec8493d7e0800000000000000
-      internalID: -1741885297918618584
+      spriteID: f1be9d32e8fd3d570800000000000000
+      internalID: 8490375524103351071
       vertices: []
       indices: 
       edges: []
@@ -148,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Radio_Pencil_0: -1741885297918618584
+      bookmark_tasks_0: 8490375524103351071
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
