@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 83aecf348c8ecda4f875b29fcce2840d
+guid: 6e964ca827a1cdd4bad3f0a28759af92
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 9002152234401061347
-    second: Paper_roll 1_0
+      213: -283120837907153799
+    second: Strap_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Paper_roll 1_0
+      name: Strap_0
       rect:
         serializedVersion: 2
-        x: 189
-        y: 0
-        width: 520
-        height: 1200
+        x: 31
+        y: 237
+        width: 962
+        height: 84
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3e9d67103c11eec70800000000000000
-      internalID: 9002152234401061347
+      spriteID: 97c78041917221cf0800000000000000
+      internalID: -283120837907153799
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Paper_roll 1_0: 9002152234401061347
+      Strap_0: -283120837907153799
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

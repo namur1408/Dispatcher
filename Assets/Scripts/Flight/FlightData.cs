@@ -13,6 +13,12 @@ public class FlightData
     public int planeMaxFuel = 250;
     public string status = "APPROACHING";
 
+    // Runway & Departure mechanics
+    public string assignedRunway = "";
+    public bool isAligningToLand = false;
+    public bool isDeparting = false;
+    public string departureDestination = "";
+
     public string cargo;
     public int cargoAmount;
 
@@ -30,6 +36,18 @@ public class FlightData
     public string explanationWeight = "";
     public string explanationSpeed = "";
 
+    // Кастомные ответы на конкретные вопросы (если пусто — используется авто-фраза)
+    public string customAnswerCargo = "";
+    public string customAnswerOrigin = "";
+    public string customAnswerWeight = "";
+    public string customAnswerSpeed = "";
+
+    // Кастомные вопросы диспетчера (если пусто — используется авто-фраза)
+    public string customQuestionCargo = "";
+    public string customQuestionOrigin = "";
+    public string customQuestionWeight = "";
+    public string customQuestionSpeed = "";
+
     public bool isCargoKnown = false;
     public bool decisionMade = false;
     public bool approved = false;
@@ -44,6 +62,12 @@ public class FlightData
     public bool askedWeight;
     public bool askedSpeed;
     public bool isInterrogationFinished;
+
+    public bool isFolderTorn = false;
+    public Vector2 manifestPos = new Vector2(-380, 80);
+    public Vector2 radarPos = new Vector2(-150, -20);
+    public Vector2 cheatSheetPos = new Vector2(210, 140);
+    public Vector2 pilotReportPos = new Vector2(100, -120);
 
     public bool isUnloading;
     public bool isUnloaded;

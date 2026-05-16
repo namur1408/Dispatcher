@@ -8,7 +8,7 @@ public class UIAirplane : MonoBehaviour
     [Header("Settings")]
     public float speed = 1f;
     private float _actualSpeed;
-    public float despawnRadius = 1350f;
+    public float despawnRadius = 680f;
     public float fadeSpeed = 0.5f;
     public float minAlpha = 0.3f;
     public float showTextZoomThreshold = 1.2f;
@@ -32,7 +32,7 @@ public class UIAirplane : MonoBehaviour
 
     [Header("Fuel Mechanics")]
     public float currentFuel = 100f;
-    public float distancePerFuelUnit = 15f;
+    public float distancePerFuelUnit = 6f;
     public float emergencyTimer = 20f;
     private float fuelAtLastPing;
     private bool isOutOfFuel = false;
@@ -68,8 +68,93 @@ public class UIAirplane : MonoBehaviour
 
     public string cargo;
 
+    public string assignedRunway = "";
+    public bool isAligningToLand = false;
+    public bool isDeparting = false;
+    public string departureDestination = "";
+
     public enum DispatchStatus { Pending, Approved, Denied }
     public DispatchStatus dispatchStatus = DispatchStatus.Pending;
+
+    public void SetAssignedRunway(string rwId, bool isLanding)
+    {
+        assignedRunway = rwId;
+        if (isLanding)
+        {
+            isAligningToLand = true;
+            if (RunwayManager.Instance != null)
+            {
+                Runway rw = RunwayManager.Instance.GetRunwayByID(rwId);
+                if (rw != null)
+                {
+                    // Remove the default (0,0) point if it's the only one, 
+                    // because now we have a real destination
+                    if (waypoints.Count == 1 && waypoints[0] == Vector2.zero)
+                    {
+                        waypoints.Clear();
+                    }
+
+                    RectTransform rwRect = rw.GetComponent<RectTransform>();
+                    Vector2 rwPos = rwRect != null ? rwRect.anchoredPosition : Vector2.zero;
+                    Vector2 approachPoint = rw.GetAlignmentPoint(rwId, rwPos);
+                    Vector2 runwayDir = rw.GetDirection(rwId);
+                    
+                    // SMART APPROACH LOGIC
+                    Vector2 lastPoint = waypoints.Count > 0 ? waypoints[waypoints.Count - 1] : logicalPosition;
+                    
+                    // Vector from approach point towards the runway (landing direction)
+                    Vector2 approachToRunwayDir = -runwayDir; 
+                    
+                    // Vector from approach point to the airplane's last known point
+                    Vector2 toPlane = (lastPoint - approachPoint).normalized;
+                    
+                    // If the plane is "behind" the approach point (angle between toPlane and runwayDir is small)
+                    float approachAngle = Vector2.Dot(toPlane, runwayDir);
+                    
+                    if (approachAngle > -0.2f) // Plane is coming from the wrong side or side-on
+                    {
+                        // 1. Calculate side direction (perpendicular to runway)
+                        Vector2 sideDir = new Vector2(-runwayDir.y, runwayDir.x);
+                        if (Vector2.Dot(toPlane, sideDir) < 0) sideDir = -sideDir;
+                        
+                        // 2. Add Base Leg: it's "beside" the approach point
+                        Vector3 baseLeg = approachPoint + sideDir * (rw.alignmentDistance * 0.8f);
+                        waypoints.Add(baseLeg);
+                        
+                        // 3. Add a "Turn to Final" point: a bit further out from approach point
+                        Vector2 turnToFinal = approachPoint + sideDir * (rw.alignmentDistance * 0.2f) + runwayDir * (rw.alignmentDistance * 0.1f);
+                        // (Optional: can just go straight to approachPoint for simplicity)
+                    }
+
+                    waypoints.Add(approachPoint);
+                    RebuildRouteLayer();
+                    UpdateVisualRotation();
+                }
+            }
+        }
+        else
+        {
+            isDeparting = true;
+            logicalPosition = Vector2.zero;
+            rectTransform.anchoredPosition = Vector2.zero;
+            if (RunwayManager.Instance != null)
+            {
+                Runway rw = RunwayManager.Instance.GetRunwayByID(rwId);
+                if (rw != null)
+                {
+                    Vector2 dir = rw.GetDirection(rwId);
+                    waypoints.Clear();
+                    waypoints.Add(Vector2.zero + dir * 500f);
+                    waypoints.Add(dir * despawnRadius);
+                    RebuildRouteLayer();
+                    UpdateVisualRotation();
+                    
+                    // Occupy runway for takeoff
+                    RunwayManager.Instance.OccupyRunway(rwId, 15f);
+                }
+            }
+        }
+    }
 
     public List<Vector2> GetWaypoints() => new List<Vector2>(waypoints);
 
@@ -94,12 +179,20 @@ public class UIAirplane : MonoBehaviour
         {
             string[] availablePrefixes = { "QY", "GE", "KO", "LX", "TR" };
             string randomPrefix = availablePrefixes[Random.Range(0, availablePrefixes.Length)];
-            callsignText.text = randomPrefix + "-" + Random.Range(100, 999);
+            string newCall = randomPrefix + "-" + Random.Range(100, 999);
+            callsignText.text = newCall;
+            realCallsign = newCall;
+            originalCallsign = newCall;
+
             string[] cargoTypes = { "Medicines", "People", "Food", "Scrap" };
             cargo = cargoTypes[Random.Range(0, cargoTypes.Length)];
+            wasInitialized = true;
         }
 
-        realCallsign = callsignText.text;
+        // Only set from text if not already initialized by a dedicated method
+        if (string.IsNullOrEmpty(realCallsign)) realCallsign = callsignText.text;
+        if (string.IsNullOrEmpty(originalCallsign)) originalCallsign = realCallsign;
+
         lastPosition = logicalPosition;
         fuelAtLastPing = currentFuel;
 
@@ -112,6 +205,7 @@ public class UIAirplane : MonoBehaviour
         wasInitialized = true;
         callsignText.text = newCallsign;
         realCallsign = newCallsign;
+        originalCallsign = newCallsign;
 
         if (string.IsNullOrEmpty(cargo))
         {
@@ -131,6 +225,11 @@ public class UIAirplane : MonoBehaviour
         speed = data.speed;
 
         cargo = data.cargo;
+
+        assignedRunway = data.assignedRunway;
+        isAligningToLand = data.isAligningToLand;
+        isDeparting = data.isDeparting;
+        departureDestination = data.departureDestination;
 
         currentFuel = data.currentFuel;
         fuelAtLastPing = currentFuel;
@@ -319,7 +418,7 @@ public class UIAirplane : MonoBehaviour
 
         if (DynamicStorm.Instance != null)
         {
-            bool currentlyInStorm = DynamicStorm.Instance.IsInStorm(logicalPosition);
+            bool currentlyInStorm = DynamicStorm.Instance.IsInStorm(rectTransform.position);
 
             if (currentlyInStorm && !inStorm)
             {
@@ -380,27 +479,62 @@ public class UIAirplane : MonoBehaviour
                     waypoints.RemoveAt(0);
                     RebuildRouteLayer();
                 }
-                else
+                else // We reached the LAST waypoint
                 {
-                    if (dispatchStatus == DispatchStatus.Approved && Vector2.Distance(logicalPosition, Vector2.zero) < 10f)
+                    // Case A: This was the point BEFORE the runway (alignment point)
+                    if (isAligningToLand)
+                    {
+                        isAligningToLand = false;
+                        waypoints.Clear();
+
+                        // HIDE UI - Make it look like it's landing
+                        if (canvasGroup != null) canvasGroup.alpha = 0.2f;
+                        if (callsignText != null) callsignText.gameObject.SetActive(false);
+                        foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(false);
+                        foreach (var segment in lineSegments) if (segment != null) segment.SetActive(false);
+
+                        // Disable ALL colliders so it's a "ghost"
+                        Collider2D[] colliders = GetComponentsInChildren<Collider2D>();
+                        foreach (var col in colliders) col.enabled = false;
+                        if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(false);
+
+                        // Target the REAL runway position now
+                        Vector2 runwayPos = Vector2.zero;
+                        if (RunwayManager.Instance != null)
+                        {
+                            Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
+                            if (rw != null) runwayPos = rw.GetComponent<RectTransform>().anchoredPosition;
+                        }
+
+                        waypoints.Add(runwayPos);
+                        RebuildRouteLayer();
+                        UpdateVisualRotation();
+                        return; 
+                    }
+
+                    // Case B: We reached the ACTUAL runway
+                    Vector2 targetRunwayPos = Vector2.zero;
+                    bool hasRunway = false;
+                    if (!string.IsNullOrEmpty(assignedRunway) && RunwayManager.Instance != null)
+                    {
+                        Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
+                        if (rw != null) 
+                        {
+                            targetRunwayPos = rw.GetComponent<RectTransform>().anchoredPosition;
+                            hasRunway = true;
+                        }
+                    }
+
+                    // Check if we actually landed - use a larger threshold (30f) to prevent "freezing"
+                    if (dispatchStatus == DispatchStatus.Approved && hasRunway && Vector2.Distance(logicalPosition, targetRunwayPos) < 30f)
                     {
                         if (FlightDataManager.Instance != null) FlightDataManager.Instance.MarkFlightAsLanded(realCallsign);
-
-                        if (VideoLandingManager.Instance != null)
-                            VideoLandingManager.Instance.RequestLandingVideo();
-
+                        if (VideoLandingManager.Instance != null) VideoLandingManager.Instance.RequestLandingVideo();
                         Destroy(gameObject);
                     }
-                    else if (dispatchStatus == DispatchStatus.Denied)
+                    else 
                     {
-                        Destroy(gameObject);
-                    }
-                    else if (dispatchStatus == DispatchStatus.Pending && currentTarget != Vector2.zero)
-                    {
-                        Destroy(gameObject);
-                    }
-                    else if (dispatchStatus == DispatchStatus.Approved && Vector2.Distance(logicalPosition, Vector2.zero) >= 10f)
-                    {
+                        // In any other case, if we reached the end of waypoints, just despawn
                         Destroy(gameObject);
                     }
                 }
@@ -523,7 +657,7 @@ public class UIAirplane : MonoBehaviour
         }
     }
 
-    public void UpdateInternalSpeed() => _actualSpeed = speed / 10f;
+    public void UpdateInternalSpeed() => _actualSpeed = speed / 25f;
 
     private void CheckZoomVisibility(float zoom)
     {
@@ -619,7 +753,13 @@ public class UIAirplane : MonoBehaviour
     {
         float dist = Vector2.Distance(start, end);
 
-        segRect.sizeDelta = new Vector2(routeLineWidth, dist);
+        // Принудительно ставим Pivot вниз по центру, чтобы линия росла только ВПЕРЕД от самолета, а не в обе стороны
+        segRect.pivot = new Vector2(0.5f, 0f);
+
+        // Компенсируем Scale префаба только в длину, если пользователь его уменьшил
+        float scaleY = segRect.localScale.y != 0 ? segRect.localScale.y : 1f;
+
+        segRect.sizeDelta = new Vector2(routeLineWidth, dist / scaleY);
         segRect.anchoredPosition = start;
         Vector2 dir = (end - start).normalized;
         segRect.rotation = Quaternion.Euler(0, 0, (Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg) - 90f);

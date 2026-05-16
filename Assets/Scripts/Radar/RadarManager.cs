@@ -9,7 +9,7 @@ public class RadarManager : MonoBehaviour
     public Transform listContainer;
     public GameObject entryPrefab;
 
-    private List<UIAirplane> activeAirplanes = new List<UIAirplane>();
+    public List<UIAirplane> activeAirplanes = new List<UIAirplane>();
 
     void Awake()
     {
@@ -20,8 +20,6 @@ public class RadarManager : MonoBehaviour
     {
         if (FlightDataManager.Instance != null && FlightDataManager.Instance.savedFlights.Count > 0)
         {
-            Debug.Log($"[RadarManager] Возвращаемся со стола! Загружаем {FlightDataManager.Instance.savedFlights.Count} самолетов.");
-
             activeAirplanes.Clear();
 
             foreach (var data in FlightDataManager.Instance.savedFlights)
@@ -30,10 +28,6 @@ public class RadarManager : MonoBehaviour
             }
 
             StartCoroutine(ApplyDecisionsNextFrame());
-        }
-        else
-        {
-            Debug.Log("[RadarManager] Нет сохраненных данных для загрузки. Радар чист.");
         }
     }
 
@@ -64,7 +58,7 @@ public class RadarManager : MonoBehaviour
             if (flight.approved) target.Approve();
             else target.Deny();
         }
-    } 
+    }
 
     public void RegisterAirplane(UIAirplane airplane)
     {

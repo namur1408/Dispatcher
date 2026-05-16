@@ -9,7 +9,7 @@ public class BigRadarLoader : MonoBehaviour
     public string mainSceneName = "SampleScene";
 
     [Header("Conflict Alert Settings")]
-    public float warningDistance = 250f;
+    public float warningDistance = 125f;
 
     private List<UIAirplane> activePlanes = new List<UIAirplane>();
 

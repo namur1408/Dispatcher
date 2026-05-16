@@ -50,8 +50,8 @@ public class TutorialManager : MonoBehaviour
             stepTimer += Time.deltaTime;
             if (stepTimer >= 10f)
             {
-                SpawnSpecificPlane(new Vector2(-624, 200), new Vector2(800, 200), tutorialCallsigns[0], currentRadarContent);
-                SpawnSpecificPlane(new Vector2(-500, 500), Vector2.zero, tutorialCallsigns[1], currentRadarContent);
+                SpawnSpecificPlane(new Vector2(-370, 119), new Vector2(476, 119), tutorialCallsigns[0], currentRadarContent);
+                SpawnSpecificPlane(new Vector2(-297, 297), Vector2.zero, tutorialCallsigns[1], currentRadarContent);
                 Debug.Log("[Tutorial] Two tutorial planes spawned.");
                 tutorialStep = 1;
                 stepTimer = 0f;
@@ -62,7 +62,7 @@ public class TutorialManager : MonoBehaviour
             stepTimer += Time.deltaTime;
             if (stepTimer >= 35f)
             {
-                SpawnSpecificPlane(new Vector2(800, 0), Vector2.zero, tutorialCallsigns[2], currentRadarContent);
+                SpawnSpecificPlane(new Vector2(476, 0), Vector2.zero, tutorialCallsigns[2], currentRadarContent);
                 Debug.Log($"[Tutorial] {tutorialCallsigns[2]} spawned. Player must Deny its entry.");
                 tutorialStep = 2;
                 isTutorialActive = false;

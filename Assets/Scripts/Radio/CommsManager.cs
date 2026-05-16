@@ -23,6 +23,10 @@ public class CommsManager : MonoBehaviour
     public GameObject confrontButton;
     public GameObject endCommsButton;
 
+    [Header("Folder UI")]
+    public GameObject folderUI;
+    public TextMeshProUGUI folderCallsignText;
+
     [Header("Single Question Button")]
     public GameObject askButton;
     public TextMeshProUGUI askButtonText;
@@ -48,6 +52,10 @@ public class CommsManager : MonoBehaviour
     private Coroutine scrollCoroutine;
     private bool isAnimatingPaper = false;
 
+    private GameObject manifestDocInstance;
+    private GameObject radarDocInstance;
+    private GameObject cheatSheetDocInstance;
+
     void Awake()
     {
         Instance = this;
@@ -57,6 +65,11 @@ public class CommsManager : MonoBehaviour
         if (chatHistoryText != null)
         {
             chatHistoryText.alignment = TextAlignmentOptions.TopLeft;
+        }
+
+        if (folderUI != null && folderUI.GetComponent<DraggablePaper>() == null)
+        {
+            folderUI.AddComponent<DraggablePaper>();
         }
     }
 
@@ -104,13 +117,13 @@ public class CommsManager : MonoBehaviour
                               $"<b>CARGO:</b> {highlightStart}<link=\"man_cargo\">{currentData.manifestCargo.ToUpper()}</link>{highlightEnd}\n" +
                               $"<link=\"unlock_weight\"><b>WEIGHT:</b></link> <link=\"man_weight\">{currentData.manifestCargoAmount} UNITS</link>\n";
 
-        SpawnDocument(manifestPrefab, manifestText, new Vector2(-380, 80));
+        manifestDocInstance = SpawnDocument(manifestPrefab, manifestText, currentData.manifestPos, true);
 
         string radarLogText = $"<align=center><b>RADAR REPORT</b></align>\n\n" +
                               $"<link=\"unlock_speed\"><b>SPEED:</b></link> <link=\"rad_speed\">{currentData.speed * 10f} KTS</link>\n" +
                               $"<b>CLASS:</b> {GetPlaneClass()}\n" +
                               $"{highlightStart}<link=\"unlock_cargo\"><b>SENSOR:</b></link>{highlightEnd} UNKNOWN\n";
-        SpawnDocument(radarPrefab, radarLogText, new Vector2(-150, -20));
+        radarDocInstance = SpawnDocument(radarPrefab, radarLogText, currentData.radarPos, false);
 
         if (!TutorialManager.isTutorialActive)
         {
@@ -124,13 +137,24 @@ public class CommsManager : MonoBehaviour
                                     $"<b>[QY] Light Courier</b>\n" +
                                     $"<link=\"rule_qy_speed\">Speed: > 800 KTS</link>\n" +
                                     $"<link=\"rule_qy_weight\">Max Wt: 50 UNITS</link>\n</size>";
-            SpawnDocument(cheatSheetPrefab, cheatSheetText, new Vector2(210, 140));
+            cheatSheetDocInstance = SpawnDocument(cheatSheetPrefab, cheatSheetText, currentData.cheatSheetPos, false);
         }
 
         GameObject reportObj = Instantiate(pilotReportPrefab != null ? pilotReportPrefab : defaultDocPrefab, deskArea);
-        reportObj.GetComponent<RectTransform>().anchoredPosition = new Vector2(100, -120);
+        reportObj.GetComponent<RectTransform>().anchoredPosition = currentData.pilotReportPos;
+
+        reportObj.transform.rotation = Quaternion.Euler(0, 0, Random.Range(-2f, 2f));
         pilotReportDoc = reportObj.GetComponent<DocumentUI>();
         UpdatePilotReport();
+
+        if (folderUI != null)
+        {
+            folderUI.SetActive(!currentData.isFolderTorn);
+            if (folderCallsignText != null)
+            {
+                folderCallsignText.text = currentData.callsign;
+            }
+        }
     }
 
     void UpdatePilotReport()
@@ -205,20 +229,36 @@ public class CommsManager : MonoBehaviour
         switch (pendingQuestionTopic)
         {
             case "cargo":
-                question = "State your cargo purpose.";
-                answer = $"We are transporting {GetStatedCargo().ToUpper()}.";
+                question = !string.IsNullOrEmpty(currentData.customQuestionCargo)
+                    ? currentData.customQuestionCargo
+                    : "State your cargo purpose.";
+                answer = !string.IsNullOrEmpty(currentData.customAnswerCargo)
+                    ? currentData.customAnswerCargo
+                    : $"We are transporting {GetStatedCargo().ToUpper()}.";
                 break;
             case "origin":
-                question = "Confirm your point of origin.";
-                answer = $"Flight originated from {GetStatedOrigin()}.";
+                question = !string.IsNullOrEmpty(currentData.customQuestionOrigin)
+                    ? currentData.customQuestionOrigin
+                    : "Confirm your point of origin.";
+                answer = !string.IsNullOrEmpty(currentData.customAnswerOrigin)
+                    ? currentData.customAnswerOrigin
+                    : $"Flight originated from {GetStatedOrigin()}.";
                 break;
             case "weight":
-                question = "Report cargo weight.";
-                answer = $"Manifest states {GetStatedWeight()} UNITS.";
+                question = !string.IsNullOrEmpty(currentData.customQuestionWeight)
+                    ? currentData.customQuestionWeight
+                    : "Report cargo weight.";
+                answer = !string.IsNullOrEmpty(currentData.customAnswerWeight)
+                    ? currentData.customAnswerWeight
+                    : $"Manifest states {GetStatedWeight()} UNITS.";
                 break;
             case "speed":
-                question = "Confirm your current airspeed.";
-                answer = $"Instruments show {GetStatedSpeed()} KTS.";
+                question = !string.IsNullOrEmpty(currentData.customQuestionSpeed)
+                    ? currentData.customQuestionSpeed
+                    : "Confirm your current airspeed.";
+                answer = !string.IsNullOrEmpty(currentData.customAnswerSpeed)
+                    ? currentData.customAnswerSpeed
+                    : $"Instruments show {GetStatedSpeed()} KTS.";
                 break;
         }
 
@@ -410,7 +450,11 @@ public class CommsManager : MonoBehaviour
             float textHeight = chatHistoryText.preferredHeight;
             float viewportHeight = viewportRect.rect.height;
             
-            float targetY = textHeight - viewportHeight + 50f; 
+            float topMargin = 0f;
+            RectTransform textRect = chatHistoryText.GetComponent<RectTransform>();
+            if (textRect != null) topMargin = Mathf.Abs(textRect.anchoredPosition.y);
+
+            float targetY = textHeight + topMargin - viewportHeight + 50f; 
             
             if (animate)
             {
@@ -464,11 +508,14 @@ public class CommsManager : MonoBehaviour
             float textHeight = chatHistoryText.preferredHeight;
             float viewportHeight = chatScroll.viewport.rect.height;
             
-            float targetY = textHeight - viewportHeight + 50f;
+            float topMargin = 0f;
+            RectTransform textRect = chatHistoryText.GetComponent<RectTransform>();
+            if (textRect != null) topMargin = Mathf.Abs(textRect.anchoredPosition.y);
+
+            float targetY = textHeight + topMargin - viewportHeight + 50f;
             
-            // Разрешаем прятать бумагу вниз, но оставляем видимым верхний край (пустую часть до текста)
-            // Оставляем торчать примерно 70 пикселей
-            float minY = -viewportHeight + 70f; 
+            // Разрешаем прятать бумагу вниз, но оставляем видимым верхний край
+            float minY = -viewportHeight + 150f; 
             float maxY = targetY;
 
             if (minY > maxY) minY = maxY;
@@ -528,15 +575,77 @@ public class CommsManager : MonoBehaviour
 
     public void EndInterrogation()
     {
+        if (currentData != null)
+        {
+            if (manifestDocInstance != null) currentData.manifestPos = manifestDocInstance.GetComponent<RectTransform>().anchoredPosition;
+            if (radarDocInstance != null) currentData.radarPos = radarDocInstance.GetComponent<RectTransform>().anchoredPosition;
+            if (cheatSheetDocInstance != null) currentData.cheatSheetPos = cheatSheetDocInstance.GetComponent<RectTransform>().anchoredPosition;
+            if (pilotReportDoc != null) currentData.pilotReportPos = pilotReportDoc.GetComponent<RectTransform>().anchoredPosition;
+        }
         SceneManager.LoadScene("SampleScene");
     }
 
-    void SpawnDocument(GameObject prefab, string text, Vector2 pos)
+    public void OnFolderTorn()
+    {
+        if (currentData != null) currentData.isFolderTorn = true;
+        
+        StartCoroutine(Routine_FadeOutFolder());
+    }
+
+    private IEnumerator Routine_FadeOutFolder()
+    {
+        // Показываем манифест прямо под папкой
+        if (manifestDocInstance != null) 
+        {
+            if (folderUI != null)
+            {
+                manifestDocInstance.transform.position = folderUI.transform.position;
+            }
+            manifestDocInstance.SetActive(true);
+            // Перемещаем поверх всего — последний в иерархии рендерится последним (= сверху)
+            manifestDocInstance.transform.SetAsLastSibling();
+        }
+
+        // Поднимаем и остальные документы поверх папки
+        if (radarDocInstance != null) radarDocInstance.transform.SetAsLastSibling();
+        if (cheatSheetDocInstance != null) cheatSheetDocInstance.transform.SetAsLastSibling();
+        if (pilotReportDoc != null) pilotReportDoc.transform.SetAsLastSibling();
+
+        if (folderUI != null)
+        {
+            CanvasGroup cg = folderUI.GetComponent<CanvasGroup>();
+            if (cg == null) cg = folderUI.AddComponent<CanvasGroup>();
+
+            float duration = 0.35f; // Половина секунды для плавности
+            float time = 0;
+            while (time < duration)
+            {
+                time += Time.deltaTime;
+                cg.alpha = Mathf.Lerp(1f, 0f, time / duration);
+                yield return null;
+            }
+            folderUI.SetActive(false);
+            cg.alpha = 1f; // Сбрасываем для следующего использования, если понадобится
+        }
+    }
+
+    GameObject SpawnDocument(GameObject prefab, string text, Vector2 pos, bool hiddenInFolder = false)
     {
         GameObject doc = Instantiate(prefab != null ? prefab : defaultDocPrefab, deskArea);
-        doc.GetComponent<RectTransform>().anchoredPosition = pos;
+        
+        if (hiddenInFolder && !currentData.isFolderTorn)
+        {
+            doc.SetActive(false); // Hide until torn
+        }
+        else
+        {
+            doc.GetComponent<RectTransform>().anchoredPosition = pos;
+        }
+
         doc.transform.rotation = Quaternion.Euler(0, 0, Random.Range(-2f, 2f));
         doc.GetComponent<DocumentUI>().SetContent(text);
+        
+        return doc;
     }
 
     string GetPlaneClass() => currentData.callsign.StartsWith("TR") ? "Passenger" : (currentData.callsign.StartsWith("GE") ? "Cargo" : "Courier");

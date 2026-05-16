@@ -30,6 +30,49 @@ public class FlightDataManager : MonoBehaviour
     public bool isShiftActive = false;
     public float globalSpawnTimer = 3f;
 
+    [Header("Video Mode")]
+    [Tooltip("Включи этот флаг чтобы вместо сюжетных рейсов заспавнился один демо-рейс для видео")]
+    public bool videoMode = false;
+
+    // Настройки демо-рейса (видны в инспекторе при videoMode = true)
+    [Tooltip("Callsign демо самолета")]
+    public string videoCallsign = "TR-777";
+    [Tooltip("Что РЕАЛЬНО везет (скрытый груз)")]
+    public string videoRealCargo = "People";
+    [Tooltip("Что написано в манифесте (фейковый груз)")]
+    public string videoManifestCargo = "People";
+    [Tooltip("Что СКАЖЕТ пилот при вопросе о грузе")]
+    public string videoSpokenCargo = "Spare Parts";
+    [Tooltip("Откуда, по манифесту")]
+    public string videoManifestOrigin = "Bastion-4";
+    [Tooltip("Что скажет пилот при вопросе об источнике")]
+    public string videoSpokenOrigin = "Bastion-4";
+    [Tooltip("Что скажет пилот при вопросе о весе")]
+    public string videoSpokenWeight = "";
+    [Tooltip("Что скажет пилот при вопросе о скорости")]
+    public string videoSpokenSpeed = "";
+    [Tooltip("Объяснение пилота при разоблачении груза")]
+    public string videoExplanationCargo = "We were... We had no choice. These people needed to be evacuated. Please, just let us land.";
+    [Tooltip("Объяснение пилота при разоблачении источника")]
+    public string videoExplanationOrigin = "";
+    [Tooltip("Кастомный ОТВЕТ пилота на вопрос о грузе (если пусто — авто-фраза)")]
+    public string videoCustomAnswerCargo = "";
+    [Tooltip("Кастомный ОТВЕТ пилота на вопрос об источнике (если пусто — авто-фраза)")]
+    public string videoCustomAnswerOrigin = "";
+    [Tooltip("Кастомный ОТВЕТ пилота на вопрос о весе (если пусто — авто-фраза)")]
+    public string videoCustomAnswerWeight = "";
+    [Tooltip("Кастомный ОТВЕТ пилота на вопрос о скорости (если пусто — авто-фраза)")]
+    public string videoCustomAnswerSpeed = "";
+    [Header("Video Mode — Вопросы ДИСПЕТЧЕРА")]
+    [Tooltip("Что напишет диспетчер при запросе о грузе (если пусто — авто-фраза)")]
+    public string videoCustomQuestionCargo = "";
+    [Tooltip("Что напишет диспетчер при запросе об источнике (если пусто — авто-фраза)")]
+    public string videoCustomQuestionOrigin = "";
+    [Tooltip("Что напишет диспетчер при запросе о весе (если пусто — авто-фраза)")]
+    public string videoCustomQuestionWeight = "";
+    [Tooltip("Что напишет диспетчер при запросе о скорости (если пусто — авто-фраза)")]
+    public string videoCustomQuestionSpeed = "";
+
     public Queue<FlightData> scriptedFlightsQueue = new Queue<FlightData>();
     public Queue<float> scriptedDelaysQueue = new Queue<float>();
 
@@ -218,27 +261,61 @@ public class FlightDataManager : MonoBehaviour
             AirplaneSpawner.Instance.ResetStoryPlaneFlag();
         }
 
-        if (dayNumber == 1)
+        if (videoMode)
         {
-            FlightData ge102 = new FlightData("GE-102", new Vector2(-900, 200), Vector2.zero, new List<Vector2>(), 80f, "Fuel", 500, "Fuel", 500, 250f, "Bastion-3");
+            // --- РЕЖИМ ВИДЕО ---
+            // Один демо-рейс с настраиваемыми параметрами
+            FlightData videoFlight = new FlightData(
+                videoCallsign,
+                new Vector2(-476, 0),
+                Vector2.zero,
+                new List<Vector2>(),
+                75f,
+                videoRealCargo, 65,
+                videoManifestCargo, 65,
+                200f,
+                videoManifestOrigin
+            );
+            videoFlight.spokenCargo   = videoSpokenCargo;
+            videoFlight.spokenOrigin  = videoSpokenOrigin;
+            if (!string.IsNullOrEmpty(videoSpokenWeight)) videoFlight.spokenWeight = videoSpokenWeight;
+            if (!string.IsNullOrEmpty(videoSpokenSpeed))  videoFlight.spokenSpeed  = videoSpokenSpeed;
+            videoFlight.explanationCargo  = videoExplanationCargo;
+            videoFlight.explanationOrigin = videoExplanationOrigin;
+            videoFlight.customAnswerCargo  = videoCustomAnswerCargo;
+            videoFlight.customAnswerOrigin = videoCustomAnswerOrigin;
+            videoFlight.customAnswerWeight = videoCustomAnswerWeight;
+            videoFlight.customAnswerSpeed  = videoCustomAnswerSpeed;
+            videoFlight.customQuestionCargo  = videoCustomQuestionCargo;
+            videoFlight.customQuestionOrigin = videoCustomQuestionOrigin;
+            videoFlight.customQuestionWeight = videoCustomQuestionWeight;
+            videoFlight.customQuestionSpeed  = videoCustomQuestionSpeed;
+            scriptedFlightsQueue.Enqueue(videoFlight);
+            scriptedDelaysQueue.Enqueue(5f);
+
+            Debug.Log("<color=cyan>[VIDEO MODE] Demo flight enqueued: " + videoCallsign + "</color>");
+        }
+        else if (dayNumber == 1)
+        {
+            FlightData ge102 = new FlightData("GE-102", new Vector2(-535, 119), Vector2.zero, new List<Vector2>(), 80f, "Fuel", 500, "Fuel", 500, 250f, "Bastion-3");
             scriptedFlightsQueue.Enqueue(ge102);
             scriptedDelaysQueue.Enqueue(20f);
 
-            scriptedFlightsQueue.Enqueue(new FlightData("AX-999", new Vector2(-800, -600), new Vector2(700, 1000), new List<Vector2>(), 100f, "None", 0, "None", 0, 9999f, "Unknown"));
+            scriptedFlightsQueue.Enqueue(new FlightData("AX-999", new Vector2(-476, -357), new Vector2(416, 595), new List<Vector2>(), 100f, "None", 0, "None", 0, 9999f, "Unknown"));
             scriptedDelaysQueue.Enqueue(25f);
 
-            FlightData qy884 = new FlightData("QY-884", new Vector2(736, -600), Vector2.zero, new List<Vector2>(), 95f, "Medicines", 2, "Medicines", 2, 160f, "Bastion-5");
+            FlightData qy884 = new FlightData("QY-884", new Vector2(437, -357), Vector2.zero, new List<Vector2>(), 95f, "Medicines", 2, "Medicines", 2, 160f, "Bastion-5");
             scriptedFlightsQueue.Enqueue(qy884);
             scriptedDelaysQueue.Enqueue(25f);
 
-            scriptedFlightsQueue.Enqueue(new FlightData("ZX-771", new Vector2(700, 800), new Vector2(-400, -900), new List<Vector2>(), 100f, "None", 0, "None", 0, 9999f, "Unknown"));
+            scriptedFlightsQueue.Enqueue(new FlightData("ZX-771", new Vector2(416, 476), new Vector2(-238, -535), new List<Vector2>(), 100f, "None", 0, "None", 0, 9999f, "Unknown"));
             scriptedDelaysQueue.Enqueue(20f);
 
-            FlightData tr404 = new FlightData("TR-404", new Vector2(0, 900), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Food", 50, 100f, "Sector-Z");
+            FlightData tr404 = new FlightData("TR-404", new Vector2(0, 535), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Food", 50, 100f, "Sector-Z");
             tr404.spokenCargo = "Food";
             tr404.spokenOrigin = "Bastion-4";
             tr404.explanationOrigin = "Sector Z has been destroyed, Control. We barely managed to escape! We probably made a mistake in the rush.";
-            tr404.explanationCargo = "Listen, we�ve had to reclassify the cargo just to stay safe, we�re completely out of fuel, and we�re about to crash! We have refugees on board. Please let us through�there are children on board!";
+            tr404.explanationCargo = "Listen, we've had to reclassify the cargo just to stay safe, we're completely out of fuel, and we're about to crash! We have refugees on board. Please let us through — there are children on board!";
             scriptedFlightsQueue.Enqueue(tr404);
             scriptedDelaysQueue.Enqueue(15f);
         }
@@ -354,7 +431,7 @@ public class FlightDataManager : MonoBehaviour
     public Vector2 GetDepartureTarget(FlightData flight)
     {
         float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-        return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 600f;
+        return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 360f;
     }
 
     public void RemoveDepartedPlane(string callsign)
@@ -414,7 +491,7 @@ public class FlightDataManager : MonoBehaviour
         foreach (var plane in servicedPlanes)
         {
             float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-            Vector2 exitPoint = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 1500f;
+            Vector2 exitPoint = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 900f;
 
             FlightData departingPlane = new FlightData(
                 plane.callsign,

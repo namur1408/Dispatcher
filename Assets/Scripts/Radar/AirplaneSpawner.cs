@@ -12,7 +12,7 @@ public class AirplaneSpawner : MonoBehaviour
 
     public float minSpawnTime = 5f;
     public float maxSpawnTime = 12f;
-    public float spawnRadius = 1300f;
+    public float spawnRadius = 640f;
 
     [Range(0f, 1f)]
     public float landingProbability = 0.5f;

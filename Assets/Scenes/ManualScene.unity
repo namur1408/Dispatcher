@@ -950,7 +950,6 @@ GameObject:
   - component: {fileID: 731479687}
   - component: {fileID: 731479686}
   - component: {fileID: 731479685}
-  - component: {fileID: 731479689}
   m_Layer: 5
   m_Name: BackButton
   m_TagString: Untagged
@@ -975,8 +974,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -490}
-  m_SizeDelta: {x: 1875, y: 65}
+  m_AnchoredPosition: {x: -805.18, y: -397.94}
+  m_SizeDelta: {x: 310.63, y: 95.11}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &731479685
 MonoBehaviour:

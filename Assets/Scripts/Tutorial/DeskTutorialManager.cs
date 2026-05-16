@@ -45,7 +45,7 @@ public class DeskTutorialManager : MonoBehaviour
 
     private string msg1 = "Click on the radio to listen to the incoming message. You'll use it to interrogate pilots.";
     private string msg2 = "Welcome to your first shift, Dispatcher! Let me show you around your new workplace!";
-    private string msgBook = "See that book on the desk? It's your manual. It contains descriptions of all equipment and daily rules. Open it to take a quick look.";
+    private string msgBook = "See that book on the desk? It's your manual. It contains descriptions of all equipment and information about planes. Open it to take a quick look.";
     private string msgRadar = "Excellent. Now it's time to manage the airspace.\nClick on the Radar monitor to open it.";
     private string msgTV = "On the left, you'll see the terminal. It plays a key role in your work: basically, it's a powerful tool for managing landing clearances, resources, and aircraft. Open it now.";
 

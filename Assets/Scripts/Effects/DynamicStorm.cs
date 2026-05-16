@@ -7,17 +7,17 @@ public class DynamicStorm : MonoBehaviour
 
     private RawImage stormImage;
 
-    [Header("��������� �������")]
+    [Header("Настройки визуала")]
     public Gradient stormGradient;
     public float scale = 12f;
 
-    [Header("�������� �����")]
+    [Header("Скорость ветра")]
     public float scrollSpeedX = 0.05f;
     public float scrollSpeedY = 0.02f;
 
     private float emptySkyThreshold = 0.45f;
 
-    [Header("��������� ���������")]
+    [Header("Настройки опасности")]
     [Range(0f, 1f)]
     public float dangerThreshold = 0.51f;
 
@@ -66,15 +66,22 @@ public class DynamicStorm : MonoBehaviour
         }
     }
 
-    public bool IsInStorm(Vector2 planePosition)
+    public bool IsInStorm(Vector3 planeWorldPos)
     {
         if (stormImage == null) return false;
 
         RectTransform rt = GetComponent<RectTransform>();
         if (rt.rect.width == 0 || rt.rect.height == 0) return false;
 
-        float normalizedX = (planePosition.x / rt.rect.width) + 0.5f;
-        float normalizedY = (planePosition.y / rt.rect.height) + 0.5f;
+        // Точно переводим мировую позицию самолета в локальные координаты картинки шторма
+        Vector3 localPos = rt.InverseTransformPoint(planeWorldPos);
+
+        // Высчитываем нормализованные координаты (от 0 до 1) от нижнего левого угла
+        float normalizedX = (localPos.x - rt.rect.xMin) / rt.rect.width;
+        float normalizedY = (localPos.y - rt.rect.yMin) / rt.rect.height;
+
+        // Если самолет за пределами картинки шторма, он не в шторме
+        if (normalizedX < 0f || normalizedX > 1f || normalizedY < 0f || normalizedY > 1f) return false;
 
         float finalUvX = normalizedX + currentWindOffsetX;
         float finalUvY = normalizedY + currentWindOffsetY;
