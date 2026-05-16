@@ -398,7 +398,7 @@ MonoBehaviour:
   typingSpeed: 0.03
   pauseDuration: 1
   frames:
-  - image: {fileID: 5088316998373936774, guid: 603e3c4b550e0ee439dd323756b59fc2, type: 3}
+  - image: {fileID: 3196221610730321274, guid: 1ef4fb3636bafea4fad4837b111d7ed5, type: 3}
     talkingImage: {fileID: 0}
     talkSpeed: 0
     text: The world didn't end all at once. It burned piece by piece. The ground
@@ -408,7 +408,7 @@ MonoBehaviour:
     delayAfter: 5
     frameSound: {fileID: 8300000, guid: 907e4136a2b3cd244aa735cf0a4dec9c, type: 3}
     soundDuration: 4.5
-  - image: {fileID: -2619831015951649506, guid: 25a8702c5bd40f34792efbc5c6b763b9, type: 3}
+  - image: {fileID: 5155163167032735316, guid: b632d6655a46aeb4bb9fe53be4352361, type: 3}
     talkingImage: {fileID: 0}
     talkSpeed: 0
     text: There were no warm welcomes. Just armed guards, blinding searchlights,
@@ -417,31 +417,31 @@ MonoBehaviour:
     delayAfter: 5
     frameSound: {fileID: 8300000, guid: 96d5b2c8ff347564db943febfcf99fc5, type: 3}
     soundDuration: 4.7
-  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
-    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+  - image: {fileID: -3170110953543520844, guid: 7884c555694e6cb41845648186d11341, type: 3}
+    talkingImage: {fileID: 5873876996595589609, guid: 68fd73470f16f5b468d3b6f99ac61a7c, type: 3}
     talkSpeed: 0.3
     text: Take a good look around, Dispatcher.
     delayAfter: 1
     frameSound: {fileID: 8300000, guid: a31f25b616c98474db00419f95e8fcfc, type: 3}
     soundDuration: 3
-  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
-    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+  - image: {fileID: -3170110953543520844, guid: 7884c555694e6cb41845648186d11341, type: 3}
+    talkingImage: {fileID: 5873876996595589609, guid: 68fd73470f16f5b468d3b6f99ac61a7c, type: 3}
     talkSpeed: 0.3
     text: 'Before the fall, this was a classified military black site.| Now It is
       the only lit runway left in a thousand miles of wasteland.| '
     delayAfter: 2
     frameSound: {fileID: 0}
     soundDuration: 0
-  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
-    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+  - image: {fileID: -3170110953543520844, guid: 7884c555694e6cb41845648186d11341, type: 3}
+    talkingImage: {fileID: 5873876996595589609, guid: 68fd73470f16f5b468d3b6f99ac61a7c, type: 3}
     talkSpeed: 0.3
     text: 'Yesterday, you were just another rat scavenging in the ashes. But you
       proved yourself useful.| So I brought you up here, to the tower.| '
     delayAfter: 5
     frameSound: {fileID: 0}
     soundDuration: 0
-  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
-    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+  - image: {fileID: -3170110953543520844, guid: 7884c555694e6cb41845648186d11341, type: 3}
+    talkingImage: {fileID: 5873876996595589609, guid: 68fd73470f16f5b468d3b6f99ac61a7c, type: 3}
     talkSpeed: 0.3
     text: There is no rescue coming. The old world burned because it was weak. We
       will not make the same mistake.| Here at Runway 7, we are building a new order,
@@ -449,8 +449,8 @@ MonoBehaviour:
     delayAfter: 5
     frameSound: {fileID: 0}
     soundDuration: 0
-  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
-    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+  - image: {fileID: -3170110953543520844, guid: 7884c555694e6cb41845648186d11341, type: 3}
+    talkingImage: {fileID: 5873876996595589609, guid: 68fd73470f16f5b468d3b6f99ac61a7c, type: 3}
     talkSpeed: 0.3
     text: But we can't let the rot in. The sky is full of infected, marauders, and
       desperate fools burning their last fumes to reach us.| Our space is limited.|
@@ -458,8 +458,8 @@ MonoBehaviour:
     delayAfter: 5
     frameSound: {fileID: 0}
     soundDuration: 0
-  - image: {fileID: 4120901811166270815, guid: dd50aec51fb33a242ac88a40e261e2f0, type: 3}
-    talkingImage: {fileID: 2714453574471835212, guid: 8ff0745eb4bd1b747acb885a3ac763d3, type: 3}
+  - image: {fileID: -3170110953543520844, guid: 7884c555694e6cb41845648186d11341, type: 3}
+    talkingImage: {fileID: 5873876996595589609, guid: 68fd73470f16f5b468d3b6f99ac61a7c, type: 3}
     talkSpeed: 0.3
     text: I don't need a humanitarian in that chair. I need a filter. You are the
       wall between our new world and the abyss.| Keep us safe. Welcome to Runway
@@ -474,7 +474,7 @@ MonoBehaviour:
     delayAfter: 3.5
     frameSound: {fileID: 8300000, guid: 61ce93de9c8835348bc8c499039ebe3a, type: 3}
     soundDuration: 5
-  - image: {fileID: -4178046375966092550, guid: 80882926148ec324383ed75b7f62989d, type: 3}
+  - image: {fileID: 8085661429158845064, guid: 9e5d342eadf79f142ba864febc75b445, type: 3}
     talkingImage: {fileID: 0}
     talkSpeed: 0
     text: 'They put me in the control tower. Routes, fuel, cargo... the last resources
