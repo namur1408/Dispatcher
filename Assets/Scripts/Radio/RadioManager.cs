@@ -78,7 +78,7 @@ public class RadioManager : MonoBehaviour
 
             if (audioSource != null) audioSource.Stop();
 
-            SceneManager.LoadScene("CommsScene");
+            if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager(); SceneManager.LoadScene("CommsScene");
         }
     }
 }

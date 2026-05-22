@@ -16,7 +16,7 @@ public class UIAirplane : MonoBehaviour
 
     [Header("Holding Pattern Settings")]
     public float holdingRadius = 80f;
-    public float maxHoldingTime = 45f;
+    public float maxHoldingTime = 135f;
 
     [Header("References")]
     public TextMeshProUGUI callsignText;
@@ -73,6 +73,18 @@ public class UIAirplane : MonoBehaviour
     public bool isDeparting = false;
     public string departureDestination = "";
 
+    public bool isTakingOff = false;
+    public Vector2 takeoffStartPos;
+
+    public bool isLandingPhase = false;
+
+    public void SetCollidersActive(bool active)
+    {
+        Collider2D[] colliders = GetComponentsInChildren<Collider2D>();
+        foreach (var col in colliders) col.enabled = active;
+        if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(active);
+    }
+
     public enum DispatchStatus { Pending, Approved, Denied }
     public DispatchStatus dispatchStatus = DispatchStatus.Pending;
 
@@ -82,17 +94,14 @@ public class UIAirplane : MonoBehaviour
         if (isLanding)
         {
             isAligningToLand = true;
+            isHolding = false; // Stop holding immediately!
             if (RunwayManager.Instance != null)
             {
                 Runway rw = RunwayManager.Instance.GetRunwayByID(rwId);
                 if (rw != null)
                 {
-                    // Remove the default (0,0) point if it's the only one, 
-                    // because now we have a real destination
-                    if (waypoints.Count == 1 && waypoints[0] == Vector2.zero)
-                    {
-                        waypoints.Clear();
-                    }
+                    // Clear all previous waypoints (including holding or transit points)
+                    waypoints.Clear();
 
                     RectTransform rwRect = rw.GetComponent<RectTransform>();
                     Vector2 rwPos = rwRect != null ? rwRect.anchoredPosition : Vector2.zero;
@@ -102,28 +111,25 @@ public class UIAirplane : MonoBehaviour
                     // SMART APPROACH LOGIC
                     Vector2 lastPoint = waypoints.Count > 0 ? waypoints[waypoints.Count - 1] : logicalPosition;
                     
-                    // Vector from approach point towards the runway (landing direction)
-                    Vector2 approachToRunwayDir = -runwayDir; 
-                    
-                    // Vector from approach point to the airplane's last known point
-                    Vector2 toPlane = (lastPoint - approachPoint).normalized;
-                    
-                    // If the plane is "behind" the approach point (angle between toPlane and runwayDir is small)
-                    float approachAngle = Vector2.Dot(toPlane, runwayDir);
-                    
-                    if (approachAngle > -0.2f) // Plane is coming from the wrong side or side-on
+                    Vector2 diff = approachPoint - lastPoint;
+                    if (diff.sqrMagnitude > 1f)
                     {
-                        // 1. Calculate side direction (perpendicular to runway)
-                        Vector2 sideDir = new Vector2(-runwayDir.y, runwayDir.x);
-                        if (Vector2.Dot(toPlane, sideDir) < 0) sideDir = -sideDir;
+                        Vector2 incomingDir = diff.normalized;
+                        float turnAngle = Vector2.Angle(incomingDir, runwayDir);
                         
-                        // 2. Add Base Leg: it's "beside" the approach point
-                        Vector3 baseLeg = approachPoint + sideDir * (rw.alignmentDistance * 0.8f);
-                        waypoints.Add(baseLeg);
-                        
-                        // 3. Add a "Turn to Final" point: a bit further out from approach point
-                        Vector2 turnToFinal = approachPoint + sideDir * (rw.alignmentDistance * 0.2f) + runwayDir * (rw.alignmentDistance * 0.1f);
-                        // (Optional: can just go straight to approachPoint for simplicity)
+                        // If the plane has to make a turn greater than 110 degrees, it's too sharp
+                        if (turnAngle > 110f) 
+                        {
+                            Vector2 toPlane = -incomingDir;
+                            
+                            // 1. Calculate side direction (perpendicular to runway)
+                            Vector2 sideDir = new Vector2(-runwayDir.y, runwayDir.x);
+                            if (Vector2.Dot(toPlane, sideDir) < 0) sideDir = -sideDir;
+                            
+                            // 2. Add Base Leg: it's "beside" the approach point
+                            Vector3 baseLeg = approachPoint + sideDir * (rw.alignmentDistance * 0.8f);
+                            waypoints.Add(baseLeg);
+                        }
                     }
 
                     waypoints.Add(approachPoint);
@@ -135,17 +141,47 @@ public class UIAirplane : MonoBehaviour
         else
         {
             isDeparting = true;
-            logicalPosition = Vector2.zero;
-            rectTransform.anchoredPosition = Vector2.zero;
             if (RunwayManager.Instance != null)
             {
                 Runway rw = RunwayManager.Instance.GetRunwayByID(rwId);
                 if (rw != null)
                 {
-                    Vector2 dir = rw.GetDirection(rwId);
+                    RectTransform rwRect = rw.GetComponent<RectTransform>();
+                    Vector2 rwPos = rwRect != null ? rwRect.anchoredPosition : Vector2.zero;
+
+                    logicalPosition = rwPos;
+                    rectTransform.anchoredPosition = rwPos;
+
+                    // Отключаем хитбокс на время взлета
+                    isTakingOff = true;
+                    takeoffStartPos = rwPos;
+                    SetCollidersActive(false);
+
+                    Vector2 dir = -rw.GetDirection(rwId);
                     waypoints.Clear();
-                    waypoints.Add(Vector2.zero + dir * 500f);
-                    waypoints.Add(dir * despawnRadius);
+
+                    Vector2 destPos = GetDestinationCoordinate(departureDestination);
+                    if (destPos != Vector2.zero)
+                    {
+                        // 1. Initial takeoff climb/run (150 units in runway direction)
+                        Vector2 climbPoint = rwPos + dir * 150f;
+                        waypoints.Add(climbPoint);
+
+                        // 2. Head to the destination coordinate
+                        waypoints.Add(destPos);
+
+                        // 3. Continue in that direction past the destination to the despawn boundary
+                        Vector2 outDir = (destPos - climbPoint).normalized;
+                        if (outDir == Vector2.zero) outDir = dir;
+                        waypoints.Add(destPos + outDir * despawnRadius);
+                    }
+                    else
+                    {
+                        // Fallback: fly straight along the runway
+                        waypoints.Add(rwPos + dir * 500f);
+                        waypoints.Add(rwPos + dir * despawnRadius);
+                    }
+
                     RebuildRouteLayer();
                     UpdateVisualRotation();
                     
@@ -156,7 +192,39 @@ public class UIAirplane : MonoBehaviour
         }
     }
 
+    private Vector2 GetDestinationCoordinate(string destination)
+    {
+        if (string.IsNullOrEmpty(destination)) return Vector2.zero;
+
+        switch (destination)
+        {
+            case "Bastion-1": return new Vector2(-416f, 476f);
+            case "Bastion-2": return new Vector2(400f, 400f);
+            case "Bastion-3": return new Vector2(-535f, 119f);
+            case "Bastion-4": return new Vector2(0f, 535f);
+            case "Bastion-5": return new Vector2(437f, -357f);
+            case "Bastion-6": return new Vector2(-450f, -400f);
+            case "Bastion-7": return new Vector2(500f, 100f);
+            case "Bastion-8": return new Vector2(150f, -500f);
+            case "Bastion-9": return new Vector2(-200f, 500f);
+            case "Sector-Z":  return new Vector2(0f, 535f);
+            default:
+                int hash = destination.GetHashCode();
+                float angle = Mathf.Abs(hash % 360) * Mathf.Deg2Rad;
+                float radius = 480f + Mathf.Abs(hash % 50);
+                return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+        }
+    }
+
     public List<Vector2> GetWaypoints() => new List<Vector2>(waypoints);
+
+    private void UpdateDespawnRadius()
+    {
+        if (AirplaneSpawner.Instance != null)
+        {
+            despawnRadius = Mathf.Max(despawnRadius, AirplaneSpawner.Instance.spawnRadius + 150f);
+        }
+    }
 
     void Awake()
     {
@@ -171,10 +239,14 @@ public class UIAirplane : MonoBehaviour
 
         GameObject foundScanner = GameObject.Find("SweepLine");
         if (foundScanner != null) sweepLine = foundScanner.transform;
+        
+        UpdateDespawnRadius();
     }
 
     void Start()
     {
+        UpdateDespawnRadius();
+
         if (!wasInitialized)
         {
             string[] availablePrefixes = { "QY", "GE", "KO", "LX", "TR" };
@@ -216,6 +288,7 @@ public class UIAirplane : MonoBehaviour
 
     public void InitializeFromData(FlightData data)
     {
+        UpdateDespawnRadius();
         wasInitialized = true;
         callsignText.text = data.callsign;
         realCallsign = data.callsign;
@@ -266,6 +339,29 @@ public class UIAirplane : MonoBehaviour
         originalCallsign = data.callsign;
         UpdateVisualRotation();
         RebuildRouteLayer();
+
+        isTakingOff = data.isTakingOff;
+        takeoffStartPos = data.takeoffStartPos;
+        if (isTakingOff)
+        {
+            SetCollidersActive(false);
+            Debug.Log($"<color=green>[UIAirplane] Restored {realCallsign} in takeoff state: isTakingOff={isTakingOff}, takeoffStartPos={takeoffStartPos}, pos={logicalPosition}</color>");
+        }
+
+        isLandingPhase = data.isLandingPhase;
+        if (isLandingPhase)
+        {
+            // HIDE UI - Make it look like it's landing
+            if (canvasGroup != null) canvasGroup.alpha = 0.2f;
+            if (callsignText != null) callsignText.gameObject.SetActive(false);
+            foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(false);
+            foreach (var segment in lineSegments) if (segment != null) segment.SetActive(false);
+
+            // Disable ALL colliders so it's a "ghost"
+            SetCollidersActive(false);
+            Debug.Log($"<color=green>[UIAirplane] Restored {realCallsign} in landing state: isLandingPhase={isLandingPhase}, pos={logicalPosition}</color>");
+        }
+
         UpdateHitboxColor();
     }
 
@@ -370,6 +466,77 @@ public class UIAirplane : MonoBehaviour
 
     void Update()
     {
+        if (!string.IsNullOrEmpty(assignedRunway) && !isDeparting)
+        {
+            if (RunwayManager.Instance != null)
+            {
+                Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
+                if (rw != null && rw.isOccupied)
+                {
+                    Debug.Log($"<color=orange>[UIAirplane] {realCallsign} aborting landing! Runway {assignedRunway} is physically occupied.</color>");
+                    assignedRunway = "";
+                    isAligningToLand = false;
+                    
+                    if (isLandingPhase)
+                    {
+                        isLandingPhase = false;
+                        SetCollidersActive(true);
+                        if (canvasGroup != null) canvasGroup.alpha = 1f;
+                        if (callsignText != null) callsignText.gameObject.SetActive(true);
+                    }
+                    
+                    waypoints.Clear();
+                    waypoints.Add(Vector2.zero); // Fly to center
+                    RebuildRouteLayer();
+                    UpdateVisualRotation();
+                    
+                    if (FlightDataManager.Instance != null)
+                    {
+                        var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == realCallsign);
+                        if (fd != null)
+                        {
+                            fd.assignedRunway = "";
+                            fd.isAligningToLand = false;
+                            fd.isLandingPhase = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (isTakingOff)
+        {
+            // Если takeoffStartPos равен Vector2.zero, мы восстанавливаем его на основе assignedRunway
+            if (takeoffStartPos == Vector2.zero && !string.IsNullOrEmpty(assignedRunway) && RunwayManager.Instance != null)
+            {
+                Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
+                if (rw != null)
+                {
+                    RectTransform rwRect = rw.GetComponent<RectTransform>();
+                    if (rwRect != null)
+                    {
+                        takeoffStartPos = rwRect.anchoredPosition;
+                        // Смещение на микро-значение, если ВПП находится ровно в (0,0), чтобы избежать повторных поисков
+                        if (takeoffStartPos == Vector2.zero)
+                        {
+                            takeoffStartPos = new Vector2(0.001f, 0.001f);
+                        }
+                        Debug.Log($"<color=yellow>[UIAirplane] Self-healed/restored takeoffStartPos to: {takeoffStartPos} for {realCallsign}</color>");
+                    }
+                }
+            }
+
+            float dist = takeoffStartPos != Vector2.zero ? Vector2.Distance(logicalPosition, takeoffStartPos) : 0f;
+
+            // Если самолет отлетел от полосы более чем на 150 единиц, он "взлетел"
+            if (takeoffStartPos != Vector2.zero && dist > 150f)
+            {
+                isTakingOff = false;
+                SetCollidersActive(true);
+                Debug.Log($"<color=cyan>[UIAirplane] {realCallsign} has taken off! Hitbox enabled. Distance: {dist:F1} units from start {takeoffStartPos}</color>");
+            }
+        }
+
         float distanceMoved = Vector2.Distance(logicalPosition, lastPosition);
         lastPosition = logicalPosition;
 
@@ -443,25 +610,18 @@ public class UIAirplane : MonoBehaviour
 
         if (isHolding)
         {
-            holdingTimer -= Time.deltaTime;
-
-            if (holdingTimer <= 0)
-            {
-                Deny();
-            }
-            else
-            {
-                float angularSpeed = (currentSpeed / holdingRadius) * Mathf.Rad2Deg;
-                currentHoldingAngle += angularSpeed * Time.deltaTime;
-                Vector2 circleTarget = holdingCenter + new Vector2(Mathf.Cos(currentHoldingAngle * Mathf.Deg2Rad), Mathf.Sin(currentHoldingAngle * Mathf.Deg2Rad)) * holdingRadius;
-                logicalPosition = Vector2.MoveTowards(logicalPosition, circleTarget, currentSpeed * Time.deltaTime);
-            }
+            // All planes in the holding pattern circle indefinitely (no timer countdown)
+            float angularSpeed = (currentSpeed / holdingRadius) * Mathf.Rad2Deg;
+            currentHoldingAngle += angularSpeed * Time.deltaTime;
+            Vector2 circleTarget = holdingCenter + new Vector2(Mathf.Cos(currentHoldingAngle * Mathf.Deg2Rad), Mathf.Sin(currentHoldingAngle * Mathf.Deg2Rad)) * holdingRadius;
+            logicalPosition = Vector2.MoveTowards(logicalPosition, circleTarget, currentSpeed * Time.deltaTime);
         }
         else if (waypoints.Count > 0)
         {
             Vector2 currentTarget = waypoints[0];
 
-            if (waypoints.Count == 1 && dispatchStatus == DispatchStatus.Pending && currentTarget == Vector2.zero)
+            bool isWaitingForRunway = (dispatchStatus == DispatchStatus.Approved && string.IsNullOrEmpty(assignedRunway));
+            if (waypoints.Count == 1 && (dispatchStatus == DispatchStatus.Pending || isWaitingForRunway) && currentTarget == Vector2.zero)
             {
                 if (Vector2.Distance(logicalPosition, currentTarget) <= holdingRadius)
                 {
@@ -485,6 +645,7 @@ public class UIAirplane : MonoBehaviour
                     if (isAligningToLand)
                     {
                         isAligningToLand = false;
+                        isLandingPhase = true;
                         waypoints.Clear();
 
                         // HIDE UI - Make it look like it's landing
@@ -530,6 +691,7 @@ public class UIAirplane : MonoBehaviour
                     {
                         if (FlightDataManager.Instance != null) FlightDataManager.Instance.MarkFlightAsLanded(realCallsign);
                         if (VideoLandingManager.Instance != null) VideoLandingManager.Instance.RequestLandingVideo();
+                        if (RunwayManager.Instance != null) RunwayManager.Instance.OccupyRunway(assignedRunway, 15f);
                         Destroy(gameObject);
                     }
                     else 
@@ -592,7 +754,7 @@ public class UIAirplane : MonoBehaviour
             fuelAtLastPing = currentFuel;
             UpdateVisualRotation();
             UpdateHitboxColor();
-            if (canvasGroup != null) canvasGroup.alpha = 1f;
+            if (canvasGroup != null) canvasGroup.alpha = isLandingPhase ? 0.2f : 1f;
 
             // --- НОВОЕ: Применяем настроенную громкость при каждом пике ---
             if (pingSound != null && Time.time - lastPingTime > 1.0f)
@@ -633,6 +795,13 @@ public class UIAirplane : MonoBehaviour
 
     void FadeOut()
     {
+        if (isLandingPhase)
+        {
+            if (canvasGroup != null) canvasGroup.alpha = 0.2f;
+            SyncRouteAlpha();
+            return;
+        }
+
         if (!hasBeenPinged)
         {
             if (canvasGroup != null) canvasGroup.alpha = 0f;
@@ -667,10 +836,10 @@ public class UIAirplane : MonoBehaviour
 
     private void RebuildRouteLayer()
     {
-        if (waypoints.Count == 0)
+        if (isLandingPhase || waypoints.Count == 0)
         {
-            foreach (var seg in lineSegments) seg.SetActive(false);
-            foreach (var marker in activeMarkers) marker.SetActive(false);
+            foreach (var seg in lineSegments) if (seg != null) seg.SetActive(false);
+            foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(false);
             return;
         }
 
@@ -737,7 +906,7 @@ public class UIAirplane : MonoBehaviour
 
     private void UpdateFirstSegment()
     {
-        if (waypoints.Count == 0) return;
+        if (isLandingPhase || waypoints.Count == 0) return;
 
         int activeSegmentIndex = waypoints.Count - 1;
 

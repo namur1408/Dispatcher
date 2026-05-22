@@ -163,6 +163,7 @@ GameObject:
   - component: {fileID: 5394112470432341909}
   - component: {fileID: 6704724970963490849}
   - component: {fileID: 1572172727247338652}
+  - component: {fileID: 707341088374310837}
   m_Layer: 5
   m_Name: Documents_Help
   m_TagString: Untagged
@@ -255,3 +256,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentUI
   contentText: {fileID: 3461077664294917345}
+--- !u!114 &707341088374310837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1499971829661628683}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3da28d87931f0bb46a5f0456836c2835, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PaperPhysics
+  swayMultiplier: -0.5
+  maxSwayAngle: 15
+  springForce: 15
+  dragDamping: 10
+  enableSquash: 1
+  squashAmount: 0.05

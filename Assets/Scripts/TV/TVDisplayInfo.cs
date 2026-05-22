@@ -212,7 +212,7 @@ public class TVDisplayInfo : MonoBehaviour
 
             foreach (var flight in fdm.savedFlights)
             {
-                if (flight.hasLanded && (!flight.isRefueled || !flight.isRepaired))
+                if (flight.hasLanded && !flight.isReadyToDepart)
                 {
                     hasApprovedPlanes = true;
 
@@ -243,16 +243,14 @@ public class TVDisplayInfo : MonoBehaviour
                         }
                         else
                         {
-                            float fuelPercentage = (flight.currentFuel / flight.planeMaxFuel) * 100f;
-
-                            if (fuelPercentage > 50f)
+                            if (!flight.isRefueled)
                             {
                                 if (flight.isRefueling)
                                 {
                                     float progress = 1f - (flight.refuelTimer / FlightDataManager.REFUEL_TIME);
                                     leftInfo += $"    {CreateProgressBar(progress, "#00BFFF")}\n";
                                 }
-                                else if (!flight.isRefueled)
+                                else
                                 {
                                     int neededFuel = flight.planeMaxFuel - Mathf.RoundToInt(flight.currentFuel);
                                     if (fdm.totalFuel > 0)
@@ -265,17 +263,21 @@ public class TVDisplayInfo : MonoBehaviour
                                     }
                                 }
                             }
-                            else
+                            else if (!flight.isRepaired)
                             {
                                 if (flight.isRepairing)
                                 {
                                     float progress = 1f - (flight.repairTimer / FlightDataManager.REPAIR_TIME);
                                     leftInfo += $"    {CreateProgressBar(progress, "#FF8C00")}\n";
                                 }
-                                else if (!flight.isRepaired)
+                                else
                                 {
                                     leftInfo += $"    <link=\"REPAIR_{flight.callsign}\"><color=#FF8C00><b>[ START REPAIRING ]</b></color></link>\n";
                                 }
+                            }
+                            else
+                            {
+                                leftInfo += $"    STATUS: <color=#00FF41><b>[ READY FOR DEPARTURE ]</b></color>\n";
                             }
                         }
                     }
@@ -453,11 +455,12 @@ public class TVDisplayInfo : MonoBehaviour
                 }
                 else
                 {
-                    bool isTransit = data.targetPosition != Vector2.zero;
-                    string currentStatus = isTransit ? "TRANSIT" : "APPROACHING";
+                    bool isTransit = data.targetPosition != Vector2.zero && string.IsNullOrEmpty(data.assignedRunway);
+                    bool isLanding = !string.IsNullOrEmpty(data.assignedRunway);
+                    string currentStatus = isLanding ? "LANDING" : (isTransit ? "TRANSIT" : "APPROACHING");
 
-                    string stCol = currentStatus == "APPROACHING" ? COL_APPROACH : COL_TRANSIT;
-                    string stIcon = currentStatus == "APPROACHING" ? "↓ LAND" : "→ XSIT";
+                    string stCol = currentStatus == "LANDING" ? COL_APPROVED : (currentStatus == "APPROACHING" ? COL_APPROACH : COL_TRANSIT);
+                    string stIcon = (currentStatus == "LANDING" || currentStatus == "APPROACHING") ? "↓ LAND" : "→ XSIT";
 
                     txt.text = $"<color={nameColor}><b>{displayName}</b></color>  " +
                                $"<color={stCol}>{stIcon}</color>  " +
@@ -573,14 +576,15 @@ public class TVDisplayInfo : MonoBehaviour
         string callsign = flights[index].callsign;
         var data = flights[index];
 
-        bool isTransit = data.targetPosition != Vector2.zero;
-        string currentStatus = isTransit ? "TRANSIT" : "APPROACHING";
+        bool isTransit = data.targetPosition != Vector2.zero && string.IsNullOrEmpty(data.assignedRunway);
+        bool isLanding = !string.IsNullOrEmpty(data.assignedRunway);
+        string currentStatus = isLanding ? "LANDING" : (isTransit ? "TRANSIT" : "APPROACHING");
 
         string displayName = data.isInStorm ? "NO SIGNAL" : callsign;
 
         if (selectedLabel != null)
         {
-            string stCol = currentStatus == "APPROACHING" ? COL_APPROACH : COL_TRANSIT;
+            string stCol = currentStatus == "LANDING" ? COL_APPROVED : (currentStatus == "APPROACHING" ? COL_APPROACH : COL_TRANSIT);
             selectedLabel.text = $"<color={COL_HEADER}>SELECTED ►</color> " +
                                  $"<color={COL_SELECTED}><b>{displayName}</b></color>  " +
                                  $"<color={stCol}>{currentStatus}</color>";
@@ -629,7 +633,7 @@ public class TVDisplayInfo : MonoBehaviour
 
             if (canDecide && selectedIndex < FlightDataManager.Instance.savedFlights.Count)
             {
-                isTransit = FlightDataManager.Instance.savedFlights[selectedIndex].targetPosition != Vector2.zero;
+                isTransit = FlightDataManager.Instance.savedFlights[selectedIndex].targetPosition != Vector2.zero && string.IsNullOrEmpty(FlightDataManager.Instance.savedFlights[selectedIndex].assignedRunway);
                 isInStorm = FlightDataManager.Instance.savedFlights[selectedIndex].isInStorm;
             }
         }

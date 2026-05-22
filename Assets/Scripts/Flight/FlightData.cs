@@ -81,6 +81,15 @@ public class FlightData
     public bool isRepaired;
     public float repairTimer;
 
+    // Самолёт обслужен и ожидает назначения полосы вылета через панель Departures.
+    // При isReadyToDepart=true самолёт отображается в Departures, но НЕ спавнится автоматически.
+    public bool isReadyToDepart = false;
+
+    public bool isTakingOff = false;
+    public Vector2 takeoffStartPos;
+
+    public bool isLandingPhase = false;
+
     public FlightData(string cs, Vector2 pos, Vector2 target, List<Vector2> wps, float spd, string cg, int cgAmount = -1)
     {
         callsign = cs;

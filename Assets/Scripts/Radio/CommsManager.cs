@@ -73,8 +73,42 @@ public class CommsManager : MonoBehaviour
         }
     }
 
+    private void ConfigureChatScrollView()
+    {
+        if (chatScroll == null) return;
+
+        RectTransform rect = chatScroll.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            // Lock the anchors to Right-Stretch:
+            // - Horizontal: Anchored to the right of the screen (Right = -50f, Width = 509f, Left = -559f)
+            // - Vertical: Stretches vertically with Top = 18.055f and Bottom = -861.645f offsets to match teletype height
+            rect.anchorMin = new Vector2(1f, 0f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(1f, 0.5f);
+            
+            rect.offsetMin = new Vector2(-559f, -861.645f);
+            rect.offsetMax = new Vector2(-50f, 18.055f);
+            
+            Debug.Log($"[UI] Programmatically locked Chat Scroll View to a responsive Right-Stretch layout.");
+        }
+    }
+
     void Start()
     {
+        ConfigureChatScrollView();
+        
+        Canvas.ForceUpdateCanvases();
+
+        // Enforce the starting paper position where only the top 150 pixels stick out from the bottom
+        if (chatScroll != null && chatScroll.content != null && chatScroll.viewport != null)
+        {
+            float viewportHeight = chatScroll.viewport.rect.height;
+            RectTransform contentRect = chatScroll.content;
+            float startY = -viewportHeight + 150f;
+            contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, startY);
+        }
+
         string callsign = RadioManager.activeCallsign;
         if (FlightDataManager.Instance != null)
         {
@@ -580,8 +614,8 @@ public class CommsManager : MonoBehaviour
             if (manifestDocInstance != null) currentData.manifestPos = manifestDocInstance.GetComponent<RectTransform>().anchoredPosition;
             if (radarDocInstance != null) currentData.radarPos = radarDocInstance.GetComponent<RectTransform>().anchoredPosition;
             if (cheatSheetDocInstance != null) currentData.cheatSheetPos = cheatSheetDocInstance.GetComponent<RectTransform>().anchoredPosition;
-            if (pilotReportDoc != null) currentData.pilotReportPos = pilotReportDoc.GetComponent<RectTransform>().anchoredPosition;
         }
+        if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager();
         SceneManager.LoadScene("SampleScene");
     }
 

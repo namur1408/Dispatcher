@@ -155,11 +155,7 @@ public class StoryManager : MonoBehaviour
         StartCoroutine(DayTransitionSequence(dayNumber, isScreenAlreadyBlack));
     }
 
-    public void StartDay(int dayNumber)
-    {
-        currentDay = dayNumber;
-        StartCoroutine(DayTransitionSequence(dayNumber, false));
-    }
+
 
     public void EndCurrentShift()
     {
@@ -210,58 +206,28 @@ public class StoryManager : MonoBehaviour
         if (shiftDay == 1)
         {
             bool letRefugeesIn = false;
-            bool securedFuel = false;
 
             foreach (var flight in FlightDataManager.Instance.savedFlights)
             {
-                if (flight.callsign.StartsWith("TR") && flight.approved) letRefugeesIn = true;
-                if (flight.callsign.StartsWith("GE") && flight.approved) securedFuel = true;
+                if (flight.callsign == "TR-404" && flight.approved) letRefugeesIn = true;
             }
 
-            string bossSubject = "SHIFT 1 REVIEW";
-            string bossBody = "";
+            int finalFuel = FlightDataManager.Instance.totalFuel;
+            bool fuelTargetMet = (finalFuel >= 400);
 
-            if (letRefugeesIn)
-            {
-                bossBody += "You explicitly violated Directive #1 and allowed civilian refugees into the base. Our life support systems are already strained. We do not have rations for them! Consider this your first and final official warning.\n\n";
-                if (securedFuel)
-                {
-                    bossBody += "At least you managed to secure the heavy fuel transport. Good work on that front. Generators are stabilizing.";
-                }
-                else
-                {
-                    bossBody += "Furthermore, you FAILED to secure the heavy fuel transport! Our generators will barely make it through the night. Do better.";
-                }
-            }
-            else
-            {
-                bossBody += "Good work following Directive #1 and keeping the refugees out. It's a harsh world, Dispatcher, but you made the right call for the survival of this base.\n\n";
-                if (securedFuel)
-                {
-                    bossBody += "Furthermore, you managed to secure the heavy fuel transport. Good work on that front. Generators are stabilizing.";
-                }
-                else
-                {
-                    bossBody += "But you FAILED to secure the heavy fuel transport! Our generators will barely make it through the night. Do better.";
-                }
-            }
-
-            AegisMailApp.ReceiveNewEmail(new EmailData
-            {
-                sender = "Director Reed",
-                subject = bossSubject,
-                date = "20.08.2038",
-                body = bossBody
-            });
+            // Save variables for Day 2 in memory
+            PlayerPrefs.SetInt("BaseEmergencyEconomy", fuelTargetMet ? 0 : 1);
+            PlayerPrefs.SetInt("Trigger_Engineer", letRefugeesIn ? 1 : 0);
+            PlayerPrefs.Save();
 
             if (letRefugeesIn)
             {
                 AegisMailApp.ReceiveNewEmail(new EmailData
                 {
-                    sender = "TR-404 Passengers",
-                    subject = "We owe you our lives",
+                    sender = "Chief Engineer Mitchell",
+                    subject = "Thank you from the survivors",
                     date = "20.08.2038",
-                    body = "Dispatcher, we don't know your name, but we know you defied orders to let us land.\n\nSecurity is keeping us locked in the lower levels, and the conditions are terrible... but we are alive. We won't forget what you did for us. Thank you."
+                    body = "Dispatcher, I was on board TR-404. You saved my life and the lives of 64 others when our engines were failing. The Director is furious about the fuel shortage, but I've already set up a workspace in the hangar. I will do everything I can to help you optimize the base systems. We owe you our lives."
                 });
             }
             else
@@ -293,7 +259,7 @@ public class StoryManager : MonoBehaviour
         {
             if (dayNumber == 1)
             {
-                FlightDataManager.Instance.ResetForNewShift(300, 140, 180, 5);
+                FlightDataManager.Instance.ResetForNewShift(220, 140, 180, 5);
                 FlightDataManager.Instance.maxPlanes = 3;
             }
             else if (dayNumber == 2)
@@ -314,6 +280,7 @@ public class StoryManager : MonoBehaviour
         yield return new WaitForSecondsRealtime(2.5f);
 
         if (dayNumber == 1) SendDay1Directives();
+        else if (dayNumber == 2) SendDay2Directives();
 
         yield return StartCoroutine(Fade(1f, 0f, 1.5f));
 
@@ -351,10 +318,50 @@ public class StoryManager : MonoBehaviour
             sender = "Director Reed",
             subject = "DIRECTIVE #1 - URGENT",
             date = "19.08.2038",
-            body = "Listen carefully, Dispatcher. Night storm damaged the runways. You only have THREE landing slots available today.\n\nThe base's generators are running at their limit. Your main task for today is to collect Fuel.\n\nAnd one more thing. Civilian refugees have been spotted in the sector. We have neither food nor beds for them.\n\nDIRECTIVE #1: Aircraft with civilians (Prefix TR) are STRICTLY FORBIDDEN from landing. Turn them back into the storm."
+            body = "Listen carefully, Dispatcher. Night storm damaged the runways. You only have THREE landing slots available today.\n\nA magnetic storm hit us last night. The base's generators are running at their limit. Your main task for today is to collect Fuel. If we do not collect a critical volume of at least 400 liters of fuel by the end of the shift, tomorrow the base will transition to EMERGENCY ECONOMY MODE.\n\nAnd one more thing. Civilian refugees have been spotted in the sector. We have neither food nor beds for them.\n\nDIRECTIVE #1: Aircraft with civilians (Prefix TR) are STRICTLY FORBIDDEN from landing. Turn them back into the storm."
         };
 
         try { AegisMailApp.ReceiveNewEmail(day1Email); } catch { }
+    }
+
+    private void SendDay2Directives()
+    {
+        bool letRefugeesIn = PlayerPrefs.GetInt("Trigger_Engineer", 0) == 1;
+        bool fuelTargetMet = PlayerPrefs.GetInt("BaseEmergencyEconomy", 0) == 0;
+
+        EmailData day2Email = new EmailData();
+        day2Email.date = "20.08.2038";
+
+        if (!letRefugeesIn && fuelTargetMet)
+        {
+            // Branch A: Marauders
+            day2Email.sender = "Director Reed";
+            day2Email.subject = "SECURITY ALERT — PERIMETER BREACH";
+            day2Email.body = "ATS, listen carefully. That passenger plane you turned away yesterday crashed five miles outside the perimeter. The burning wreckage served as a beacon for local looters. Now these looters have spotted our gates and are actively trying to breach the outer fence. Our fighters will fight with all their might, but they’re unlikely to hold out for long—there are too many of them.\n\nUsing my old connections, I convinced one of our friendly bases to send us reinforcements; a heavy transport carrying a special forces unit is on its way. You MUST immediately clear a landing zone for them. If they don’t secure the perimeter before nightfall, we’ll all be killed.";
+        }
+        else if (!letRefugeesIn && !fuelTargetMet)
+        {
+            // Branch A-2: Marauders + Blackout
+            day2Email.sender = "Director Reed";
+            day2Email.subject = "PERIMETER BREACH & POWER FAILURE";
+            day2Email.body = "You failed the simplest task yesterday. The grid is dying, and we are sitting in the dark.\n\nTo make matters worse, that passenger plane you turned away crashed five miles outside the perimeter. The burning wreckage acted like a beacon for local scavengers. Now, marauders are using our blackout to their advantage and are actively breaching the external gates.\n\nYOUR DIRECTIVE:\n> You have two critical jobs today. First, using my old connections, I convinced one of our friendly bases to send us reinforcements; a heavy transport carrying a special forces unit is on its way. You MUST immediately clear a landing zone for them. Second, get a Fuel transport down here before your radar shuts off completely.\n\nDo not waste time on anything else. If you fail to bring in the ops team or the fuel, we are all dead.";
+        }
+        else if (letRefugeesIn && !fuelTargetMet)
+        {
+            // Branch B-1: Epidemic + Power Outage
+            day2Email.sender = "Director Reed";
+            day2Email.subject = "QUARANTINE PROTOCOL AND POWER OUTAGE";
+            day2Email.body = "You’re an idiot.\n\nNot only are we sitting in the dark because you failed to secure the fuel quota yesterday, but those “civilians” you let in also brought a pathogen with them. It’s absolute hell on the lower levels right now.\n\nYOUR TASK:\n> Today you have two critical tasks to fix the mess you’ve made. First, receive a fuel shipment so your radar doesn’t go completely offline. Second, immediately deliver medical supplies so we don’t rot from the inside out.\n\nADDITIONAL NOTE:\n> Control tower reports that an engineering cargo plane is approaching; by a lucky coincidence, there is an engineer among these refugees who can help us. If you have any room left, take him on board. But fuel and medical supplies are the priority.";
+        }
+        else if (letRefugeesIn && fuelTargetMet)
+        {
+            // Branch B-2: Epidemic (No Blackout)
+            day2Email.sender = "Director Reed";
+            day2Email.subject = "QUARANTINE PROTOCOL";
+            day2Email.body = "You met the fuel quota yesterday, so at least the grid is stable. But you just couldn't follow simple orders, could you?\n\nThose \"civilians\" you let in brought a pathogen with them. It is an absolute hellzone on the lower levels right now. Your charity has consequences.\n\nYOUR DIRECTIVE:\n> We need Medical supplies immediately so we don't rot from the inside out. Clear a landing slot for a medical transport.\n\nSECONDARY NOTE:\n> Dispatch reports an engineering cargo plane is inbound. Since our power grid is stable, you don't need to waste a slot on fuel today. Bring the engineers in, but prioritize the meds first.\n\nADDITIONAL NOTE:\n> Control tower reports that an engineering cargo plane is approaching; by a lucky coincidence, there is an engineer among these refugees who can help us. If you have any room left, take him on board. But fuel and medical supplies are the priority.";
+        }
+
+        try { AegisMailApp.ReceiveNewEmail(day2Email); } catch { }
     }
 
     private IEnumerator Fade(float startAlpha, float targetAlpha, float duration)

@@ -19,6 +19,7 @@ public class RadarPanelsManager : MonoBehaviour
 
     [Header("Prefabs")]
     public GameObject listEntryPrefab; // A prefab with TextMeshProUGUI to show flight details
+    public GameObject departureMarkerPrefab; // Optional prefab for the departure destination marker
     
     [System.Serializable]
     public struct RunwayButtonConfig
@@ -32,8 +33,45 @@ public class RadarPanelsManager : MonoBehaviour
     public List<RunwayButtonConfig> runwayButtons = new List<RunwayButtonConfig>();
     
     private FlightData selectedFlightForRunway;
+    private GameObject departureMarkerInstance;
+    private Sprite departureCircleSprite;
 
     private float refreshTimer = 1f;
+
+    private void FixHeaderAnchors(GameObject window)
+    {
+        if (window == null) return;
+        
+        Transform headerTransform = null;
+        for (int i = 0; i < window.transform.childCount; i++)
+        {
+            Transform child = window.transform.GetChild(i);
+            if (child.name.ToLower().Contains("header"))
+            {
+                headerTransform = child;
+                break;
+            }
+        }
+
+        if (headerTransform != null)
+        {
+            RectTransform rect = headerTransform.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                float currentHeight = rect.rect.height;
+                if (currentHeight <= 0) currentHeight = 45f;
+                
+                rect.anchorMin = new Vector2(0f, 1f);
+                rect.anchorMax = new Vector2(1f, 1f);
+                rect.pivot = new Vector2(0.5f, 1f);
+                
+                rect.offsetMin = new Vector2(0f, -currentHeight);
+                rect.offsetMax = new Vector2(0f, 0f);
+                
+                Debug.Log($"[UI] Programmatically set {window.name}'s Header to Top-Stretch with height {currentHeight}");
+            }
+        }
+    }
 
     private void Awake()
     {
@@ -41,6 +79,10 @@ public class RadarPanelsManager : MonoBehaviour
         if (runwaySelectionPanel != null) runwaySelectionPanel.SetActive(false);
         
         SetupRunwayButtons();
+        
+        FixHeaderAnchors(arrivalsWindow);
+        FixHeaderAnchors(transitsWindow);
+        FixHeaderAnchors(departuresWindow);
     }
 
     private void SetupRunwayButtons()
@@ -77,6 +119,30 @@ public class RadarPanelsManager : MonoBehaviour
             refreshTimer = 1f;
             RefreshLists();
         }
+
+        // Update runway buttons interactability
+        if (runwaySelectionPanel != null && runwaySelectionPanel.activeInHierarchy)
+        {
+            foreach (var cfg in runwayButtons)
+            {
+                if (cfg.button != null)
+                {
+                    bool isOccupied = RunwayManager.Instance != null && RunwayManager.Instance.IsRunwayOccupied(cfg.runwayId);
+                    if (cfg.button.interactable == isOccupied)
+                    {
+                        cfg.button.interactable = !isOccupied;
+                        
+                        TextMeshProUGUI txt = cfg.button.GetComponentInChildren<TextMeshProUGUI>();
+                        if (txt != null)
+                        {
+                            Color c = txt.color;
+                            c.a = isOccupied ? 0.3f : 1.0f;
+                            txt.color = c;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void RefreshLists()
@@ -98,11 +164,18 @@ public class RadarPanelsManager : MonoBehaviour
         foreach (var flight in FlightDataManager.Instance.savedFlights)
         {
             GameObject newEntry = null;
-            if (flight.isDeparting)
+
+            if (flight.isReadyToDepart)
             {
+                // Обслуженный самолёт, ожидающий назначения полосы вылета
                 newEntry = CreateEntry(flight, departuresContent);
             }
-            else if (flight.targetPosition != Vector2.zero)
+            else if (flight.isDeparting)
+            {
+                // Самолёт уже в воздухе (вылетает)
+                newEntry = CreateEntry(flight, departuresContent);
+            }
+            else if (flight.targetPosition != Vector2.zero && string.IsNullOrEmpty(flight.assignedRunway))
             {
                 newEntry = CreateEntry(flight, transitsContent);
             }
@@ -131,6 +204,7 @@ public class RadarPanelsManager : MonoBehaviour
             runwaySelectionPanel.SetActive(false);
             selectedFlightForRunway = null;
             runwaySelectionPanel.transform.SetParent(this.transform, false);
+            HideDepartureDestination();
         }
     }
 
@@ -154,14 +228,43 @@ public class RadarPanelsManager : MonoBehaviour
 
         if (text != null)
         {
-            string dest = data.isDeparting ? data.departureDestination : (data.targetPosition == Vector2.zero ? "BASE" : "TRANSIT");
+            string dest;
             string status = data.assignedRunway != "" ? $"[RWY {data.assignedRunway}]" : "";
-            text.text = $"{data.callsign} | {dest} | {status}";
-            
-            // Highlight if approved
-            if (data.approved && string.IsNullOrEmpty(data.assignedRunway))
+
+            if (data.isReadyToDepart)
             {
-                text.color = Color.green;
+                // Ожидает назначения полосы в Departures
+                dest = string.IsNullOrEmpty(data.departureDestination) ? "DEPART" : data.departureDestination;
+                text.text = $"{data.callsign} | {dest} | {status}";
+                // Жёлтый — ждёт полосы
+                text.color = string.IsNullOrEmpty(data.assignedRunway) ? Color.yellow : Color.green;
+            }
+            else if (data.isDeparting)
+            {
+                dest = string.IsNullOrEmpty(data.departureDestination) ? "DEPART" : data.departureDestination;
+                text.text = $"{data.callsign} | {dest} | {status}";
+                text.color = Color.white;
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(data.assignedRunway))
+                {
+                    dest = "LANDING";
+                }
+                else
+                {
+                    dest = data.targetPosition == Vector2.zero ? "BASE" : "TRANSIT";
+                }
+                text.text = $"{data.callsign} | {dest} | {status}";
+                // Highlight if approved or assigned a runway
+                if (data.approved && string.IsNullOrEmpty(data.assignedRunway))
+                {
+                    text.color = Color.green;
+                }
+                else if (!string.IsNullOrEmpty(data.assignedRunway))
+                {
+                    text.color = Color.green;
+                }
             }
         }
 
@@ -175,9 +278,15 @@ public class RadarPanelsManager : MonoBehaviour
 
     private void OnFlightClicked(FlightData data, GameObject clickedEntry)
     {
-        // Allow runway assignment if it's an arrival and approved, OR if it's departing and has no runway yet
-        if ((!data.isDeparting && data.approved && string.IsNullOrEmpty(data.assignedRunway)) || 
-            (data.isDeparting && string.IsNullOrEmpty(data.assignedRunway)))
+        // Allow runway assignment if:
+        // - прилёт, одобрен, нет полосы
+        // - вылетает (isDeparting), нет полосы
+        // - готов к вылету (isReadyToDepart), нет полосы (ждёт назначения)
+        bool canAssign = (!data.isDeparting && !data.isReadyToDepart && data.approved && string.IsNullOrEmpty(data.assignedRunway))
+                      || (data.isDeparting && string.IsNullOrEmpty(data.assignedRunway))
+                      || (data.isReadyToDepart && string.IsNullOrEmpty(data.assignedRunway));
+
+        if (canAssign)
         {
             // Toggle off if clicking the same flight
             if (selectedFlightForRunway == data && runwaySelectionPanel != null && runwaySelectionPanel.activeSelf)
@@ -185,6 +294,7 @@ public class RadarPanelsManager : MonoBehaviour
                 runwaySelectionPanel.SetActive(false);
                 selectedFlightForRunway = null;
                 runwaySelectionPanel.transform.SetParent(this.transform, false);
+                HideDepartureDestination();
                 return;
             }
 
@@ -195,6 +305,15 @@ public class RadarPanelsManager : MonoBehaviour
                 runwaySelectionPanel.transform.SetParent(clickedEntry.transform.parent, false);
                 runwaySelectionPanel.transform.SetSiblingIndex(clickedEntry.transform.GetSiblingIndex() + 1);
                 runwaySelectionPanel.SetActive(true);
+
+                if (data.isReadyToDepart || data.isDeparting)
+                {
+                    ShowDepartureDestination(data.departureDestination);
+                }
+                else
+                {
+                    HideDepartureDestination();
+                }
 
                 // Check button interactability
                 foreach (var cfg in runwayButtons)
@@ -217,18 +336,37 @@ public class RadarPanelsManager : MonoBehaviour
             return;
         }
 
-        // 1. Update data
+        // 1. Записываем полосу
         selectedFlightForRunway.assignedRunway = runwayId;
 
-        // 2. Direct search for airplane in the scene
-        UIAirplane[] allPlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
-        foreach (var plane in allPlanes)
+        if (selectedFlightForRunway.isReadyToDepart)
         {
-            if (plane != null && (plane.originalCallsign == selectedFlightForRunway.callsign || 
-                                 (plane.callsignText != null && plane.callsignText.text == selectedFlightForRunway.callsign)))
+            // 2a. Самолёт из предыдущей смены — спавним его на радаре и запускаем вылет
+            selectedFlightForRunway.isReadyToDepart = false;
+            selectedFlightForRunway.isDeparting = true;
+
+            BigRadarLoader loader = Object.FindFirstObjectByType<BigRadarLoader>();
+            if (loader != null)
             {
-                plane.SetAssignedRunway(runwayId, !selectedFlightForRunway.isDeparting);
-                break;
+                loader.SpawnDepartingNow(selectedFlightForRunway);
+            }
+            else
+            {
+                Debug.LogWarning("[Runway] BigRadarLoader not found — cannot spawn departing plane!");
+            }
+        }
+        else
+        {
+            // 2b. Обычный самолёт уже в сцене — находим и назначаем полосу
+            UIAirplane[] allPlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
+            foreach (var plane in allPlanes)
+            {
+                if (plane != null && (plane.originalCallsign == selectedFlightForRunway.callsign ||
+                                     (plane.callsignText != null && plane.callsignText.text == selectedFlightForRunway.callsign)))
+                {
+                    plane.SetAssignedRunway(runwayId, !selectedFlightForRunway.isDeparting);
+                    break;
+                }
             }
         }
 
@@ -238,7 +376,203 @@ public class RadarPanelsManager : MonoBehaviour
             runwaySelectionPanel.SetActive(false);
             runwaySelectionPanel.transform.SetParent(this.transform, false);
         }
+        HideDepartureDestination();
         selectedFlightForRunway = null;
         RefreshLists();
+    }
+
+    private void ShowDepartureDestination(string destinationName)
+    {
+        if (string.IsNullOrEmpty(destinationName)) return;
+
+        BigRadarLoader loader = Object.FindFirstObjectByType<BigRadarLoader>();
+        if (loader == null || loader.radarContent == null) return;
+
+        if (departureMarkerInstance != null)
+        {
+            Destroy(departureMarkerInstance);
+        }
+
+        Vector2 destPos = GetDestinationCoordinate(destinationName);
+        if (destPos != Vector2.zero)
+        {
+            destPos = destPos.normalized * 380f;
+        }
+
+        if (departureMarkerPrefab != null)
+        {
+            departureMarkerInstance = Instantiate(departureMarkerPrefab, loader.radarContent, false);
+            RectTransform rect = departureMarkerInstance.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.anchoredPosition = destPos;
+            }
+
+            TextMeshProUGUI labelText = departureMarkerInstance.GetComponentInChildren<TextMeshProUGUI>();
+            if (labelText != null)
+            {
+                labelText.text = $"➔ {destinationName.ToUpper()}";
+            }
+
+            Debug.Log($"[DepartureMarker] Created prefab marker for {destinationName} at {destPos}");
+        }
+        else
+        {
+            // Create marker gameobject
+            departureMarkerInstance = new GameObject("DepartureDestinationMarker", typeof(RectTransform));
+            departureMarkerInstance.transform.SetParent(loader.radarContent, false);
+            
+            RectTransform rect = departureMarkerInstance.GetComponent<RectTransform>();
+            rect.anchoredPosition = destPos;
+            rect.sizeDelta = new Vector2(40f, 40f);
+
+            if (departureCircleSprite == null)
+            {
+                departureCircleSprite = CreateCircleSprite();
+            }
+
+            // Pulsing radar-green outer ring
+            GameObject pulseCircle = new GameObject("PulseCircle", typeof(RectTransform), typeof(Image));
+            pulseCircle.transform.SetParent(departureMarkerInstance.transform, false);
+            RectTransform pulseRect = pulseCircle.GetComponent<RectTransform>();
+            pulseRect.anchoredPosition = Vector2.zero;
+            pulseRect.sizeDelta = new Vector2(30f, 30f);
+            Image pulseImg = pulseCircle.GetComponent<Image>();
+            pulseImg.color = new Color(0f, 1f, 0f, 0.4f);
+            if (departureCircleSprite != null) pulseImg.sprite = departureCircleSprite;
+            pulseCircle.AddComponent<DestinationPulseEffect>();
+
+            // Center solid green dot
+            GameObject centerDot = new GameObject("CenterDot", typeof(RectTransform), typeof(Image));
+            centerDot.transform.SetParent(departureMarkerInstance.transform, false);
+            RectTransform dotRect = centerDot.GetComponent<RectTransform>();
+            dotRect.anchoredPosition = Vector2.zero;
+            dotRect.sizeDelta = new Vector2(10f, 10f);
+            Image dotImg = centerDot.GetComponent<Image>();
+            dotImg.color = new Color(0f, 1f, 0f, 0.9f);
+            if (departureCircleSprite != null) dotImg.sprite = departureCircleSprite;
+
+            // Create text label
+            GameObject labelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+            labelObj.transform.SetParent(departureMarkerInstance.transform, false);
+            RectTransform labelRect = labelObj.GetComponent<RectTransform>();
+            labelRect.anchoredPosition = new Vector2(0f, -25f);
+            labelRect.sizeDelta = new Vector2(150f, 30f);
+
+            TextMeshProUGUI labelText = labelObj.GetComponent<TextMeshProUGUI>();
+            labelText.text = $"➔ {destinationName.ToUpper()}";
+            labelText.fontSize = 13f;
+            labelText.fontStyle = FontStyles.Bold;
+            labelText.alignment = TextAlignmentOptions.Center;
+            labelText.color = new Color(0f, 1f, 0f, 0.9f);
+            
+            labelText.outlineColor = Color.black;
+            labelText.outlineWidth = 0.2f;
+
+            Debug.Log($"[DepartureMarker] Created pulsing marker for {destinationName} at {destPos}");
+        }
+    }
+
+    private Sprite CreateCircleSprite()
+    {
+        int size = 64;
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        texture.filterMode = FilterMode.Bilinear;
+        texture.wrapMode = TextureWrapMode.Clamp;
+        float radius = size / 2f;
+        float centerX = size / 2f;
+        float centerY = size / 2f;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - centerX;
+                float dy = y - centerY;
+                float distSq = dx * dx + dy * dy;
+
+                if (distSq <= radius * radius)
+                {
+                    float dist = Mathf.Sqrt(distSq);
+                    float edgeDist = radius - dist;
+                    float alpha = Mathf.Clamp01(edgeDist / 1.5f); // Smooth anti-aliased edge
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                }
+                else
+                {
+                    texture.SetPixel(x, y, Color.clear);
+                }
+            }
+        }
+        texture.Apply();
+        return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+    }
+
+    private void HideDepartureDestination()
+    {
+        if (departureMarkerInstance != null)
+        {
+            Destroy(departureMarkerInstance);
+            departureMarkerInstance = null;
+        }
+    }
+
+    private Vector2 GetDestinationCoordinate(string destination)
+    {
+        if (string.IsNullOrEmpty(destination)) return Vector2.zero;
+
+        switch (destination)
+        {
+            case "Bastion-1": return new Vector2(-416f, 476f);
+            case "Bastion-2": return new Vector2(400f, 400f);
+            case "Bastion-3": return new Vector2(-535f, 119f);
+            case "Bastion-4": return new Vector2(0f, 535f);
+            case "Bastion-5": return new Vector2(437f, -357f);
+            case "Bastion-6": return new Vector2(-450f, -400f);
+            case "Bastion-7": return new Vector2(500f, 100f);
+            case "Bastion-8": return new Vector2(150f, -500f);
+            case "Bastion-9": return new Vector2(-200f, 500f);
+            case "Sector-Z":  return new Vector2(0f, 535f);
+            default:
+                // Fallback: calculate a stable position based on the name's hash code
+                int hash = destination.GetHashCode();
+                float angle = Mathf.Abs(hash % 360) * Mathf.Deg2Rad;
+                float radius = 480f + Mathf.Abs(hash % 50);
+                return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+        }
+    }
+}
+
+public class DestinationPulseEffect : MonoBehaviour
+{
+    private RectTransform rectTransform;
+    private Image img;
+    private float timer = 0f;
+
+    void Start()
+    {
+        rectTransform = GetComponent<RectTransform>();
+        img = GetComponent<Image>();
+    }
+
+    void Update()
+    {
+        timer += Time.deltaTime * 3.5f;
+        
+        // Pulse size (scale from 0.8 to 2.2)
+        float scale = 0.8f + Mathf.PingPong(timer, 1.4f);
+        if (rectTransform != null)
+        {
+            rectTransform.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        // Fade alpha with pulse
+        if (img != null)
+        {
+            float alpha = Mathf.Max(0.05f, 0.6f - (scale - 0.8f) * 0.4f);
+            Color c = img.color;
+            c.a = alpha;
+            img.color = c;
+        }
     }
 }

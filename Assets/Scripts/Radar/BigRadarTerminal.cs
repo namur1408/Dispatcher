@@ -81,7 +81,7 @@ public class BigRadarTerminal : MonoBehaviour
     {
         if (currentSelectedPlane == null) return;
 
-        bool isTransit = currentSelectedPlane.targetPosition != Vector2.zero;
+        bool isTransit = currentSelectedPlane.targetPosition != Vector2.zero && string.IsNullOrEmpty(currentSelectedPlane.assignedRunway);
 
         // Блокируем рацию для транзитных самолетов
         if (isTransit)

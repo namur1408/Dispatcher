@@ -32,8 +32,12 @@ public class BigRadarLoader : MonoBehaviour
         CheckForConflicts();
     }
 
+    public static bool isGlobalWarningActive = false;
+
     private void CheckForConflicts()
     {
+        bool anyWarning = false;
+
         foreach (var plane in activePlanes)
         {
             if (plane != null) plane.SetWarning(false);
@@ -57,24 +61,43 @@ public class BigRadarLoader : MonoBehaviour
                 {
                     planeA.SetWarning(true);
                     planeB.SetWarning(true);
+                    anyWarning = true;
                 }
             }
         }
+
+        isGlobalWarningActive = anyWarning;
     }
 
     public void RestoreFlights()
     {
         if (FlightDataManager.Instance == null || FlightDataManager.Instance.savedFlights.Count == 0) return;
 
-        float departureDelay = 0f;
-        float delayIncrement = 10f;
-
         foreach (FlightData data in FlightDataManager.Instance.savedFlights)
         {
-            if (FlightDataManager.Instance.ShouldPlaneDepart(data))
+            // Самолёты, готовые к вылету, показываются в Departures-панели.
+            // Спавн произойдёт только после того, как игрок назначит полосу.
+            if (data.isReadyToDepart)
             {
-                StartCoroutine(SpawnDepartingPlane(data, departureDelay));
-                departureDelay += delayIncrement;
+                Debug.Log($"<color=yellow>[BigRadarLoader] Skipping auto-spawn for ready-to-depart: {data.callsign}</color>");
+                continue;
+            }
+
+            if (data.isDeparting)
+            {
+                // Самолёт УЖЕ вылетает и находится в воздухе (игрок выходил на стол во время его полета).
+                // Просто восстанавливаем его на сохраненной позиции с его траекторией.
+                GameObject newPlane = Instantiate(airplanePrefab, radarContent, false);
+                UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
+
+                if (planeScript != null)
+                {
+                    planeScript.InitializeFromData(data);
+                    if (RadarManager.Instance != null)
+                    {
+                        RadarManager.Instance.RegisterAirplane(planeScript);
+                    }
+                }
             }
             else if (!data.hasLanded)
             {
@@ -89,17 +112,55 @@ public class BigRadarLoader : MonoBehaviour
         }
     }
 
-    private System.Collections.IEnumerator SpawnDepartingPlane(FlightData data, float delay)
+    /// <summary>
+    /// Спавнит самолёт в центре радара и запускает вылет по выбранной полосе.
+    /// Вызывается из RadarPanelsManager после выбора игроком полосы вылета.
+    /// </summary>
+    public void SpawnDepartingNow(FlightData data)
     {
-        yield return new WaitForSeconds(delay);
+        if (airplanePrefab == null || radarContent == null) return;
+
+        data.isReadyToDepart = false;
+        data.isDeparting = true;
+
+        Vector2 spawnPos = Vector2.zero;
+        if (!string.IsNullOrEmpty(data.assignedRunway) && RunwayManager.Instance != null)
+        {
+            Runway rw = RunwayManager.Instance.GetRunwayByID(data.assignedRunway);
+            if (rw != null)
+            {
+                RectTransform rwRect = rw.GetComponent<RectTransform>();
+                if (rwRect != null) spawnPos = rwRect.anchoredPosition;
+            }
+        }
+        data.position = spawnPos;
 
         GameObject newPlane = Instantiate(airplanePrefab, radarContent, false);
         UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
 
         if (planeScript != null)
         {
-            data.targetPosition = FlightDataManager.Instance.GetDepartureTarget(data);
             planeScript.InitializeFromData(data);
+
+            // SetAssignedRunway с isLanding=false → самолёт улетает по направлению полосы
+            if (!string.IsNullOrEmpty(data.assignedRunway))
+            {
+                planeScript.SetAssignedRunway(data.assignedRunway, false);
+            }
+            else
+            {
+                // Запасной вариант: улетает в случайном направлении
+                float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+                Vector2 exitPoint = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * planeScript.despawnRadius;
+                planeScript.SetFlightPath(Vector2.zero, exitPoint);
+            }
+
+            if (RadarManager.Instance != null)
+            {
+                RadarManager.Instance.RegisterAirplane(planeScript);
+            }
+
+            Debug.Log($"<color=green>[BigRadarLoader] Spawned departing plane: {data.callsign} on runway {data.assignedRunway}</color>");
         }
     }
 
