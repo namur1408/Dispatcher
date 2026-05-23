@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
-using System.Collections.Generic;
 
 public class BackgroundMusic : MonoBehaviour
 {
@@ -10,28 +9,17 @@ public class BackgroundMusic : MonoBehaviour
 
     [Header("Аудио Треки")]
     public AudioClip menuMusic;
-    public AudioClip introMusic;
+    [Range(0f, 1f)] public float menuVolume = 1f;
+
+    public AudioClip tvMusic;
+    [Range(0f, 1f)] public float tvVolume = 0.5f;
+
     public AudioClip gameMusic;
+    [Range(0f, 1f)] public float gameVolume = 0.5f;
 
     [Header("Настройки сцен")]
     public string menuSceneName = "MainMenu";
-    public string introSceneName = "IntroScene"; 
-
-    [Header("Настройки громкости")]
-    public float normalVolume = 0.7f;
-    public float quietVolume = 0.03f;
-    public float fadeSpeed = 1.2f;
-
-    private List<string> quietScenes = new List<string>
-    {
-        "BigRadarScene",
-        "CommsScene",
-        "ManualScene",
-        "SampleScene",
-        "TVInfoScene"
-    };
-
-    private Coroutine fadeCoroutine;
+    public string tvSceneName = "TVInfoScene";
 
     void Awake()
     {
@@ -60,60 +48,40 @@ public class BackgroundMusic : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        AudioClip targetClip = gameMusic;
-        float targetVolume = quietScenes.Contains(scene.name) ? quietVolume : normalVolume;
+        AudioClip targetClip;
+        float targetVolume;
 
+        // Если это главное меню - играем первый трек
         if (scene.name == menuSceneName)
         {
             targetClip = menuMusic;
-            targetVolume = normalVolume;
+            targetVolume = menuVolume;
         }
-        else if (scene.name == introSceneName)
+        // Если это сцена телевизора - играем звук телевизора
+        else if (scene.name == tvSceneName)
         {
-            targetClip = introMusic;
-            targetVolume = normalVolume;
+            targetClip = tvMusic;
+            targetVolume = tvVolume;
+        }
+        // Во всех остальных сценах - играем трек игры
+        else 
+        {
+            targetClip = gameMusic;
+            targetVolume = gameVolume;
         }
 
-        if (fadeCoroutine != null)
+        // Мгновенное переключение трека и громкости
+        if (audioSource.clip != targetClip)
         {
-            StopCoroutine(fadeCoroutine);
-        }
-
-        fadeCoroutine = StartCoroutine(SwitchTrackAndFade(targetClip, targetVolume));
-    }
-
-    IEnumerator SwitchTrackAndFade(AudioClip newClip, float targetVol)
-    {
-        if (audioSource.clip == newClip)
-        {
-            if (!audioSource.isPlaying) audioSource.Play();
-
-            while (!Mathf.Approximately(audioSource.volume, targetVol))
-            {
-                audioSource.volume = Mathf.MoveTowards(audioSource.volume, targetVol, fadeSpeed * Time.deltaTime);
-                yield return null;
-            }
-            audioSource.volume = targetVol;
+            audioSource.clip = targetClip;
+            audioSource.volume = targetVolume;
+            audioSource.Play();
         }
         else
         {
-            if (audioSource.isPlaying)
-            {
-                while (audioSource.volume > 0)
-                {
-                    audioSource.volume = Mathf.MoveTowards(audioSource.volume, 0, fadeSpeed * Time.deltaTime);
-                    yield return null;
-                }
-            }
-            audioSource.clip = newClip;
-            audioSource.Play();
-
-            while (!Mathf.Approximately(audioSource.volume, targetVol))
-            {
-                audioSource.volume = Mathf.MoveTowards(audioSource.volume, targetVol, fadeSpeed * Time.deltaTime);
-                yield return null;
-            }
-            audioSource.volume = targetVol;
+            // Если трек тот же, просто мгновенно меняем громкость
+            audioSource.volume = targetVolume;
+            if (!audioSource.isPlaying) audioSource.Play();
         }
     }
 }

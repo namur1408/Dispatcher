@@ -530,6 +530,13 @@ public class StoryManager : MonoBehaviour
 
         int soundIndex = 0;
 
+        // Auto-create AudioSource if missing
+        if (typingSounds != null && typingSounds.Length > 0 && typingAudioSource == null)
+        {
+            typingAudioSource = gameObject.AddComponent<AudioSource>();
+            typingAudioSource.playOnAwake = false;
+        }
+
         for (int i = 0; i <= totalCharacters; i++)
         {
             dayText.maxVisibleCharacters = i;
