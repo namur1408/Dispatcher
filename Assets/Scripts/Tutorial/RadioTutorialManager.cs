@@ -25,7 +25,7 @@ public class RadioTutorialManager : MonoBehaviour
     public static bool isRadioTutorialCompleted = false;
 
     private bool hasClickedFirstDocument = false;
-    private bool hasClickedTwoFacts = false;
+
     private bool hasAskedQuestion = false;
     private bool hasFoundContradiction = false;
 
@@ -141,10 +141,6 @@ public class RadioTutorialManager : MonoBehaviour
         hasClickedFirstDocument = true;
     }
 
-    public void NotifyFactsCompared()
-    {
-        hasClickedTwoFacts = true;
-    }
 
     public void NotifyQuestionAsked()
     {

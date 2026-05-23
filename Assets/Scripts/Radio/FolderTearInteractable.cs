@@ -14,6 +14,10 @@ public class FolderTearInteractable : MonoBehaviour, IBeginDragHandler, IDragHan
     public float maxRolledScaleX = 1.3f; // How much wider it gets
     public float maxRolledScaleY = 1.3f; // How much taller it gets
     
+    [Header("Audio")]
+    public AudioClip tearSound;
+    [Range(0f, 1f)] public float tearSoundVolume = 0.8f;
+
     public UnityEvent OnTearComplete;
 
     private float originalWidth;
@@ -96,6 +100,11 @@ public class FolderTearInteractable : MonoBehaviour, IBeginDragHandler, IDragHan
         isTorn = true;
         sealBaseImage.fillAmount = 0f;
         if (rolledSeal != null) rolledSeal.gameObject.SetActive(false);
+        
+        if (tearSound != null && Camera.main != null)
+        {
+            AudioSource.PlayClipAtPoint(tearSound, Camera.main.transform.position, tearSoundVolume);
+        }
         
         OnTearComplete?.Invoke();
     }

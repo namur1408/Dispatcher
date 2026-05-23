@@ -10,7 +10,7 @@ public class BigRadarTerminal : MonoBehaviour
 
     private int currentPlaneCount = -1;
     private UIAirplane currentSelectedPlane = null;
-    private string lastDisplayedCallsign = "";
+
     private bool isStartupSequenceDone = false;
 
     private float refreshTimer = 0f;
@@ -26,7 +26,7 @@ public class BigRadarTerminal : MonoBehaviour
         yield return new WaitUntil(() => !topInfoText.IsTyping);
         isStartupSequenceDone = true;
 
-        // ИСПРАВЛЕНИЕ 1: Очищаем экран только если игрок еще никого не выбрал
+        // РРЎРџР РђР’Р›Р•РќРР• 1: РћС‡РёС‰Р°РµРј СЌРєСЂР°РЅ С‚РѕР»СЊРєРѕ РµСЃР»Рё РёРіСЂРѕРє РµС‰Рµ РЅРёРєРѕРіРѕ РЅРµ РІС‹Р±СЂР°Р»
         if (currentSelectedPlane == null)
         {
             ClearSelection();
@@ -69,7 +69,7 @@ public class BigRadarTerminal : MonoBehaviour
 
     public void SelectPlane(UIAirplane plane)
     {
-        // ИСПРАВЛЕНИЕ 2: Убрали блокировку выбора во время загрузки (!isStartupSequenceDone)
+        // РРЎРџР РђР’Р›Р•РќРР• 2: РЈР±СЂР°Р»Рё Р±Р»РѕРєРёСЂРѕРІРєСѓ РІС‹Р±РѕСЂР° РІРѕ РІСЂРµРјСЏ Р·Р°РіСЂСѓР·РєРё (!isStartupSequenceDone)
         if (plane == null) return;
         if (currentSelectedPlane == plane) return;
 
@@ -83,7 +83,7 @@ public class BigRadarTerminal : MonoBehaviour
 
         bool isTransit = currentSelectedPlane.targetPosition != Vector2.zero && string.IsNullOrEmpty(currentSelectedPlane.assignedRunway);
 
-        // Блокируем рацию для транзитных самолетов
+        // Р‘Р»РѕРєРёСЂСѓРµРј СЂР°С†РёСЋ РґР»СЏ С‚СЂР°РЅР·РёС‚РЅС‹С… СЃР°РјРѕР»РµС‚РѕРІ
         if (isTransit)
         {
             if (RadioManager.activeCallsign == currentSelectedPlane.callsignText.text)
@@ -175,7 +175,7 @@ public class BigRadarTerminal : MonoBehaviour
     public void ClearSelection()
     {
         currentSelectedPlane = null;
-        lastDisplayedCallsign = "";
+
 
         RadioManager.activeCallsign = "";
 

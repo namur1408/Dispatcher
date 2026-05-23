@@ -56,6 +56,8 @@ public class CommsManager : MonoBehaviour
     private GameObject radarDocInstance;
     private GameObject cheatSheetDocInstance;
 
+    private float previousButtonVolume = 0.7f;
+
     void Awake()
     {
         Instance = this;
@@ -96,6 +98,12 @@ public class CommsManager : MonoBehaviour
 
     void Start()
     {
+        if (ButtonSoundManager.instance != null)
+        {
+            previousButtonVolume = ButtonSoundManager.instance.volume;
+            ButtonSoundManager.instance.SetVolume(0f);
+        }
+
         ConfigureChatScrollView();
         
         Canvas.ForceUpdateCanvases();
@@ -310,10 +318,7 @@ public class CommsManager : MonoBehaviour
 
     void CheckContradiction(string secondID, FactScanner secondScanner, int secondIndex)
     {
-        if (RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted)
-        {
-            RadioTutorialManager.Instance.NotifyFactsCompared();
-        }
+
 
         bool isValid = false;
         bool isLie = false;
@@ -683,4 +688,12 @@ public class CommsManager : MonoBehaviour
     }
 
     string GetPlaneClass() => currentData.callsign.StartsWith("TR") ? "Passenger" : (currentData.callsign.StartsWith("GE") ? "Cargo" : "Courier");
+
+    void OnDestroy()
+    {
+        if (ButtonSoundManager.instance != null)
+        {
+            ButtonSoundManager.instance.SetVolume(previousButtonVolume);
+        }
+    }
 }

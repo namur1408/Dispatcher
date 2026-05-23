@@ -26,6 +26,12 @@ public class FlightDataManager : MonoBehaviour
     public float foodPerPersonPerMinute = 0.2f;
     public bool losePeopleWhenStarving = true;
 
+    // Day Summary Tracking Variables
+    public int startFuelDay;
+    public int startFoodDay;
+    public int startPeopleDay;
+    public int startMedsDay;
+
     [Header("Shift Spawning State")]
     public bool isShiftActive = false;
     public float globalSpawnTimer = 3f;
@@ -119,7 +125,6 @@ public class FlightDataManager : MonoBehaviour
                 if (flight.repairTimer <= 0) CompleteRepair(flight);
             }
         }
-        ProcessFoodConsumption();
 
         if (landedPlanes >= maxPlanes)
         {
@@ -150,34 +155,7 @@ public class FlightDataManager : MonoBehaviour
         }
     }
 
-    private void ProcessFoodConsumption()
-    {
-        if (totalPeople > 0)
-        {
-            float consumptionRatePerSecond = foodPerPersonPerMinute / 60f;
-            float consumptionThisFrame = (totalPeople * consumptionRatePerSecond) * Time.deltaTime;
-            accumulatedFoodConsumption += consumptionThisFrame;
 
-            if (accumulatedFoodConsumption >= 1f)
-            {
-                int foodToDeduct = Mathf.FloorToInt(accumulatedFoodConsumption);
-                totalFood -= foodToDeduct;
-                accumulatedFoodConsumption -= foodToDeduct;
-
-                if (totalFood < 0)
-                {
-                    int unfedDemand = Mathf.Abs(totalFood);
-                    totalFood = 0;
-
-                    if (losePeopleWhenStarving)
-                    {
-                        totalPeople -= unfedDemand;
-                        if (totalPeople < 0) totalPeople = 0;
-                    }
-                }
-            }
-        }
-    }
 
     public float GetCurrentFoodConsumptionPerMinute()
     {
@@ -324,10 +302,7 @@ public class FlightDataManager : MonoBehaviour
 
         Debug.Log($"<color=magenta>Queue count after re-enqueue: {scriptedFlightsQueue.Count}</color>");
 
-        if (AirplaneSpawner.Instance != null)
-        {
-            AirplaneSpawner.Instance.ResetStoryPlaneFlag();
-        }
+
 
         if (videoMode)
         {
@@ -381,9 +356,59 @@ public class FlightDataManager : MonoBehaviour
             scriptedFlightsQueue.Enqueue(tr404);
             scriptedDelaysQueue.Enqueue(20f);
 
-            FlightData ge201 = new FlightData("GE-201", new Vector2(-416, 476), Vector2.zero, new List<Vector2>(), 90f, "Fuel", 150, "Fuel", 150, 250f, "Bastion-1");
+            FlightData ge201 = new FlightData("GE-201", new Vector2(-416, 476), Vector2.zero, new List<Vector2>(), 84f, "Fuel", 150, "Fuel", 150, 250f, "Bastion-1");
             scriptedFlightsQueue.Enqueue(ge201);
             scriptedDelaysQueue.Enqueue(15f);
+
+            FlightData ge305 = new FlightData("GE-305", new Vector2(-200, -500), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 100, "Fuel", 100, 250f, "Bastion-2");
+            scriptedFlightsQueue.Enqueue(ge305);
+            scriptedDelaysQueue.Enqueue(15f);
+        }
+        else if (dayNumber == 2)
+        {
+            bool letRefugeesIn = PlayerPrefs.GetInt("Trigger_Engineer", 0) == 1;
+
+            if (letRefugeesIn) // Branch B (Engineer saved)
+            {
+                FlightData md01 = new FlightData("QY-01", new Vector2(-400, -400), Vector2.zero, new List<Vector2>(), 95f, "Medicines", 10, "Medicines", 10, 200f, "Med-Base 4");
+                scriptedFlightsQueue.Enqueue(md01);
+                scriptedDelaysQueue.Enqueue(15f);
+
+                // Спецтехника (EQ-99 -> GE-99) прилетает только если мы приняли инженера!
+                FlightData eq99 = new FlightData("GE-99", new Vector2(0, 600), Vector2.zero, new List<Vector2>(), 80f, "Equipment", 5, "Equipment", 5, 250f, "Eng-Hub");
+                scriptedFlightsQueue.Enqueue(eq99);
+                scriptedDelaysQueue.Enqueue(20f);
+
+                FlightData fl55 = new FlightData("GE-55", new Vector2(-600, 0), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 250, "Fuel", 250, 300f, "Bastion-3");
+                scriptedFlightsQueue.Enqueue(fl55);
+                scriptedDelaysQueue.Enqueue(20f);
+
+                FlightData fd42 = new FlightData("GE-42", new Vector2(400, -200), Vector2.zero, new List<Vector2>(), 80f, "Food", 300, "Food", 300, 250f, "Agri-Center");
+                scriptedFlightsQueue.Enqueue(fd42);
+                scriptedDelaysQueue.Enqueue(15f);
+            }
+            else // Branch A (No Engineer)
+            {
+                // Friend SF (TR passenger planes)
+                FlightData sfFriend = new FlightData("TR-11", new Vector2(500, 300), Vector2.zero, new List<Vector2>(), 75f, "People", 50, "People", 50, 150f, "HQ-Alpha");
+                sfFriend.spokenCargo = "We are the reinforcements requested by the Director. Authentication code: QYEW.";
+                scriptedFlightsQueue.Enqueue(sfFriend);
+                scriptedDelaysQueue.Enqueue(10f);
+
+                // Enemy SF
+                FlightData sfEnemy = new FlightData("TR-88", new Vector2(-500, 400), Vector2.zero, new List<Vector2>(), 78f, "People", 50, "People", 50, 150f, "HQ-Alpha");
+                sfEnemy.spokenCargo = "We are the reinforcements requested by the Director. Authentication code: QYEV.";
+                scriptedFlightsQueue.Enqueue(sfEnemy);
+                scriptedDelaysQueue.Enqueue(20f);
+
+                FlightData fl55 = new FlightData("GE-55", new Vector2(-600, 0), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 250, "Fuel", 250, 300f, "Bastion-3");
+                scriptedFlightsQueue.Enqueue(fl55);
+                scriptedDelaysQueue.Enqueue(20f);
+
+                FlightData fd42 = new FlightData("GE-42", new Vector2(400, -200), Vector2.zero, new List<Vector2>(), 80f, "Food", 300, "Food", 300, 250f, "Agri-Center");
+                scriptedFlightsQueue.Enqueue(fd42);
+                scriptedDelaysQueue.Enqueue(15f);
+            }
         }
         globalSpawnTimer = 3f;
     }
@@ -396,6 +421,16 @@ public class FlightDataManager : MonoBehaviour
             {
                 savedFlights[i].decisionMade = true;
                 savedFlights[i].approved = isApproved;
+
+                if (RadarManager.Instance != null && RadarManager.Instance.activeAirplanes != null)
+                {
+                    var plane = RadarManager.Instance.activeAirplanes.Find(p => p != null && p.originalCallsign == callsign);
+                    if (plane != null)
+                    {
+                        if (isApproved) plane.Approve();
+                        else plane.Deny();
+                    }
+                }
                 return;
             }
         }
@@ -553,6 +588,11 @@ public class FlightDataManager : MonoBehaviour
         totalFood = startFood;
         totalPeople = startPeople;
         totalMedicines = startMeds;
+
+        startFuelDay = startFuel;
+        startFoodDay = startFood;
+        startPeopleDay = startPeople;
+        startMedsDay = startMeds;
 
         UIAirplane[] leftoverPlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
         foreach (var plane in leftoverPlanes)
