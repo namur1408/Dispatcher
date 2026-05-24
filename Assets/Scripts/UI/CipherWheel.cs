@@ -19,6 +19,18 @@ public class CipherWheel : MonoBehaviour
     public int currentIndex = 0;
     public float rotationSpeed = 8f;
 
+    [Header("Audio")]
+    public AudioClip rotationSound;
+    public AudioClip fastRotationSound;
+    [Range(0f, 1f)] public float soundVolume = 1f;
+    public float minPitch = 0.9f;
+    public float maxPitch = 1.1f;
+    public float fastThreshold = 1.5f;
+
+    private AudioSource dedicatedAudioSource;
+    private bool isMoving = false;
+    private bool isCurrentlyFast = false;
+
     private List<RectTransform> slots = new List<RectTransform>();
     private List<TextMeshProUGUI> letters = new List<TextMeshProUGUI>();
     private List<CanvasGroup> canvasGroups = new List<CanvasGroup>();
@@ -55,6 +67,11 @@ public class CipherWheel : MonoBehaviour
 
         if (diff > alphabet.Length / 2f) currentFloatIndex += alphabet.Length;
         else if (diff < -alphabet.Length / 2f) currentFloatIndex -= alphabet.Length;
+
+        float distToTarget = Mathf.Abs(target - currentFloatIndex);
+        bool moving = distToTarget > 0.01f;
+        bool isFast = distToTarget > fastThreshold;
+        HandleSound(moving, isFast);
 
         currentFloatIndex = Mathf.Lerp(currentFloatIndex, target, Time.deltaTime * rotationSpeed);
         
@@ -105,6 +122,40 @@ public class CipherWheel : MonoBehaviour
             {
                 if (slots[i].gameObject.activeSelf) slots[i].gameObject.SetActive(false);
             }
+        }
+    }
+
+    private void HandleSound(bool moving, bool isFast)
+    {
+        if (dedicatedAudioSource == null)
+        {
+            dedicatedAudioSource = gameObject.AddComponent<AudioSource>();
+            dedicatedAudioSource.playOnAwake = false;
+        }
+
+        if (moving)
+        {
+            AudioClip clipToPlay = (isFast && fastRotationSound != null) ? fastRotationSound : rotationSound;
+            
+            if (clipToPlay == null) return;
+
+            // Начинаем звук если стояли ИЛИ если скорость изменилась и надо сменить звук
+            if (!isMoving || isCurrentlyFast != isFast)
+            {
+                dedicatedAudioSource.clip = clipToPlay;
+                dedicatedAudioSource.volume = soundVolume;
+                dedicatedAudioSource.pitch = Random.Range(minPitch, maxPitch);
+                dedicatedAudioSource.loop = true;
+                dedicatedAudioSource.Play();
+                
+                isMoving = true;
+                isCurrentlyFast = isFast;
+            }
+        }
+        else if (!moving && isMoving)
+        {
+            dedicatedAudioSource.Stop();
+            isMoving = false;
         }
     }
 }

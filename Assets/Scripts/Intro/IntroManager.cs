@@ -222,8 +222,9 @@ public class IntroManager : MonoBehaviour
         isSpeaking = false;
     }
 
-    void LoadNextScene()
+    public void LoadNextScene()
     {
+        if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
         SceneManager.LoadScene(mainSceneName);
     }
 }

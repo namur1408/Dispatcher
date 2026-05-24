@@ -176,6 +176,7 @@ public class BigRadarLoader : MonoBehaviour
 
         Time.timeScale = 1f;
 
+        if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
         SceneManager.LoadScene(mainSceneName);
     }
 

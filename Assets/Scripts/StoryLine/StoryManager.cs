@@ -190,6 +190,7 @@ public class StoryManager : MonoBehaviour
 
         if (!string.IsNullOrEmpty(mainSceneName) && mainSceneName != SceneManager.GetActiveScene().name)
         {
+            if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
             AsyncOperation op = SceneManager.LoadSceneAsync(mainSceneName);
             while (!op.isDone) yield return null;
         }

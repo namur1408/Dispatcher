@@ -6,6 +6,7 @@ public class SlideToggleUI : MonoBehaviour
     public RectTransform panelToMove; 
     public Vector2 hideOffset = new Vector2(0, -1000f); 
     public float speed = 10f; 
+    public bool startHidden = true; // Добавлена настройка
 
     [Header("Кнопки (Опционально)")]
     public GameObject buttonToOpen; // Кнопка, которая появится, когда машина полностью спрячется
@@ -22,6 +23,12 @@ public class SlideToggleUI : MonoBehaviour
         
         visiblePosition = panelToMove.anchoredPosition;
         hiddenPosition = visiblePosition + hideOffset;
+        
+        if (startHidden)
+        {
+            isVisible = false;
+            panelToMove.anchoredPosition = hiddenPosition; // Мгновенно перемещаем вниз
+        }
         
         initialized = true;
         
@@ -41,14 +48,6 @@ public class SlideToggleUI : MonoBehaviour
         {
             panelToMove.anchoredPosition = Vector2.Lerp(panelToMove.anchoredPosition, target, Time.deltaTime * speed);
         }
-        else
-        {
-            // Когда машина приехала в нужную точку (закончила анимацию)
-            if (!isVisible && buttonToOpen != null && !buttonToOpen.activeSelf) 
-            {
-                buttonToOpen.SetActive(true); // Показываем кнопку открытия, только когда машина полностью уехала
-            }
-        }
     }
 
     public void Toggle()
@@ -63,8 +62,9 @@ public class SlideToggleUI : MonoBehaviour
         }
         else
         {
-            // Как только нажали "Закрыть", сразу прячем кнопку закрытия (а кнопка открытия появится в Update, когда анимация закончится)
+            // Как только нажали "Закрыть", сразу прячем кнопку закрытия и показываем кнопку открытия
             if (buttonToClose != null) buttonToClose.SetActive(false);
+            if (buttonToOpen != null) buttonToOpen.SetActive(true);
         }
     }
 

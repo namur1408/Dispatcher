@@ -219,6 +219,8 @@ public class MainMenuController : MonoBehaviour
         ResetGlobalStatics(); 
         PlayerPrefs.SetInt("SkipTutorial", 1);
         PlayerPrefs.Save();
+        
+        if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
         SceneManager.LoadScene(gameSceneName);
     }
 

@@ -19,6 +19,7 @@ public class ReturnToDesk : MonoBehaviour
     public void GoBackToMainScene()
     {
         if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager();
+        if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
         SceneManager.LoadScene(mainSceneName);
     }
 }

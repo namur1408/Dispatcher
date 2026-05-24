@@ -14,11 +14,22 @@ public class FolderTearInteractable : MonoBehaviour, IBeginDragHandler, IDragHan
     public float maxRolledScaleX = 1.3f; // How much wider it gets
     public float maxRolledScaleY = 1.3f; // How much taller it gets
     
+    [Header("Audio")]
+    public AudioClip tearSound;
+    [Range(0f, 1f)] public float soundVolume = 1f;
+    public float basePitch = 0.7f;
+    public float maxPitch = 1.5f;
+    public float speedToPitch = 0.2f;
+    
     public UnityEvent OnTearComplete;
 
     private float originalWidth;
     private float startRolledX;
     private bool isTorn = false;
+
+    private AudioSource tearAudioSource;
+    private float currentTearSpeed = 0f;
+    private float targetVolume = 0f;
 
     void Start()
     {
@@ -57,8 +68,18 @@ public class FolderTearInteractable : MonoBehaviour, IBeginDragHandler, IDragHan
         // We only allow tearing in one direction. We check if the finger is to the left of the current tear point.
         if (normalizedX < sealBaseImage.fillAmount)
         {
+            float previousFill = sealBaseImage.fillAmount;
+            
             // Clamp so we don't go below 0
             sealBaseImage.fillAmount = Mathf.Max(0f, normalizedX);
+            
+            float tornThisFrame = previousFill - sealBaseImage.fillAmount;
+            if (tornThisFrame > 0 && Time.deltaTime > 0)
+            {
+                currentTearSpeed = tornThisFrame / Time.deltaTime;
+                targetVolume = soundVolume;
+            }
+
             UpdateRolledSeal();
 
             // If torn enough (e.g. fillAmount <= 0.05 when tearThreshold is 0.95)
@@ -66,6 +87,34 @@ public class FolderTearInteractable : MonoBehaviour, IBeginDragHandler, IDragHan
             {
                 CompleteTear();
             }
+        }
+    }
+
+    void Update()
+    {
+        if (tearSound == null || isTorn) return;
+
+        if (tearAudioSource == null)
+        {
+            tearAudioSource = gameObject.AddComponent<AudioSource>();
+            tearAudioSource.clip = tearSound;
+            tearAudioSource.loop = true;
+            tearAudioSource.playOnAwake = false;
+        }
+
+        currentTearSpeed = Mathf.Lerp(currentTearSpeed, 0f, Time.deltaTime * 10f);
+        targetVolume = Mathf.Lerp(targetVolume, 0f, Time.deltaTime * 15f);
+
+        if (targetVolume > 0.01f)
+        {
+            if (!tearAudioSource.isPlaying) tearAudioSource.Play();
+            
+            tearAudioSource.volume = targetVolume;
+            tearAudioSource.pitch = Mathf.Clamp(basePitch + currentTearSpeed * speedToPitch, basePitch, maxPitch);
+        }
+        else
+        {
+            if (tearAudioSource.isPlaying) tearAudioSource.Pause();
         }
     }
 
@@ -96,6 +145,16 @@ public class FolderTearInteractable : MonoBehaviour, IBeginDragHandler, IDragHan
         isTorn = true;
         sealBaseImage.fillAmount = 0f;
         if (rolledSeal != null) rolledSeal.gameObject.SetActive(false);
+        
+        if (tearAudioSource != null && tearAudioSource.isPlaying)
+        {
+            tearAudioSource.Stop();
+        }
+        
+        if (CommsManager.Instance != null)
+        {
+            CommsManager.Instance.OnFolderTorn();
+        }
         
         OnTearComplete?.Invoke();
     }

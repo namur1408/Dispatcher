@@ -100,6 +100,16 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
             ButtonSoundManager.instance.StopAllSounds();
         }
 
+        // Stop all active audio sources to prevent crackling during the scene transition freeze
+        AudioSource[] allAudioSources = FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
+        foreach (var source in allAudioSources)
+        {
+            if (source != null && source.isPlaying)
+            {
+                source.Stop();
+            }
+        }
+
         // Активируем новую сцену
         asyncLoad.allowSceneActivation = true;
     }

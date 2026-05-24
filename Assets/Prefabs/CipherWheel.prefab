@@ -86,10 +86,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CipherWheel
   container: {fileID: 3680894555113891601}
   textPrefab: {fileID: 7491001438545958546, guid: 4b5fc0faa03f3bd49af89d4c25079b05, type: 3}
-  radius: 150
-  spacingMultiplier: 1
-  normalColor: {r: 0.4, g: 0.4, b: 0.4, a: 1}
+  radius: 110
+  spacingMultiplier: 2
+  normalColor: {r: 0, g: 0, b: 0, a: 1}
   centerColor: {r: 0.7, g: 0.1, b: 0.1, a: 1}
   alphabet: ABCDEFGHIJKLMNOPQRSTUVWXYZ
   currentIndex: 0
   rotationSpeed: 8
+  rotationSound: {fileID: 8300000, guid: 0b94ffac273542b4eb724f144c0f8038, type: 3}
+  fastRotationSound: {fileID: 8300000, guid: 5aed4db356232ef41a1284c9528f519e, type: 3}
+  soundVolume: 0.774
+  minPitch: 0.9
+  maxPitch: 1.1
+  fastThreshold: 1.2

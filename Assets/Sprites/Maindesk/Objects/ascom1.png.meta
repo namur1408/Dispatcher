@@ -8,6 +8,39 @@ TextureImporter:
   - first:
       213: 369866041831583269
     second: ascom1_1
+  - first:
+      213: 8652540418620556940
+    second: ascom1_2
+  - first:
+      213: -6880080770157736681
+    second: ascom1_3
+  - first:
+      213: -3526704826008452305
+    second: ascom1_4
+  - first:
+      213: -1039633388477508349
+    second: ascom1_5
+  - first:
+      213: -3994296922751562969
+    second: ascom1_6
+  - first:
+      213: 1947576035537378873
+    second: ascom1_7
+  - first:
+      213: 8209946954926363198
+    second: ascom1_8
+  - first:
+      213: -8361005934927145989
+    second: ascom1_9
+  - first:
+      213: -8831850165605845190
+    second: ascom1_10
+  - first:
+      213: -7055393416519659765
+    second: ascom1_11
+  - first:
+      213: 2257930942468562352
+    second: ascom1_12
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -121,7 +154,7 @@ TextureImporter:
         serializedVersion: 2
         x: 9
         y: 322
-        width: 2444
+        width: 2385
         height: 2136
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -141,9 +174,9 @@ TextureImporter:
       name: ascom1_1
       rect:
         serializedVersion: 2
-        x: 2451
-        y: 1626
-        width: 14
+        x: 94
+        y: 1584
+        width: 7
         height: 7
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -155,6 +188,248 @@ TextureImporter:
       bones: []
       spriteID: 52ee9d59437022500800000000000000
       internalID: 369866041831583269
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ascom1_2
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 1564
+        width: 8
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c868698eaaff31870800000000000000
+      internalID: 8652540418620556940
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ascom1_3
+      rect:
+        serializedVersion: 2
+        x: 76
+        y: 1543
+        width: 12
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 71d80c4edfa0580a0800000000000000
+      internalID: -6880080770157736681
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ascom1_4
+      rect:
+        serializedVersion: 2
+        x: 97
+        y: 1547
+        width: 9
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f234c1265a0ae0fc0800000000000000
+      internalID: -3526704826008452305
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ascom1_5
+      rect:
+        serializedVersion: 2
+        x: 78
+        y: 1524
+        width: 10
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 305992ff0fa7291f0800000000000000
+      internalID: -1039633388477508349
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ascom1_6
+      rect:
+        serializedVersion: 2
+        x: 95
+        y: 1526
+        width: 14
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 72b05f78c186198c0800000000000000
+      internalID: -3994296922751562969
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ascom1_7
+      rect:
+        serializedVersion: 2
+        x: 97
+        y: 1507
+        width: 14
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 93ed44be51e270b10800000000000000
+      internalID: 1947576035537378873
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ascom1_8
+      rect:
+        serializedVersion: 2
+        x: 84
+        y: 1488
+        width: 9
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e329f21e1479fe170800000000000000
+      internalID: 8209946954926363198
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ascom1_9
+      rect:
+        serializedVersion: 2
+        x: 99
+        y: 1488
+        width: 14
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bf31cb3966db7fb80800000000000000
+      internalID: -8361005934927145989
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ascom1_10
+      rect:
+        serializedVersion: 2
+        x: 84
+        y: 1472
+        width: 9
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a37b6994117fe6580800000000000000
+      internalID: -8831850165605845190
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ascom1_11
+      rect:
+        serializedVersion: 2
+        x: 108
+        y: 1454
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b0f47b99115361e90800000000000000
+      internalID: -7055393416519659765
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ascom1_12
+      rect:
+        serializedVersion: 2
+        x: 109
+        y: 1437
+        width: 6
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0bd9339aa38c55f10800000000000000
+      internalID: 2257930942468562352
       vertices: []
       indices: 
       edges: []
@@ -175,6 +450,17 @@ TextureImporter:
     nameFileIdTable:
       ascom1_0: -1005925494281104128
       ascom1_1: 369866041831583269
+      ascom1_10: -8831850165605845190
+      ascom1_11: -7055393416519659765
+      ascom1_12: 2257930942468562352
+      ascom1_2: 8652540418620556940
+      ascom1_3: -6880080770157736681
+      ascom1_4: -3526704826008452305
+      ascom1_5: -1039633388477508349
+      ascom1_6: -3994296922751562969
+      ascom1_7: 1947576035537378873
+      ascom1_8: 8209946954926363198
+      ascom1_9: -8361005934927145989
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

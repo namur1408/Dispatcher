@@ -10,8 +10,8 @@ public class AirplaneSpawner : MonoBehaviour
     public Transform radarContent;
     public int maxAirplanes = 5;
 
-    public float minSpawnTime = 5f;
-    public float maxSpawnTime = 12f;
+    public float minSpawnTime = 35f;
+    public float maxSpawnTime = 60f;
     public float spawnRadius = 640f;
 
     [Range(0f, 1f)]

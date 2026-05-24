@@ -34,6 +34,18 @@ public class CommsManager : MonoBehaviour
     [Header("Teletype Settings")]
     public float typeDelay = 0.05f; 
 
+    [Header("Audio Settings")]
+    public AudioSource commsAudioSource;
+    public AudioClip printerSound;
+    public AudioClip typewriterSound;
+    [Range(0f, 1f)] public float effectsVolume = 1f;
+
+    [Header("Printer Animation")]
+    public float paperScrollDelayMin = 0.05f;
+    public float paperScrollDelayMax = 0.15f;
+    public int paperScrollJerksMin = 4;
+    public int paperScrollJerksMax = 8;
+
     private FlightData currentData;
     private string firstFactID = "";
     private FactScanner firstFactScanner;
@@ -55,6 +67,65 @@ public class CommsManager : MonoBehaviour
     private GameObject manifestDocInstance;
     private GameObject radarDocInstance;
     private GameObject cheatSheetDocInstance;
+
+    private AudioSource dedicatedPrinterSource;
+    private AudioSource dedicatedTypewriterSource;
+
+    private void PlaySound(AudioClip clip)
+    {
+        if (commsAudioSource != null && clip != null)
+        {
+            commsAudioSource.PlayOneShot(clip, effectsVolume);
+        }
+    }
+
+    private void StartTypewriterSound()
+    {
+        if (typewriterSound == null) return;
+        
+        if (dedicatedTypewriterSource == null)
+        {
+            dedicatedTypewriterSource = gameObject.AddComponent<AudioSource>();
+            dedicatedTypewriterSource.playOnAwake = false;
+        }
+        
+        dedicatedTypewriterSource.clip = typewriterSound;
+        dedicatedTypewriterSource.volume = effectsVolume;
+        dedicatedTypewriterSource.loop = true;
+        dedicatedTypewriterSource.Play();
+    }
+
+    private void StopTypewriterSound()
+    {
+        if (dedicatedTypewriterSource != null)
+        {
+            dedicatedTypewriterSource.Stop();
+        }
+    }
+
+    private void StartPrinterSound()
+    {
+        if (printerSound == null) return;
+        
+        if (dedicatedPrinterSource == null)
+        {
+            dedicatedPrinterSource = gameObject.AddComponent<AudioSource>();
+            dedicatedPrinterSource.playOnAwake = false;
+        }
+        
+        dedicatedPrinterSource.clip = printerSound;
+        dedicatedPrinterSource.volume = effectsVolume;
+        dedicatedPrinterSource.loop = true;
+        dedicatedPrinterSource.Play();
+    }
+
+    private void StopPrinterSound()
+    {
+        if (dedicatedPrinterSource != null)
+        {
+            dedicatedPrinterSource.Stop();
+        }
+    }
 
     void Awake()
     {
@@ -186,6 +257,7 @@ public class CommsManager : MonoBehaviour
             folderUI.SetActive(!currentData.isFolderTorn);
             if (folderCallsignText != null)
             {
+                folderCallsignText.gameObject.SetActive(!currentData.isFolderTorn);
                 folderCallsignText.text = currentData.callsign;
             }
         }
@@ -518,12 +590,15 @@ public class CommsManager : MonoBehaviour
         float currentY = startY;
         float distance = targetY - startY;
         
-        int jerks = Random.Range(4, 8);
+        int jerks = Random.Range(Mathf.Max(1, paperScrollJerksMin), Mathf.Max(2, paperScrollJerksMax));
         float step = distance / jerks;
+
+        StartPrinterSound();
+        StartTypewriterSound();
 
         for (int i = 0; i < jerks; i++)
         {
-            yield return new WaitForSecondsRealtime(Random.Range(0.05f, 0.15f));
+            yield return new WaitForSecondsRealtime(Random.Range(paperScrollDelayMin, paperScrollDelayMax));
             
             currentY += step;
             if (i == jerks - 1) currentY = targetY; 
@@ -531,6 +606,8 @@ public class CommsManager : MonoBehaviour
             contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, currentY);
         }
 
+        StopPrinterSound();
+        StopTypewriterSound();
         isAnimatingPaper = false;
     }
 
@@ -616,6 +693,7 @@ public class CommsManager : MonoBehaviour
             if (cheatSheetDocInstance != null) currentData.cheatSheetPos = cheatSheetDocInstance.GetComponent<RectTransform>().anchoredPosition;
         }
         if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager();
+        if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
         SceneManager.LoadScene("SampleScene");
     }
 
@@ -623,10 +701,15 @@ public class CommsManager : MonoBehaviour
     {
         if (currentData != null) currentData.isFolderTorn = true;
         
-        StartCoroutine(Routine_FadeOutFolder());
+        // 1. Убираем надпись с названием рейса во время анимации
+        if (folderCallsignText != null) folderCallsignText.gameObject.SetActive(false);
+
+        // 2. Документы появляются как только анимация началась
+        ShowDocuments();
     }
 
-    private IEnumerator Routine_FadeOutFolder()
+    // Вызывается из OnFolderTorn (в самом начале анимации)
+    public void ShowDocuments()
     {
         // Показываем манифест прямо под папкой
         if (manifestDocInstance != null) 
@@ -636,31 +719,17 @@ public class CommsManager : MonoBehaviour
                 manifestDocInstance.transform.position = folderUI.transform.position;
             }
             manifestDocInstance.SetActive(true);
-            // Перемещаем поверх всего — последний в иерархии рендерится последним (= сверху)
             manifestDocInstance.transform.SetAsLastSibling();
         }
 
-        // Поднимаем и остальные документы поверх папки
+        // Поднимаем и остальные документы
         if (radarDocInstance != null) radarDocInstance.transform.SetAsLastSibling();
         if (cheatSheetDocInstance != null) cheatSheetDocInstance.transform.SetAsLastSibling();
         if (pilotReportDoc != null) pilotReportDoc.transform.SetAsLastSibling();
-
-        if (folderUI != null)
-        {
-            CanvasGroup cg = folderUI.GetComponent<CanvasGroup>();
-            if (cg == null) cg = folderUI.AddComponent<CanvasGroup>();
-
-            float duration = 0.35f; // Половина секунды для плавности
-            float time = 0;
-            while (time < duration)
-            {
-                time += Time.deltaTime;
-                cg.alpha = Mathf.Lerp(1f, 0f, time / duration);
-                yield return null;
-            }
-            folderUI.SetActive(false);
-            cg.alpha = 1f; // Сбрасываем для следующего использования, если понадобится
-        }
+        
+        // Важно: теперь мы перемещаем папку поверх всех документов, 
+        // чтобы пока она растворяется, документы были ЗА ней.
+        if (folderUI != null) folderUI.transform.SetAsLastSibling();
     }
 
     GameObject SpawnDocument(GameObject prefab, string text, Vector2 pos, bool hiddenInFolder = false)

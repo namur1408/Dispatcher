@@ -223,11 +223,8 @@ public class FlightDataManager : MonoBehaviour
                     existing.decisionMade = true; 
                     existing.approved = false; 
                 }
-                else
-                {
-                    existing.decisionMade = false;
-                    existing.approved = false;
-                }
+                // DO NOT reset existing decisions if the plane in the scene is still 'Pending'
+                // This prevents UI screens (like the Terminal) from having their decisions overwritten.
 
                 updatedList.Add(existing);
             }

@@ -380,7 +380,18 @@ public class UIAirplane : MonoBehaviour
 
     public void AddWaypoint(Vector2 clickPos)
     {
-        if (inStorm || isHolding || isOutOfFuel) return;
+        if (inStorm || isOutOfFuel) return;
+        
+        if (isHolding)
+        {
+            isHolding = false;
+            waypoints.Clear();
+            waypoints.Add(clickPos);
+            RebuildRouteLayer();
+            UpdateVisualRotation();
+            return;
+        }
+
         if (dispatchStatus != DispatchStatus.Pending) return;
 
         if (waypoints.Count == 0)
@@ -826,7 +837,7 @@ public class UIAirplane : MonoBehaviour
         }
     }
 
-    public void UpdateInternalSpeed() => _actualSpeed = speed / 25f;
+    public void UpdateInternalSpeed() => _actualSpeed = speed / 50f;
 
     private void CheckZoomVisibility(float zoom)
     {
@@ -974,7 +985,7 @@ public class UIAirplane : MonoBehaviour
 
     public void TriggerSelection()
     {
-        if (inStorm || isHolding) return;
+        if (inStorm) return;
 
         if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.SelectPlane(this);
         UIAirplane[] planes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
