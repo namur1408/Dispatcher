@@ -53,7 +53,7 @@ public class TVSceneTester : MonoBehaviour
         Debug.Log("[TVSceneTester] Successfully generated 10 test flights!");
 
         // Ищем наш телевизор на сцене и заставляем его обновить список
-        TVDisplayInfo tv = FindObjectOfType<TVDisplayInfo>();
+        TVDisplayInfo tv = Object.FindFirstObjectByType<TVDisplayInfo>();
         if (tv != null)
         {
             tv.ShowFlightsView();

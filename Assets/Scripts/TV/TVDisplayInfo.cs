@@ -62,7 +62,7 @@ public class TVDisplayInfo : MonoBehaviour
     private List<FlightEntryUI> activeFlightUIs = new List<FlightEntryUI>();
 
     private string selectedResourceCallsign = "";
-    private bool isFoodDetailsExpanded = false;
+    private Coroutine typingCoroutine;
 
     void Start()
     {
@@ -167,13 +167,7 @@ public class TVDisplayInfo : MonoBehaviour
                 int linkIndexRight = TMP_TextUtilities.FindIntersectingLink(warehouseResourcesText, mousePos, cam);
                 if (linkIndexRight != -1)
                 {
-                    TMP_LinkInfo linkInfo = warehouseResourcesText.textInfo.linkInfo[linkIndexRight];
-                    string linkID = linkInfo.GetLinkID();
-
-                    if (linkID == "FOOD_LINK")
-                    {
-                        isFoodDetailsExpanded = !isFoodDetailsExpanded;
-                    }
+                    // Food link expansion removed per user request
                 }
             }
         }
@@ -248,7 +242,7 @@ public class TVDisplayInfo : MonoBehaviour
                                 if (flight.isRefueling)
                                 {
                                     float progress = 1f - (flight.refuelTimer / FlightDataManager.REFUEL_TIME);
-                                    leftInfo += $"    {CreateProgressBar(progress, "#00BFFF")}\n";
+                                    leftInfo += "    " + CreateProgressBar(progress, "#00BFFF") + "\n";
                                 }
                                 else
                                 {
@@ -259,7 +253,7 @@ public class TVDisplayInfo : MonoBehaviour
                                     }
                                     else
                                     {
-                                        leftInfo += $"    <color=#FF3030>[ NOT ENOUGH FUEL ON WAREHOUSE ]</color>\n";
+                                        leftInfo += $"    <color=#FF3030>[!] NOT ENOUGH FUEL</color>\n";
                                     }
                                 }
                             }
@@ -268,49 +262,42 @@ public class TVDisplayInfo : MonoBehaviour
                                 if (flight.isRepairing)
                                 {
                                     float progress = 1f - (flight.repairTimer / FlightDataManager.REPAIR_TIME);
-                                    leftInfo += $"    {CreateProgressBar(progress, "#FF8C00")}\n";
+                                    leftInfo += "    " + CreateProgressBar(progress, "#FF8C00") + "\n";
                                 }
                                 else
                                 {
-                                    leftInfo += $"    <link=\"REPAIR_{flight.callsign}\"><color=#FF8C00><b>[ START REPAIRING ]</b></color></link>\n";
+                                    leftInfo += $"    <link=\"REPAIR_{flight.callsign}\"><color=#00FF41><b>[ START MAINTENANCE ]</b></color></link>\n";
                                 }
                             }
                             else
                             {
-                                leftInfo += $"    STATUS: <color=#00FF41><b>[ READY FOR DEPARTURE ]</b></color>\n";
+                                leftInfo += $"    <color=#00FF41><b>[OK] READY FOR DEPARTURE</b></color>\n";
                             }
                         }
                     }
                     else
                     {
-                        leftInfo += $" > <link=\"{flight.callsign}\"><color={COL_CALLSIGN}><b>{flight.callsign}</b></color></link>\n";
+                        leftInfo += $" <link=\"{flight.callsign}\"><color=#00FF41>{flight.callsign}</color></link>\n";
                     }
                 }
             }
 
-            if (!hasApprovedPlanes) leftInfo += $"  <color=#E1D9D1>[ NO PLANES ]</color>\n";
+            if (!hasApprovedPlanes) leftInfo += $"  <color=#555555>[ NO PLANES ON RUNWAYS ]</color>\n";
+            leftInfo += "</size>";
             if (detailedResourcesText.text != leftInfo) detailedResourcesText.text = leftInfo;
         }
 
         if (warehouseResourcesText != null)
         {
-            string rightInfo = $"<color={COL_HEADER}><b>WAREHOUSE STATUS:</b></color>\n\n";
+            string rightInfo = $"<size=100%><color=#00FF41><b>[ WAREHOUSE STATUS ]</b></color>\n\n";
 
-            rightInfo += $"PEOPLE:    <color=#FFD700><b>{fdm.totalPeople} / {fdm.maxPeople}</b></color>\n";
-            rightInfo += $"FUEL:      <color=#FFD700><b>{fdm.totalFuel} / {fdm.maxFuel} L</b></color>\n";
-            rightInfo += $"MEDICINES: <color=#FFD700><b>{fdm.totalMedicines} / {fdm.maxMedicines} BOX</b></color>\n";
+            rightInfo += $" <color=#00E5FF>PEOPLE:</color> <color=#FFFFFF><b>{fdm.totalPeople}/{fdm.maxPeople}</b></color>";
+            rightInfo += $" <pos=55%><color=#FF5252>MEDS:</color> <color=#FFFFFF><b>{fdm.totalMedicines}/{fdm.maxMedicines}</b></color>\n\n";
 
-            rightInfo += $"<link=\"FOOD_LINK\">FOOD:      <color=#FFD700><b>{fdm.totalFood} / {fdm.maxFood} KG</b></color></link>\n";
+            rightInfo += $" <color=#FF9800>FOOD:</color> <color=#FFFFFF><b>{fdm.totalFood}/{fdm.maxFood}</b></color>";
+            rightInfo += $" <pos=55%><color=#FFEA00>FUEL:</color> <color=#FFFFFF><b>{fdm.totalFuel}/{fdm.maxFuel}</b></color>\n";
 
-            if (isFoodDetailsExpanded)
-            {
-                float consumption = fdm.totalPeople * fdm.foodPerPersonPerMinute;
-
-                if (consumption > 0)
-                    rightInfo += $"  <color=#E1D9D1>CONSUMPTION: -{consumption:F1} KG/MIN</color>\n";
-                else
-                    rightInfo += $"  <color=#E1D9D1>CONSUMPTION: 0 KG/MIN</color>\n";
-            }
+            rightInfo += "</size>";
 
             if (warehouseResourcesText.text != rightInfo) warehouseResourcesText.text = rightInfo;
         }
@@ -428,6 +415,7 @@ public class TVDisplayInfo : MonoBehaviour
             int index = i;
 
             if (hiddenFlights.Contains(data.callsign)) continue;
+            if (data.hasLanded) continue;
 
             GameObject entry = Instantiate(tvEntryPrefab, tvListContainer);
 
@@ -460,11 +448,11 @@ public class TVDisplayInfo : MonoBehaviour
                     string currentStatus = isLanding ? "LANDING" : (isTransit ? "TRANSIT" : "APPROACHING");
 
                     string stCol = currentStatus == "LANDING" ? COL_APPROVED : (currentStatus == "APPROACHING" ? COL_APPROACH : COL_TRANSIT);
-                    string stIcon = (currentStatus == "LANDING" || currentStatus == "APPROACHING") ? "↓ LAND" : "→ XSIT";
+                    string stIcon = (currentStatus == "LANDING" || currentStatus == "APPROACHING") ? "[LAND]" : "[XSIT]";
 
                     txt.text = $"<color={nameColor}><b>{displayName}</b></color>  " +
                                $"<color={stCol}>{stIcon}</color>  " +
-                               $"<color={COL_SPEED}>SPD:{data.speed:F0}</color>";
+                               $"<color={COL_SPEED}>SPD:{data.speed * 10f:F0} KTS</color>";
                 }
 
                 Image img = entry.GetComponent<Image>();
@@ -585,7 +573,7 @@ public class TVDisplayInfo : MonoBehaviour
         if (selectedLabel != null)
         {
             string stCol = currentStatus == "LANDING" ? COL_APPROVED : (currentStatus == "APPROACHING" ? COL_APPROACH : COL_TRANSIT);
-            selectedLabel.text = $"<color={COL_HEADER}>SELECTED ►</color> " +
+            selectedLabel.text = $"<color={COL_HEADER}>SELECTED ></color> " +
                                  $"<color={COL_SELECTED}><b>{displayName}</b></color>  " +
                                  $"<color={stCol}>{currentStatus}</color>";
         }
@@ -612,11 +600,30 @@ public class TVDisplayInfo : MonoBehaviour
                 infoString += $"Cargo: <color=#FFD700><b>{data.cargo} ({data.cargoAmount}{cargoUnit})</b></color>\n";
             }
 
-            detailedInfoText.text = infoString;
+            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+            typingCoroutine = StartCoroutine(TypeText(infoString));
         }
 
         UpdateSelectionVisuals();
         RefreshButtons();
+    }
+
+    private IEnumerator TypeText(string textToType)
+    {
+        detailedInfoText.text = textToType;
+        detailedInfoText.maxVisibleCharacters = 0;
+        
+        // Wait one frame to ensure TextMeshPro has fully parsed the rich text and layout
+        yield return null; 
+
+        int totalChars = detailedInfoText.textInfo.characterCount;
+        if (totalChars <= 0) totalChars = textToType.Length; // Fallback
+
+        for (int i = 0; i <= totalChars; i++)
+        {
+            detailedInfoText.maxVisibleCharacters = i;
+            yield return new WaitForSecondsRealtime(0.01f);
+        }
     }
 
     void RefreshButtons()
@@ -675,7 +682,7 @@ public class TVDisplayInfo : MonoBehaviour
 
         if (!canDecide && selectedLabel != null)
         {
-            selectedLabel.text = $"<color={COL_SEPARATOR}>► SELECT FLIGHT FROM LIST</color>";
+            selectedLabel.text = $"<color={COL_SEPARATOR}>> SELECT FLIGHT FROM LIST</color>";
         }
         else if (isInStorm && selectedLabel != null && !selectedLabel.text.Contains("COMM LOSS"))
         {
@@ -700,7 +707,7 @@ public class TVDisplayInfo : MonoBehaviour
 
         fdm.AddDecision(callsign, true);
         if (selectedLabel != null)
-            selectedLabel.text = $"<color={COL_APPROVED}><b>✔ {callsign} — LANDING APPROVED</b></color>";
+            selectedLabel.text = $"<color={COL_APPROVED}><b>[V] {callsign} - LANDING APPROVED</b></color>";
 
         if (TVTutorialManager.Instance != null) TVTutorialManager.Instance.NotifyFlightAllowed(callsign);
 
@@ -719,7 +726,7 @@ public class TVDisplayInfo : MonoBehaviour
         FlightDataManager.Instance.AddDecision(callsign, false);
 
         if (selectedLabel != null)
-            selectedLabel.text = $"<color={COL_DENIED}><b>✘ {callsign} — LANDING DENIED</b></color>";
+            selectedLabel.text = $"<color={COL_DENIED}><b>[X] {callsign} - LANDING DENIED</b></color>";
 
         if (TVTutorialManager.Instance != null) TVTutorialManager.Instance.NotifyFlightDenied(callsign);
 

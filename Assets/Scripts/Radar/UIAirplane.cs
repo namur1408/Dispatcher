@@ -584,9 +584,10 @@ public class UIAirplane : MonoBehaviour
             {
                 Debug.Log($"<color=red>АВАРИЯ: {realCallsign} рухнул из-за нехватки топлива!</color>");
 
-                if (AirplaneSpawner.Instance != null)
+                if (AirplaneSpawner.Instance != null && FlightDataManager.Instance != null)
                 {
-                    AirplaneSpawner.Instance.NotifyStoryPlaneCrashed();
+                    var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
+                    if (fd != null) AirplaneSpawner.Instance.NotifyPlaneCrashed(fd);
                 }
 
                 DestroyPlane();
@@ -1046,9 +1047,10 @@ public class UIAirplane : MonoBehaviour
     {
         Debug.Log($"<color=red>АВАРИЯ: {realCallsign} столкнулся!</color>");
 
-        if (AirplaneSpawner.Instance != null)
+        if (AirplaneSpawner.Instance != null && FlightDataManager.Instance != null)
         {
-            AirplaneSpawner.Instance.NotifyStoryPlaneCrashed();
+            var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
+            if (fd != null) AirplaneSpawner.Instance.NotifyPlaneCrashed(fd);
         }
 
         if (RadarTutorialManager.Instance != null && !RadarTutorialManager.isRadarTutorialCompleted)

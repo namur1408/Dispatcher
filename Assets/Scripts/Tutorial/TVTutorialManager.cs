@@ -128,6 +128,8 @@ public class TVTutorialManager : MonoBehaviour
         subtitlePanel.SetActive(true);
         yield return StartCoroutine(TypeText(msgLock, false));
         yield return new WaitUntil(() => skipRequested);
+        yield return StartCoroutine(TypeText(msgDetails, false));
+        yield return new WaitUntil(() => skipRequested);
         yield return StartCoroutine(TypeText(msgGoToRes, false));
         yield return new WaitUntil(() => skipRequested);
 

@@ -20,7 +20,6 @@ public class FolderTearInteractable : MonoBehaviour, IBeginDragHandler, IDragHan
     public float basePitch = 0.7f;
     public float maxPitch = 1.5f;
     public float speedToPitch = 0.2f;
-    
     public UnityEvent OnTearComplete;
 
     private float originalWidth;

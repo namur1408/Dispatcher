@@ -17,6 +17,8 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
     public AudioClip transitionSound;
     [Range(0f, 1f)]
     public float soundVolume = 0.8f;
+    [Tooltip("Время (в сек) до загрузки сцены. Если 0, то берется длина самого аудиофайла.")]
+    public float customSoundDuration = 0f;
 
     public UnityEvent onZoomStart;
 
@@ -34,9 +36,24 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         isTransitioning = true;
 
         // 1. Запускаем звук
-        if (transitionSound != null && ButtonSoundManager.instance != null)
+        AudioSource localSource = GetComponent<AudioSource>();
+        if (localSource == null) localSource = gameObject.AddComponent<AudioSource>();
+
+        float totalWaitTime = zoomDuration;
+
+        if (transitionSound != null)
         {
-            ButtonSoundManager.instance.PlaySpecialSound(transitionSound, soundVolume);
+            localSource.clip = transitionSound;
+            localSource.volume = soundVolume;
+            localSource.Play();
+
+            // Если указано свое время - используем его, иначе берем длину аудиофайла
+            float soundLength = customSoundDuration > 0f ? customSoundDuration : transitionSound.length;
+            totalWaitTime = Mathf.Max(zoomDuration, soundLength);
+        }
+        else if (ButtonSoundManager.instance != null)
+        {
+            ButtonSoundManager.instance.PlayDefaultClick();
         }
 
         if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager();
@@ -89,6 +106,18 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
 
         rootContainer.localScale = targetScale;
         rootContainer.anchoredPosition = targetPos;
+
+        // Ждем оставшееся время, пока звук не доиграет
+        if (totalWaitTime > zoomDuration)
+        {
+            yield return new WaitForSecondsRealtime(totalWaitTime - zoomDuration);
+        }
+
+        // Останавливаем звук ровно в момент окончания ожидания
+        if (transitionSound != null && localSource.isPlaying)
+        {
+            localSource.Stop();
+        }
 
         while (asyncLoad.progress < 0.9f)
         {
