@@ -68,8 +68,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: New Text
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 36a8058d35c36554b9ead4b7db4c8706, type: 2}
-  m_sharedMaterial: {fileID: -4993873307652430692, guid: 36a8058d35c36554b9ead4b7db4c8706, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 9ee239a1f8a1e8f4199e27308d94c6a7, type: 2}
+  m_sharedMaterial: {fileID: -7536069646788444362, guid: 9ee239a1f8a1e8f4199e27308d94c6a7, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -93,13 +93,13 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 72
+  m_fontSize: 55
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
   m_fontSizeMin: 18
-  m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontSizeMax: 55
+  m_fontStyle: 1
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 256
   m_textAlignment: 65535
@@ -245,7 +245,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: c6f8da43c33a3d3469cc403b9a395556, type: 3}
   - {fileID: 8300000, guid: e3d433ca832bdb84ba60de6f5941ade4, type: 3}
   dropSound: {fileID: 8300000, guid: 3516248e3c683b84bae7a02d8d1e54aa, type: 3}
-  soundVolume: 0.3
+  soundVolume: 0.426
   dropSoundVolume: 0.1
   minPitch: 0.9
   maxPitch: 1.1

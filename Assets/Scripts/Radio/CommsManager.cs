@@ -31,6 +31,11 @@ public class CommsManager : MonoBehaviour
     [Header("Single Question Button")]
     public GameObject askButton;
     public TextMeshProUGUI askButtonText;
+
+    [Header("Decrypter Settings")]
+    public GameObject decryptionMachineObj;
+    public GameObject decryptionPaperPrefab;
+    private GameObject decryptionPaperInstance;
     
     [Header("Teletype Settings")]
     public float typeDelay = 0.05f; 
@@ -197,6 +202,7 @@ public class CommsManager : MonoBehaviour
         if (radarDocInstance != null) { Destroy(radarDocInstance); radarDocInstance = null; }
         if (cheatSheetDocInstance != null) { Destroy(cheatSheetDocInstance); cheatSheetDocInstance = null; }
         if (pilotReportDoc != null) { Destroy(pilotReportDoc.gameObject); pilotReportDoc = null; }
+        if (decryptionPaperInstance != null) { Destroy(decryptionPaperInstance); decryptionPaperInstance = null; }
 
         if (chatHistoryText != null) chatHistoryText.text = "";
         StopAllCoroutines();
@@ -215,6 +221,26 @@ public class CommsManager : MonoBehaviour
                 askedSpeed = currentData.askedSpeed;
 
                 GenerateDocuments();
+
+                if (decryptionMachineObj != null)
+                {
+                    bool isSpecialForces = currentData.callsign == "TR-11" || currentData.callsign == "TR-88";
+                    if (StoryManager.currentDay == 2 && isSpecialForces && askedCargo)
+                    {
+                        decryptionMachineObj.SetActive(true);
+                        DecryptionMachine dm = decryptionMachineObj.GetComponentInChildren<DecryptionMachine>(true);
+                        if (dm != null)
+                        {
+                            dm.ResetMachine();
+                            if (currentData.callsign == "TR-11") dm.SetEncryptedWord("MKPW");
+                            else dm.SetEncryptedWord("MKPU");
+                        }
+                    }
+                    else
+                    {
+                        decryptionMachineObj.SetActive(false);
+                    }
+                }
 
                 if (string.IsNullOrEmpty(currentData.chatHistory))
                 {
@@ -241,16 +267,16 @@ public class CommsManager : MonoBehaviour
 
         string manifestText = $"<align=center><b>FLIGHT MANIFEST</b></align>\n\n" +
                               $"<b>FLIGHT:</b> {currentData.callsign}\n" +
-                              $"<link=\"unlock_origin\"><b>ORIGIN:</b></link> <link=\"man_origin\">{currentData.manifestOrigin}</link>\n" +
+                              $"<b>ORIGIN:</b> <link=\"man_origin\">{currentData.manifestOrigin}</link>\n" +
                               $"<b>CARGO:</b> {highlightStart}<link=\"man_cargo\">{currentData.manifestCargo.ToUpper()}</link>{highlightEnd}\n" +
-                              $"<link=\"unlock_weight\"><b>WEIGHT:</b></link> <link=\"man_weight\">{currentData.manifestCargoAmount} UNITS</link>\n";
+                              $"<b>WEIGHT:</b> <link=\"man_weight\">{currentData.manifestCargoAmount} UNITS</link>\n";
 
         manifestDocInstance = SpawnDocument(manifestPrefab, manifestText, currentData.manifestPos, true);
 
         string radarLogText = $"<align=center><b>RADAR REPORT</b></align>\n\n" +
-                              $"<link=\"unlock_speed\"><b>SPEED:</b></link> <link=\"rad_speed\">{currentData.speed * 10f} KTS</link>\n" +
+                              $"<b>SPEED:</b> <link=\"rad_speed\">{currentData.speed * 10f} KTS</link>\n" +
                               $"<b>CLASS:</b> {GetPlaneClass()}\n" +
-                              $"{highlightStart}<link=\"unlock_cargo\"><b>SENSOR:</b></link>{highlightEnd} UNKNOWN\n";
+                              $"{highlightStart}<b>SENSOR:</b>{highlightEnd} UNKNOWN\n";
         radarDocInstance = SpawnDocument(radarPrefab, radarLogText, currentData.radarPos, false);
 
         if (!TutorialManager.isTutorialActive)
@@ -275,6 +301,12 @@ public class CommsManager : MonoBehaviour
         pilotReportDoc = reportObj.GetComponent<DocumentUI>();
         UpdatePilotReport();
 
+        if (StoryManager.currentDay == 2 && (currentData.callsign == "TR-11" || currentData.callsign == "TR-88"))
+        {
+            string shiftText = $"<align=center><b>ENCRYPTION</b></align>\n<b>TODAY'S SHIFT:</b><align=center><b> -8</b></align></size>";
+            decryptionPaperInstance = SpawnDocument(decryptionPaperPrefab != null ? decryptionPaperPrefab : defaultDocPrefab, shiftText, new Vector2(0,0), true);
+        }
+
         if (folderUI != null)
         {
             folderUI.SetActive(!currentData.isFolderTorn);
@@ -292,17 +324,19 @@ public class CommsManager : MonoBehaviour
         string highlightEnd = (TutorialManager.isTutorialActive && RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted) ? "</color>" : "";
 
         string reportText = $"<align=center><b>PILOT'S STATEMENT</b></align>\n\n";
-        if (!askedCargo && !askedOrigin && !askedWeight && !askedSpeed)
-        {
-            reportText += "<i>No interrogation data.</i>";
-        }
-        else
-        {
-            if (askedOrigin) reportText += $"<b>ORIGIN:</b> <link=\"rep_origin\">{GetStatedOrigin()}</link>\n";
-            if (askedCargo) reportText += $"<b>CARGO:</b> {highlightStart}<link=\"rep_cargo\">{GetStatedCargo().ToUpper()}</link>{highlightEnd}\n";
-            if (askedWeight) reportText += $"<b>WEIGHT:</b> <link=\"rep_weight\">{GetStatedWeight()} UNITS</link>\n";
-            if (askedSpeed) reportText += $"<b>SPEED:</b> <link=\"rep_speed\">{GetStatedSpeed()} KTS</link>\n";
-        }
+
+        if (askedOrigin) reportText += $"<b>ORIGIN:</b> <link=\"rep_origin\">{GetStatedOrigin()}</link>\n";
+        else reportText += $"<link=\"unlock_origin\"><b>ORIGIN:</b></link> _________\n";
+
+        if (askedCargo) reportText += $"<b>CARGO:</b> {highlightStart}<link=\"rep_cargo\">{GetStatedCargo().ToUpper()}</link>{highlightEnd}\n";
+        else reportText += $"{highlightStart}<link=\"unlock_cargo\"><b>CARGO:</b></link>{highlightEnd} _________\n";
+
+        if (askedWeight) reportText += $"<b>WEIGHT:</b> <link=\"rep_weight\">{GetStatedWeight()} UNITS</link>\n";
+        else reportText += $"<link=\"unlock_weight\"><b>WEIGHT:</b></link> _________\n";
+
+        if (askedSpeed) reportText += $"<b>SPEED:</b> <link=\"rep_speed\">{GetStatedSpeed()} KTS</link>\n";
+        else reportText += $"<link=\"unlock_speed\"><b>SPEED:</b></link> _________\n";
+
         pilotReportDoc.SetContent(reportText);
     }
 
@@ -695,7 +729,27 @@ public class CommsManager : MonoBehaviour
 
         currentData.chatHistory = chatHistoryText.text;
 
-        if (dataTopicToUpdate == "cargo") { askedCargo = true; currentData.askedCargo = true; }
+        if (dataTopicToUpdate == "cargo") 
+        { 
+            askedCargo = true; 
+            currentData.askedCargo = true; 
+
+            if (decryptionMachineObj != null)
+            {
+                bool isSpecialForces = currentData.callsign == "TR-11" || currentData.callsign == "TR-88";
+                if (StoryManager.currentDay == 2 && isSpecialForces)
+                {
+                    decryptionMachineObj.SetActive(true);
+                    DecryptionMachine dm = decryptionMachineObj.GetComponentInChildren<DecryptionMachine>(true);
+                    if (dm != null)
+                    {
+                        dm.ResetMachine();
+                        if (currentData.callsign == "TR-11") dm.SetEncryptedWord("MKPW");
+                        else dm.SetEncryptedWord("MKPU");
+                    }
+                }
+            }
+        }
         else if (dataTopicToUpdate == "origin") { askedOrigin = true; currentData.askedOrigin = true; }
         else if (dataTopicToUpdate == "weight") { askedWeight = true; currentData.askedWeight = true; }
         else if (dataTopicToUpdate == "speed") { askedSpeed = true; currentData.askedSpeed = true; }
@@ -760,7 +814,12 @@ public class CommsManager : MonoBehaviour
     // Вызывается из OnFolderTorn (в самом начале анимации)
     public void ShowDocuments()
     {
-        // Показываем манифест прямо под папкой
+        // Сначала поднимаем все документы, которые уже лежат на столе
+        if (radarDocInstance != null) radarDocInstance.transform.SetAsLastSibling();
+        if (cheatSheetDocInstance != null) cheatSheetDocInstance.transform.SetAsLastSibling();
+        if (pilotReportDoc != null) pilotReportDoc.transform.SetAsLastSibling();
+
+        // Затем показываем и поднимаем документы из папки (они будут поверх тех, что на столе)
         if (manifestDocInstance != null) 
         {
             if (folderUI != null)
@@ -771,10 +830,18 @@ public class CommsManager : MonoBehaviour
             manifestDocInstance.transform.SetAsLastSibling();
         }
 
-        // Поднимаем и остальные документы
-        if (radarDocInstance != null) radarDocInstance.transform.SetAsLastSibling();
-        if (cheatSheetDocInstance != null) cheatSheetDocInstance.transform.SetAsLastSibling();
-        if (pilotReportDoc != null) pilotReportDoc.transform.SetAsLastSibling();
+        if (decryptionPaperInstance != null)
+        {
+            if (folderUI != null)
+            {
+                // Ставим на ту же позицию, что и папка, но сдвигаем правее и ниже через anchoredPosition
+                decryptionPaperInstance.transform.position = folderUI.transform.position;
+                RectTransform rt = decryptionPaperInstance.GetComponent<RectTransform>();
+                if (rt != null) rt.anchoredPosition += new Vector2(100f, -60f);
+            }
+            decryptionPaperInstance.SetActive(true);
+            decryptionPaperInstance.transform.SetAsLastSibling();
+        }
         
         // Важно: теперь мы перемещаем папку поверх всех документов, 
         // чтобы пока она растворяется, документы были ЗА ней.

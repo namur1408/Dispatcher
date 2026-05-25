@@ -387,17 +387,19 @@ public class FlightDataManager : MonoBehaviour
             }
             else // Branch A (No Engineer)
             {
-                // Friend SF (TR passenger planes)
-                FlightData sfFriend = new FlightData("TR-11", new Vector2(500, 300), Vector2.zero, new List<Vector2>(), 75f, "People", 50, "People", 50, 150f, "HQ-Alpha");
-                sfFriend.spokenCargo = "We are the reinforcements requested by the Director. Authentication code: QYEW.";
-                scriptedFlightsQueue.Enqueue(sfFriend);
-                scriptedDelaysQueue.Enqueue(10f);
-
                 // Enemy SF
                 FlightData sfEnemy = new FlightData("TR-88", new Vector2(-500, 400), Vector2.zero, new List<Vector2>(), 78f, "People", 50, "People", 50, 150f, "HQ-Alpha");
-                sfEnemy.spokenCargo = "We are the reinforcements requested by the Director. Authentication code: QYEV.";
+                sfEnemy.spokenCargo = "Reinforcements";
+                sfEnemy.customAnswerCargo = "We are the reinforcements requested by the Director. Authentication code: MKPU.";
                 scriptedFlightsQueue.Enqueue(sfEnemy);
-                scriptedDelaysQueue.Enqueue(20f);
+                scriptedDelaysQueue.Enqueue(10f);
+
+                // Friend SF (TR passenger planes)
+                FlightData sfFriend = new FlightData("TR-11", new Vector2(500, 300), Vector2.zero, new List<Vector2>(), 75f, "People", 50, "People", 50, 150f, "HQ-Alpha");
+                sfFriend.spokenCargo = "Reinforcements";
+                sfFriend.customAnswerCargo = "We are the reinforcements requested by the Director. Authentication code: MKPW.";
+                scriptedFlightsQueue.Enqueue(sfFriend);
+                scriptedDelaysQueue.Enqueue(15f);
 
                 FlightData fl55 = new FlightData("GE-55", new Vector2(-600, 0), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 250, "Fuel", 250, 300f, "Bastion-3");
                 scriptedFlightsQueue.Enqueue(fl55);

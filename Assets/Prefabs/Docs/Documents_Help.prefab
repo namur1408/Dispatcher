@@ -245,7 +245,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: c6f8da43c33a3d3469cc403b9a395556, type: 3}
   - {fileID: 8300000, guid: e3d433ca832bdb84ba60de6f5941ade4, type: 3}
   dropSound: {fileID: 8300000, guid: 3516248e3c683b84bae7a02d8d1e54aa, type: 3}
-  soundVolume: 0.3
+  soundVolume: 0.426
   dropSoundVolume: 0.1
   minPitch: 0.9
   maxPitch: 1.1

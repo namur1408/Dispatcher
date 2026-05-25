@@ -146,4 +146,11 @@ public class CaesarDisk : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoi
             machine.SetShift(shift);
         }
     }
+
+    public void ResetDisk()
+    {
+        targetSnapAngle = 0f;
+        visualAngle = 0f;
+        if (diskRect != null) diskRect.localRotation = Quaternion.Euler(0, 0, 0);
+    }
 }

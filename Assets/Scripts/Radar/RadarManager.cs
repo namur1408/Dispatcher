@@ -23,6 +23,48 @@ public class RadarManager : MonoBehaviour
         // который вызывается из StoryManager после LoadState().
     }
 
+    void Update()
+    {
+        CheckForConflicts();
+    }
+
+    private void CheckForConflicts()
+    {
+        bool anyWarning = false;
+        float warningDistance = 125f; // Same as BigRadarLoader
+
+        // We first clear warnings for all small radar planes
+        foreach (var plane in activeAirplanes)
+            if (plane != null) plane.SetWarning(false);
+
+        for (int i = 0; i < activeAirplanes.Count; i++)
+        {
+            for (int j = i + 1; j < activeAirplanes.Count; j++)
+            {
+                UIAirplane a = activeAirplanes[i];
+                UIAirplane b = activeAirplanes[j];
+                if (a == null || b == null) continue;
+
+                float dist = Vector2.Distance(
+                    a.GetComponent<RectTransform>().anchoredPosition,
+                    b.GetComponent<RectTransform>().anchoredPosition);
+
+                if (dist < warningDistance)
+                {
+                    a.SetWarning(true);
+                    b.SetWarning(true);
+                    anyWarning = true;
+                }
+            }
+        }
+
+        // If BigRadarLoader is active, it will handle isGlobalWarningActive itself.
+        // If it's not active, RadarManager handles it.
+        // Since both radars share the same coordinate logic mostly, we can just let 
+        // RadarManager always update it, OR we can sync them.
+        BigRadarLoader.isGlobalWarningActive = anyWarning;
+    }
+
     /// <summary>
     /// Точно как BigRadarLoader.RebuildAll() — читаем FlightDataManager
     /// и спавним все самолеты, которые ещё в воздухе.

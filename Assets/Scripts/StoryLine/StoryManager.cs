@@ -11,9 +11,20 @@ public class StoryManager : MonoBehaviour
     [Header("Scene Management")]
     public string mainSceneName = "MainMenu";
 
+    [Header("UI Canvas Groups")]
+    public CanvasGroup transitionCanvasGroup;
+    public CanvasGroup storyCanvasGroup;
+
+    [Header("Special Radar Icons")]
+    [Tooltip("Иконка упавшего самолета на радаре, появляется на 2-й день в ветке мародеров")]
+    public GameObject crashedPlaneRadarIcon;
+
+    [Header("Ambience Audio")]
+    [Tooltip("Объект со звуками перестрелок/сирен. Включится на 2 день в ветке мародеров.")]
+    public GameObject marauderAmbienceRoot;
+
     [Header("Transition UI")]
     public GameObject transitionScreen;
-    public CanvasGroup transitionCanvasGroup;
     public TextMeshProUGUI dayText;
 
     [Header("Typing Settings")]
@@ -584,11 +595,13 @@ public class StoryManager : MonoBehaviour
 
         if (dayNumber == 2 && PlayerPrefs.GetInt("BaseEmergencyEconomy", 0) == 1)
         {
-            Canvas mainCanvas = Object.FindFirstObjectByType<Canvas>();
-            if (mainCanvas != null && mainCanvas.GetComponent<CRTNoiseEffect>() == null)
-            {
-                mainCanvas.gameObject.AddComponent<CRTNoiseEffect>();
-            }
+            // Убрано автоматическое добавление эффекта шума на главный Canvas.
+            // Теперь вы можете вручную вешать скрипт CRTNoiseEffect на любые нужные панели.
+            // Canvas mainCanvas = Object.FindFirstObjectByType<Canvas>();
+            // if (mainCanvas != null && mainCanvas.GetComponent<CRTNoiseEffect>() == null)
+            // {
+            //     mainCanvas.gameObject.AddComponent<CRTNoiseEffect>();
+            // }
         }
     }
 
@@ -653,16 +666,22 @@ public class StoryManager : MonoBehaviour
         if (!letRefugeesIn && fuelTargetMet)
         {
             // Branch A: Marauders
+            if (crashedPlaneRadarIcon != null) crashedPlaneRadarIcon.SetActive(true);
+            if (marauderAmbienceRoot != null) marauderAmbienceRoot.SetActive(true);
+            
             day2Email.sender = "Director Reed";
             day2Email.subject = "SECURITY ALERT — PERIMETER BREACH";
-            day2Email.body = "ATS, listen carefully. That passenger plane you turned away yesterday crashed five miles outside the perimeter. The burning wreckage served as a beacon for local looters. Now these looters have spotted our gates and are actively trying to breach the outer fence. Our fighters will fight with all their might, but they’re unlikely to hold out for long—there are too many of them.\n\nUsing my old connections, I convinced one of our friendly bases to send us reinforcements; a heavy transport carrying a special forces unit is on its way. You MUST immediately clear a landing zone for them. If they don’t secure the perimeter before nightfall, we’ll all be killed.\n\nATTENTION: The enemy might try to send a fake transport. When asked about their cargo, the REAL transport will say the password 'QYEW'. The enemy will say something similar. Do NOT let the enemy land!";
+            day2Email.body = "ATS, listen carefully. That passenger plane you turned away yesterday crashed five miles outside the perimeter. The burning wreckage served as a beacon for local looters. Now these looters have spotted our gates and are actively trying to breach the outer fence. Our fighters will fight with all their might, but they’re unlikely to hold out for long—there are too many of them.\n\nUsing my old connections, I convinced one of our friendly bases to send us reinforcements; a heavy transport carrying a special forces unit is on its way. You MUST immediately clear a landing zone for them. If they don’t secure the perimeter before nightfall, we’ll all be killed.\n\nATTENTION: The enemy might try to send a fake transport. When asked about their cargo, the REAL transport will say the password 'ECHO'. The enemy will say something similar. Do NOT let the enemy land!";
         }
         else if (!letRefugeesIn && !fuelTargetMet)
         {
             // Branch A-2: Marauders + Blackout
+            if (crashedPlaneRadarIcon != null) crashedPlaneRadarIcon.SetActive(true);
+            if (marauderAmbienceRoot != null) marauderAmbienceRoot.SetActive(true);
+            
             day2Email.sender = "Director Reed";
             day2Email.subject = "PERIMETER BREACH & POWER FAILURE";
-            day2Email.body = "You failed the simplest task yesterday. The grid is dying, and we are sitting in the dark.\n\nTo make matters worse, that passenger plane you turned away crashed five miles outside the perimeter. The burning wreckage acted like a beacon for local scavengers. Now, marauders are using our blackout to their advantage and are actively breaching the external gates.\n\nYOUR DIRECTIVE:\n> You have two critical jobs today. First, using my old connections, I convinced one of our friendly bases to send us reinforcements; a heavy transport carrying a special forces unit is on its way. You MUST immediately clear a landing zone for them. Second, get a Fuel transport down here before your radar shuts off completely.\n\nDo not waste time on anything else. If you fail to bring in the ops team or the fuel, we are all dead.\n\nATTENTION: The enemy might try to send a fake transport. When asked about their cargo, the REAL transport will say the password 'QYEW'. The enemy will say something similar. Do NOT let the enemy land!";
+            day2Email.body = "You failed the simplest task yesterday. The grid is dying, and we are sitting in the dark.\n\nTo make matters worse, that passenger plane you turned away crashed five miles outside the perimeter. The burning wreckage acted like a beacon for local scavengers. Now, marauders are using our blackout to their advantage and are actively breaching the external gates.\n\nYOUR DIRECTIVE:\n> You have two critical jobs today. First, using my old connections, I convinced one of our friendly bases to send us reinforcements; a heavy transport carrying a special forces unit is on its way. You MUST immediately clear a landing zone for them. Second, get a Fuel transport down here before your radar shuts off completely.\n\nDo not waste time on anything else. If you fail to bring in the ops team or the fuel, we are all dead.\n\nATTENTION: The enemy might try to send a fake transport. When asked about their cargo, the REAL transport will say the password 'ECHO'. The enemy will say something similar. Do NOT let the enemy land!";
         }
         else if (letRefugeesIn && !fuelTargetMet)
         {

@@ -32,6 +32,16 @@ public class BigRadarLoader : MonoBehaviour
 
     void OnDisable()
     {
+        // Save big radar state first so we have fresh positions for the small radar
+        if (FlightDataManager.Instance != null && activePlanes != null && activePlanes.Count > 0)
+        {
+            FlightDataManager.Instance.UpdateFlights(activePlanes);
+            if (RadarManager.Instance != null)
+            {
+                RadarManager.Instance.RebuildFromFlightData();
+            }
+        }
+
         // Clear our visual icons when screen closes (they'll be rebuilt on next open)
         ClearAll();
     }

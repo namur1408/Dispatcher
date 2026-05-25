@@ -40,6 +40,17 @@ public class DecryptionMachine : MonoBehaviour
         UpdateWheels();
     }
 
+    public void ResetMachine()
+    {
+        currentShift = 0;
+        CaesarDisk disk = GetComponentInChildren<CaesarDisk>(true);
+        if (disk != null)
+        {
+            disk.ResetDisk();
+        }
+        UpdateWheels();
+    }
+
     private Coroutine spinCoroutine;
 
     void UpdateWheels()

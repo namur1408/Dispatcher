@@ -397,6 +397,7 @@ public class UIAirplane : MonoBehaviour
             isHolding = false;
             waypoints.Clear();
             waypoints.Add(clickPos);
+            waypoints.Add(Vector2.zero); // Автоматически добавляем точку в центр
             RebuildRouteLayer();
             UpdateVisualRotation();
             return;

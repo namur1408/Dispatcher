@@ -66,19 +66,17 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'New Text
-
-    New Text'
+  m_text: 'TODAY''S SHIFT: -8'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 2175155184cc8d640a1ad40f77ee7c44, type: 2}
-  m_sharedMaterial: {fileID: 7163657023402558005, guid: 2175155184cc8d640a1ad40f77ee7c44, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 9ee239a1f8a1e8f4199e27308d94c6a7, type: 2}
+  m_sharedMaterial: {fileID: -7536069646788444362, guid: 9ee239a1f8a1e8f4199e27308d94c6a7, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4286720548
-  m_fontColor: {r: 0.14177644, g: 0.1648426, b: 0.509434, a: 1}
+    rgba: 4280097563
+  m_fontColor: {r: 0.10519756, g: 0.10570883, b: 0.11320752, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -95,10 +93,10 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 50
-  m_fontSizeBase: 36
+  m_fontSize: 45
+  m_fontSizeBase: 45
   m_fontWeight: 400
-  m_enableAutoSizing: 1
+  m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 50
   m_fontStyle: 0
@@ -134,7 +132,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 13.649048, w: 0}
+  m_margin: {x: 0, y: 11.485962, z: 13.649048, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -167,7 +165,7 @@ GameObject:
   - component: {fileID: 4135645791701554337}
   - component: {fileID: 5960639633576861129}
   m_Layer: 5
-  m_Name: Documents_Note
+  m_Name: Documents_Shift
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -181,7 +179,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2871084943264549986}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -9719.999}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -190,8 +188,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 331.83252, y: 0.7816}
-  m_SizeDelta: {x: 663.665, y: 724.0276}
+  m_AnchoredPosition: {x: 72.756836, y: -43.01124}
+  m_SizeDelta: {x: 719.7569, y: 160.7844}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1467405082216687952
 CanvasRenderer:
