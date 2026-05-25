@@ -10,6 +10,7 @@ public class MainMenuController : MonoBehaviour
 
     [Header("UI Panels")]
     public GameObject mainButtonsPanel;
+    public GameObject continueSelectPanel; // Новая панель для выбора Continue / New Game
     public GameObject modeSelectPanel;
 
     [Header("Boot Animation Settings")]
@@ -31,7 +32,9 @@ public class MainMenuController : MonoBehaviour
 
     void Start()
     {
+        // Изначально включена только главная панель
         if (modeSelectPanel) modeSelectPanel.SetActive(false);
+        if (continueSelectPanel) continueSelectPanel.SetActive(false);
 
         if (textContainer != null)
         {
@@ -198,11 +201,40 @@ public class MainMenuController : MonoBehaviour
 
     public void OnStartClicked()
     {
-        StartCoroutine(PanelTransitionGlitch(mainButtonsPanel, modeSelectPanel));
+        if (GameSaveManager.HasSave())
+        {
+            // Если есть сейв, переходим в панель продолжения
+            StartCoroutine(PanelTransitionGlitch(mainButtonsPanel, continueSelectPanel));
+        }
+        else
+        {
+            // Если сейва нет, сразу переходим к выбору мода
+            StartCoroutine(PanelTransitionGlitch(mainButtonsPanel, modeSelectPanel));
+        }
+    }
+
+    public void OnContinueClicked()
+    {
+        GameSaveManager.loadedData = GameSaveManager.LoadGame();
+        SceneManager.LoadScene(gameSceneName);
+    }
+
+    public void OnNewGameClicked()
+    {
+        // Удаляем сохранение и идем в панель выбора мода
+        GameSaveManager.DeleteSave();
+        StartCoroutine(PanelTransitionGlitch(continueSelectPanel, modeSelectPanel));
+    }
+
+    public void OnBackFromContinueClicked()
+    {
+        // Возврат из панели Continue в главное меню
+        StartCoroutine(PanelTransitionGlitch(continueSelectPanel, mainButtonsPanel));
     }
 
     public void OnBackClicked()
     {
+        // Возврат из панели выбора мода в главное меню (или Continue, но для простоты вернем в главное)
         StartCoroutine(PanelTransitionGlitch(modeSelectPanel, mainButtonsPanel));
     }
 

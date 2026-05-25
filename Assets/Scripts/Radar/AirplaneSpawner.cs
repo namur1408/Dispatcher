@@ -170,12 +170,8 @@ public class AirplaneSpawner : MonoBehaviour
 
     Transform GetActiveRadarContent()
     {
-        if (radarContent != null && radarContent.gameObject.activeInHierarchy)
+        if (radarContent != null)
             return radarContent;
-
-        BigRadarLoader loader = FindFirstObjectByType<BigRadarLoader>();
-        if (loader != null && loader.radarContent != null)
-            return loader.radarContent;
 
         return null;
     }
@@ -231,6 +227,31 @@ public class AirplaneSpawner : MonoBehaviour
 
         float fallbackAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
         return new Vector2(Mathf.Cos(fallbackAngle), Mathf.Sin(fallbackAngle)) * spawnRadius;
+    }
+
+    public void RespawnLoadedPlanes(List<FlightData> loadedFlights)
+    {
+        Transform currentContent = GetActiveRadarContent();
+        if (currentContent == null) return;
+
+        foreach (var data in loadedFlights)
+        {
+            // Пропускаем уже приземлённые или вылетающие — они в Departures, не на радаре
+            if (data.hasLanded || data.isReadyToDepart) continue;
+
+            GameObject newPlane = Instantiate(airplanePrefab, currentContent, false);
+            UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
+
+            if (planeScript != null)
+            {
+                planeScript.InitializeFromData(data);
+                
+                if (RadarManager.Instance != null)
+                {
+                    RadarManager.Instance.RegisterAirplane(planeScript);
+                }
+            }
+        }
     }
 
     public void NotifyPlaneCrashed(FlightData crashedData)

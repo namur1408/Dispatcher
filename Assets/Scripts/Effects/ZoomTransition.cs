@@ -7,7 +7,17 @@ using UnityEngine.Rendering.Universal;
 
 public class ZoomTransition : MonoBehaviour, IPointerClickHandler
 {
+    [Header("Scene Loading Mode")]
     public string sceneToLoad;
+
+    [Header("Single Scene Mode (Optional)")]
+    public Camera targetCamera;
+    public GameObject targetScreenRoot;
+    public GameObject currentScreenRoot;
+    [Tooltip("Keep currentScreenRoot alive (invisible) so scripts inside keep running. Use this when AirplaneSpawner lives inside currentScreenRoot.")]
+    public bool keepCurrentAlive = false;
+
+    [Header("Zoom Settings")]
     public float zoomDuration = 0.5f;
     public float zoomMultiplier = 2.5f;
     public RectTransform rootContainer;
@@ -27,7 +37,14 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (isTransitioning || string.IsNullOrEmpty(sceneToLoad) || !canClick) return;
+        if (!canClick) return;
+        TriggerTransition();
+    }
+
+    public void TriggerTransition()
+    {
+        bool hasDestination = !string.IsNullOrEmpty(sceneToLoad) || targetCamera != null || targetScreenRoot != null;
+        if (isTransitioning || !hasDestination) return;
         StartCoroutine(ZoomAndLoadAsync());
     }
 
@@ -63,9 +80,13 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         Transform targetTransform = zoomTarget != null ? zoomTarget : transform;
         ZoomReturnManager.pendingReturnTargetName = targetTransform.name;
 
-        // Начинаем загрузку новой сцены заранее
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneToLoad);
-        asyncLoad.allowSceneActivation = false;
+        // Начинаем загрузку новой сцены заранее, если указана
+        AsyncOperation asyncLoad = null;
+        if (!string.IsNullOrEmpty(sceneToLoad))
+        {
+            asyncLoad = SceneManager.LoadSceneAsync(sceneToLoad);
+            asyncLoad.allowSceneActivation = false;
+        }
 
         // 2. Анимация Зума (она задает темп)
         Vector3 startScale = rootContainer.localScale;
@@ -119,27 +140,75 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
             localSource.Stop();
         }
 
-        while (asyncLoad.progress < 0.9f)
+        if (asyncLoad != null)
         {
-            yield return null;
-        }
-
-        if (ButtonSoundManager.instance != null)
-        {
-            ButtonSoundManager.instance.StopAllSounds();
-        }
-
-        // Stop all active audio sources to prevent crackling during the scene transition freeze
-        AudioSource[] allAudioSources = FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
-        foreach (var source in allAudioSources)
-        {
-            if (source != null && source.isPlaying)
+            while (asyncLoad.progress < 0.9f)
             {
-                source.Stop();
+                yield return null;
             }
-        }
 
-        // Активируем новую сцену
-        asyncLoad.allowSceneActivation = true;
+            if (ButtonSoundManager.instance != null)
+            {
+                ButtonSoundManager.instance.StopAllSounds();
+            }
+
+            // Stop all active audio sources to prevent crackling during the scene transition freeze
+            AudioSource[] allAudioSources = FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
+            foreach (var source in allAudioSources)
+            {
+                if (source != null && source.isPlaying && source != localSource)
+                {
+                    source.Stop();
+                }
+            }
+
+            // Активируем новую сцену
+            asyncLoad.allowSceneActivation = true;
+        }
+        else
+        {
+            // Переход внутри одной сцены (Single Scene)
+            if (targetScreenRoot != null) targetScreenRoot.SetActive(true);
+            
+            if (targetCamera != null)
+            {
+                if (Camera.main != null && Camera.main != targetCamera && !keepCurrentAlive)
+                {
+                    Camera.main.gameObject.SetActive(false);
+                }
+                targetCamera.gameObject.SetActive(true);
+            }
+
+            if (currentScreenRoot != null)
+            {
+                if (keepCurrentAlive)
+                {
+                    // Keep it active so spawners/scripts keep running,
+                    // but disable ALL GraphicRaycasters so no clicks bleed through.
+                    UnityEngine.UI.GraphicRaycaster[] allRaycasters = currentScreenRoot.GetComponentsInChildren<UnityEngine.UI.GraphicRaycaster>(true);
+                    foreach (var gr in allRaycasters) gr.enabled = false;
+                    // Also hide visually
+                    CanvasGroup cg = currentScreenRoot.GetComponent<CanvasGroup>();
+                    if (cg == null) cg = currentScreenRoot.AddComponent<CanvasGroup>();
+                    cg.alpha = 0f;
+                    cg.interactable = false;
+                    cg.blocksRaycasts = false;
+                }
+                else
+                {
+                    currentScreenRoot.SetActive(false);
+                }
+            }
+
+            // Сбрасываем зум, чтобы при возвращении на этот экран он был в нормальном виде
+            rootContainer.localScale = startScale;
+            rootContainer.anchoredPosition = startPos;
+            for (int i = 0; i < lights.Length; i++)
+            {
+                lights[i].pointLightOuterRadius = initialOuter[i];
+                lights[i].pointLightInnerRadius = initialInner[i];
+            }
+            isTransitioning = false;
+        }
     }
 }

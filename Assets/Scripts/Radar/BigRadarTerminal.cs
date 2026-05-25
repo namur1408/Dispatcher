@@ -20,13 +20,20 @@ public class BigRadarTerminal : MonoBehaviour
         Instance = this;
     }
 
-    IEnumerator Start()
+    void OnEnable()
+    {
+        isStartupSequenceDone = false;
+        currentPlaneCount = -1;
+        currentSelectedPlane = null;
+        StartCoroutine(StartupSequence());
+    }
+
+    IEnumerator StartupSequence()
     {
         SetPlaneCount(0);
-        yield return new WaitUntil(() => !topInfoText.IsTyping);
+        yield return new WaitUntil(() => topInfoText == null || !topInfoText.IsTyping);
         isStartupSequenceDone = true;
 
-        // ИСПРАВЛЕНИЕ 1: Очищаем экран только если игрок еще никого не выбрал
         if (currentSelectedPlane == null)
         {
             ClearSelection();

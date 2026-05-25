@@ -1,15 +1,15 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class RadioManager : MonoBehaviour
 {
     public static RadioManager Instance;
 
-    [Header("Âèçóàë")]
+    [Header("Visuals")]
     public GameObject blinkingLight;
     public float blinkSpeed = 2f;
 
-    [Header("Çâóê âûçîâà")]
+    [Header("Audio")]
     public AudioClip ringSound;
     [Range(0f, 1f)] public float ringVolume = 0.6f;
     private AudioSource audioSource;
@@ -78,7 +78,17 @@ public class RadioManager : MonoBehaviour
 
             if (audioSource != null) audioSource.Stop();
 
-            if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager(); SceneManager.LoadScene("CommsScene");
+            if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager(); 
+
+            ZoomTransition zoom = GetComponent<ZoomTransition>();
+            if (zoom != null)
+            {
+                zoom.TriggerTransition();
+            }
+            else
+            {
+                SceneManager.LoadScene("CommsScene");
+            }
         }
     }
 }

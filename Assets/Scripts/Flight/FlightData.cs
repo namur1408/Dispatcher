@@ -8,6 +8,11 @@ public class FlightData
     public Vector2 position;
     public Vector2 targetPosition;
     public List<Vector2> savedWaypoints = new List<Vector2>();
+
+    // Для сериализации JsonUtility, так как List<Vector2> не сериализуется корректно
+    public List<float> waypointXs = new List<float>();
+    public List<float> waypointYs = new List<float>();
+
     public float speed;
     public float currentFuel;
     public int planeMaxFuel = 250;
@@ -104,6 +109,8 @@ public class FlightData
         manifestCargo = cargo;
         manifestCargoAmount = cargoAmount;
         manifestOrigin = "Bastion-" + Random.Range(1, 10);
+        
+        UpdateSerializedWaypoints();
     }
 
     public FlightData(string cs, Vector2 pos, Vector2 target, List<Vector2> wps, float spd,
@@ -123,5 +130,41 @@ public class FlightData
         manifestCargo = fakeCargo;
         manifestCargoAmount = fakeAmount;
         manifestOrigin = originPort;
+
+        UpdateSerializedWaypoints();
+    }
+
+    public void UpdateSerializedWaypoints()
+    {
+        waypointXs.Clear();
+        waypointYs.Clear();
+        if (savedWaypoints != null)
+        {
+            foreach (var wp in savedWaypoints)
+            {
+                waypointXs.Add(wp.x);
+                waypointYs.Add(wp.y);
+            }
+        }
+    }
+
+    public void ReconstructWaypoints()
+    {
+        savedWaypoints.Clear();
+        if (waypointXs != null && waypointYs != null)
+        {
+            for (int i = 0; i < Mathf.Min(waypointXs.Count, waypointYs.Count); i++)
+            {
+                savedWaypoints.Add(new Vector2(waypointXs[i], waypointYs[i]));
+            }
+        }
+    }
+
+    // Для загрузки уже существующих
+    public FlightData() 
+    { 
+        savedWaypoints = new List<Vector2>();
+        waypointXs = new List<float>();
+        waypointYs = new List<float>();
     }
 }

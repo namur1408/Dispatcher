@@ -336,8 +336,9 @@ public class RadarPanelsManager : MonoBehaviour
             return;
         }
 
-        // 1. Записываем полосу
+        // 1. Обновляем данные
         selectedFlightForRunway.assignedRunway = runwayId;
+        selectedFlightForRunway.isAligningToLand = !selectedFlightForRunway.isDeparting;
 
         if (selectedFlightForRunway.isReadyToDepart)
         {
@@ -365,7 +366,6 @@ public class RadarPanelsManager : MonoBehaviour
                                      (plane.callsignText != null && plane.callsignText.text == selectedFlightForRunway.callsign)))
                 {
                     plane.SetAssignedRunway(runwayId, !selectedFlightForRunway.isDeparting);
-                    break;
                 }
             }
         }

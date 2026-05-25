@@ -28,6 +28,11 @@ public class StoryManager : MonoBehaviour
     public static bool isFirstGameLoad = true;
     public static int currentDay = 1;
 
+    [Header("Single Scene Mode (Optional)")]
+    public Camera gameCamera;
+    public GameObject gameScreenRoot;
+    public GameObject currentStoryRoot;
+
     void Awake()
     {
         if (Instance == null)
@@ -64,11 +69,39 @@ public class StoryManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        // --- ЗАГРУЗКА СОХРАНЕНИЯ (Continue) ---
+        // StoryManager — DontDestroyOnLoad, Start() вызывается только раз при первой сцене.
+        // Все последующие загрузки сцен попадают сюда в OnSceneLoaded.
+        if (GameSaveManager.loadedData != null)
+        {
+            isFirstGameLoad = false;
+            currentDay = GameSaveManager.loadedData.currentDay;
+
+            bool shiftWasActive = GameSaveManager.loadedData.isShiftActive;
+
+            if (FlightDataManager.Instance != null)
+                FlightDataManager.Instance.LoadState(GameSaveManager.loadedData);
+
+            GameSaveManager.loadedData = null;
+
+            if (shiftWasActive)
+            {
+                ForceBlackScreen();
+                StartCoroutine(ResumeMidShiftRoutine());
+            }
+            else
+            {
+                StartCoroutine(WaitAndStartDay(currentDay, true));
+            }
+            return;
+        }
+
+        // --- ПЕРЕХОД МЕЖДУ ДНЯМИ ---
         if (PlayerPrefs.HasKey("StartDayNumber"))
         {
             isFirstGameLoad = false;
             currentDay = PlayerPrefs.GetInt("StartDayNumber");
-            PlayerPrefs.DeleteKey("StartDayNumber"); 
+            PlayerPrefs.DeleteKey("StartDayNumber");
 
             ForceBlackScreen();
             StartCoroutine(WaitAndStartDay(currentDay, true));
@@ -77,6 +110,13 @@ public class StoryManager : MonoBehaviour
 
     void Start()
     {
+        // Start() вызывается только при самой первой загрузке сцены.
+        // Последующие загрузки обрабатываются в OnSceneLoaded выше.
+
+        // Если loadedData уже обработан в OnSceneLoaded — выходим
+        if (GameSaveManager.loadedData != null)
+            return; // OnSceneLoaded сработает следом
+
         if (skipTutorialAndStartDay1)
         {
             isFirstGameLoad = false;
@@ -119,6 +159,25 @@ public class StoryManager : MonoBehaviour
         if (transitionScreen != null) transitionScreen.SetActive(false);
         if (transitionCanvasGroup != null) transitionCanvasGroup.blocksRaycasts = false;
 
+        LockPlayerInput(false);
+    }
+
+    private IEnumerator ResumeMidShiftRoutine()
+    {
+        LockPlayerInput(true);
+        
+        // Ждем, пока RadarManager не будет готов
+        yield return new WaitUntil(() => RadarManager.Instance != null);
+        
+        // Точно как BigRadarLoader.RebuildAll() — читаем FlightDataManager и спавним самолёты
+        RadarManager.Instance.RebuildFromFlightData();
+        
+        yield return new WaitForSeconds(0.5f);
+        if (transitionCanvasGroup != null)
+            yield return StartCoroutine(Fade(1f, 0f, 1f));
+
+        if (transitionScreen != null) transitionScreen.SetActive(false);
+        if (transitionCanvasGroup != null) transitionCanvasGroup.blocksRaycasts = false;
         LockPlayerInput(false);
     }
 
@@ -181,6 +240,9 @@ public class StoryManager : MonoBehaviour
         {
             FlightDataManager.Instance.isShiftActive = false;
         }
+        
+        // Обязательно сохраняем игру в конце дня, чтобы зафиксировать прогресс
+        GameSaveManager.SaveGame();
 
         ForceBlackScreen();
         if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 0f;
@@ -354,7 +416,21 @@ public class StoryManager : MonoBehaviour
         PlayerPrefs.SetInt("StartDayNumber", currentDay);
         PlayerPrefs.Save();
 
-        if (!string.IsNullOrEmpty(mainSceneName) && mainSceneName != SceneManager.GetActiveScene().name)
+        if (gameCamera != null || gameScreenRoot != null)
+        {
+            if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
+            
+            if (gameScreenRoot != null) gameScreenRoot.SetActive(true);
+            if (gameCamera != null)
+            {
+                if (Camera.main != null && Camera.main != gameCamera) Camera.main.gameObject.SetActive(false);
+                gameCamera.gameObject.SetActive(true);
+            }
+            if (currentStoryRoot != null) currentStoryRoot.SetActive(false);
+            
+            StartCoroutine(WaitAndStartDay(currentDay, true));
+        }
+        else if (!string.IsNullOrEmpty(mainSceneName) && mainSceneName != SceneManager.GetActiveScene().name)
         {
             if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
             AsyncOperation op = SceneManager.LoadSceneAsync(mainSceneName);

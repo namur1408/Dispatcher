@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 3a26059453db64e4ab2808971b41a9fa
+guid: 4f48d7d2b83717f41abd5adf83ec184a
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -2221023623781543096
-    second: MIC_0
+      213: -5215691063246983397
+    second: Strap 1_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: MIC_0
+      name: Strap 1_0
       rect:
         serializedVersion: 2
-        x: 217
-        y: 38
-        width: 483
-        height: 477
+        x: 79
+        y: 885
+        width: 1890
+        height: 278
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 84310ca18c65d21e0800000000000000
-      internalID: -2221023623781543096
+      spriteID: b1febf4ac942e97b0800000000000000
+      internalID: -5215691063246983397
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      MIC_0: -2221023623781543096
+      Strap 1_0: -5215691063246983397
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -2,8 +2,14 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Manages airplane icons on the BIG radar screen.
+/// Stays synced with FlightDataManager every frame — no data copying needed.
+/// Each radar (small & big) has its own UIAirplane objects.
+/// </summary>
 public class BigRadarLoader : MonoBehaviour
 {
+    [Header("Spawn Settings")]
     public GameObject airplanePrefab;
     public Transform radarContent;
     public string mainSceneName = "SampleScene";
@@ -11,56 +17,141 @@ public class BigRadarLoader : MonoBehaviour
     [Header("Conflict Alert Settings")]
     public float warningDistance = 125f;
 
+    // Our own list of plane icons on the big radar
     private List<UIAirplane> activePlanes = new List<UIAirplane>();
+    // Map callsign → our UIAirplane for fast lookup
+    private Dictionary<string, UIAirplane> planeMap = new Dictionary<string, UIAirplane>();
 
-    void Start()
+    public static bool isGlobalWarningActive = false;
+
+    void OnEnable()
     {
-        RestoreFlights();
+        // Full rebuild when screen opens
+        RebuildAll();
+    }
+
+    void OnDisable()
+    {
+        // Clear our visual icons when screen closes (they'll be rebuilt on next open)
+        ClearAll();
     }
 
     void Update()
     {
-        UIAirplane[] allPlanesOnScene = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
-        activePlanes.Clear();
-        activePlanes.AddRange(allPlanesOnScene);
+        if (FlightDataManager.Instance == null || radarContent == null) return;
+
+        SyncWithFlightDataManager();
 
         if (BigRadarTerminal.Instance != null)
-        {
             BigRadarTerminal.Instance.SetPlaneCount(activePlanes.Count);
-        }
 
         CheckForConflicts();
     }
 
-    public static bool isGlobalWarningActive = false;
+    // ── Sync ─────────────────────────────────────────────────────────────────
+
+    void SyncWithFlightDataManager()
+    {
+        var savedFlights = FlightDataManager.Instance.savedFlights;
+
+        // 1. Add planes that are in FlightDataManager but not on big radar yet
+        foreach (var data in savedFlights)
+        {
+            if (data.hasLanded || data.isReadyToDepart) continue;
+
+            if (!planeMap.ContainsKey(data.callsign))
+            {
+                SpawnPlane(data);
+            }
+        }
+
+        // 2. Remove planes from big radar that are no longer active in FlightDataManager
+        List<string> toRemove = new List<string>();
+        foreach (var kv in planeMap)
+        {
+            if (kv.Value == null) { toRemove.Add(kv.Key); continue; }
+
+            var fd = savedFlights.Find(f => f.callsign == kv.Key);
+            if (fd == null || fd.hasLanded)
+                toRemove.Add(kv.Key);
+        }
+        foreach (var key in toRemove)
+        {
+            if (planeMap.TryGetValue(key, out var plane) && plane != null)
+                Destroy(plane.gameObject);
+            planeMap.Remove(key);
+        }
+
+        // Rebuild activePlanes list (remove nulls)
+        activePlanes.RemoveAll(p => p == null);
+    }
+
+    void SpawnPlane(FlightData data)
+    {
+        if (airplanePrefab == null || radarContent == null) return;
+
+        GameObject go = Instantiate(airplanePrefab, radarContent, false);
+        UIAirplane plane = go.GetComponent<UIAirplane>();
+        if (plane == null) { Destroy(go); return; }
+
+        plane.InitializeFromData(data);
+
+        activePlanes.Add(plane);
+        planeMap[data.callsign] = plane;
+    }
+
+    // ── Full rebuild / clear ──────────────────────────────────────────────────
+
+    void RebuildAll()
+    {
+        ClearAll();
+        if (FlightDataManager.Instance == null) return;
+
+        // Save small radar state first so we have fresh positions
+        if (RadarManager.Instance != null)
+            RadarManager.Instance.SaveToGlobalManager();
+
+        foreach (var data in FlightDataManager.Instance.savedFlights)
+        {
+            if (data.hasLanded || data.isReadyToDepart) continue;
+            SpawnPlane(data);
+        }
+    }
+
+    void ClearAll()
+    {
+        foreach (var kv in planeMap)
+            if (kv.Value != null) Destroy(kv.Value.gameObject);
+
+        planeMap.Clear();
+        activePlanes.Clear();
+    }
+
+    // ── Conflict detection ────────────────────────────────────────────────────
 
     private void CheckForConflicts()
     {
         bool anyWarning = false;
 
         foreach (var plane in activePlanes)
-        {
             if (plane != null) plane.SetWarning(false);
-        }
 
         for (int i = 0; i < activePlanes.Count; i++)
         {
             for (int j = i + 1; j < activePlanes.Count; j++)
             {
-                UIAirplane planeA = activePlanes[i];
-                UIAirplane planeB = activePlanes[j];
+                UIAirplane a = activePlanes[i];
+                UIAirplane b = activePlanes[j];
+                if (a == null || b == null) continue;
 
-                if (planeA == null || planeB == null) continue;
+                float dist = Vector2.Distance(
+                    a.GetComponent<RectTransform>().anchoredPosition,
+                    b.GetComponent<RectTransform>().anchoredPosition);
 
-                float distance = Vector2.Distance(
-                    planeA.GetComponent<RectTransform>().anchoredPosition,
-                    planeB.GetComponent<RectTransform>().anchoredPosition
-                );
-
-                if (distance < warningDistance)
+                if (dist < warningDistance)
                 {
-                    planeA.SetWarning(true);
-                    planeB.SetWarning(true);
+                    a.SetWarning(true);
+                    b.SetWarning(true);
                     anyWarning = true;
                 }
             }
@@ -69,53 +160,8 @@ public class BigRadarLoader : MonoBehaviour
         isGlobalWarningActive = anyWarning;
     }
 
-    public void RestoreFlights()
-    {
-        if (FlightDataManager.Instance == null || FlightDataManager.Instance.savedFlights.Count == 0) return;
+    // ── Departures (called from RadarPanelsManager) ───────────────────────────
 
-        foreach (FlightData data in FlightDataManager.Instance.savedFlights)
-        {
-            // Самолёты, готовые к вылету, показываются в Departures-панели.
-            // Спавн произойдёт только после того, как игрок назначит полосу.
-            if (data.isReadyToDepart)
-            {
-                Debug.Log($"<color=yellow>[BigRadarLoader] Skipping auto-spawn for ready-to-depart: {data.callsign}</color>");
-                continue;
-            }
-
-            if (data.isDeparting)
-            {
-                // Самолёт УЖЕ вылетает и находится в воздухе (игрок выходил на стол во время его полета).
-                // Просто восстанавливаем его на сохраненной позиции с его траекторией.
-                GameObject newPlane = Instantiate(airplanePrefab, radarContent, false);
-                UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
-
-                if (planeScript != null)
-                {
-                    planeScript.InitializeFromData(data);
-                    if (RadarManager.Instance != null)
-                    {
-                        RadarManager.Instance.RegisterAirplane(planeScript);
-                    }
-                }
-            }
-            else if (!data.hasLanded)
-            {
-                GameObject newPlane = Instantiate(airplanePrefab, radarContent, false);
-                UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
-
-                if (planeScript != null)
-                {
-                    planeScript.InitializeFromData(data);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Спавнит самолёт в центре радара и запускает вылет по выбранной полосе.
-    /// Вызывается из RadarPanelsManager после выбора игроком полосы вылета.
-    /// </summary>
     public void SpawnDepartingNow(FlightData data)
     {
         if (airplanePrefab == null || radarContent == null) return;
@@ -129,59 +175,66 @@ public class BigRadarLoader : MonoBehaviour
             Runway rw = RunwayManager.Instance.GetRunwayByID(data.assignedRunway);
             if (rw != null)
             {
-                RectTransform rwRect = rw.GetComponent<RectTransform>();
-                if (rwRect != null) spawnPos = rwRect.anchoredPosition;
+                RectTransform rt = rw.GetComponent<RectTransform>();
+                if (rt != null) spawnPos = rt.anchoredPosition;
             }
         }
         data.position = spawnPos;
 
-        GameObject newPlane = Instantiate(airplanePrefab, radarContent, false);
-        UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
-
-        if (planeScript != null)
+        SpawnPlane(data);
+        UIAirplane plane = planeMap.ContainsKey(data.callsign) ? planeMap[data.callsign] : null;
+        if (plane != null)
         {
-            planeScript.InitializeFromData(data);
-
-            // SetAssignedRunway с isLanding=false → самолёт улетает по направлению полосы
             if (!string.IsNullOrEmpty(data.assignedRunway))
-            {
-                planeScript.SetAssignedRunway(data.assignedRunway, false);
-            }
+                plane.SetAssignedRunway(data.assignedRunway, false);
             else
             {
-                // Запасной вариант: улетает в случайном направлении
                 float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-                Vector2 exitPoint = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * planeScript.despawnRadius;
-                planeScript.SetFlightPath(Vector2.zero, exitPoint);
+                plane.SetFlightPath(Vector2.zero,
+                    new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * plane.despawnRadius);
             }
 
             if (RadarManager.Instance != null)
-            {
-                RadarManager.Instance.RegisterAirplane(planeScript);
-            }
-
-            Debug.Log($"<color=green>[BigRadarLoader] Spawned departing plane: {data.callsign} on runway {data.assignedRunway}</color>");
+                RadarManager.Instance.RegisterAirplane(plane);
         }
     }
+
+    // ── Return to desk ────────────────────────────────────────────────────────
+
+    [Header("Single Scene Return Mode")]
+    public Camera returnCamera;
+    public GameObject returnScreenRoot;
+    public GameObject currentScreenRoot;
 
     public void SaveAndReturnToDesk()
     {
-
-        UIAirplane[] allPlanesOnScene = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
-
-        if (FlightDataManager.Instance != null)
-        {
-            FlightDataManager.Instance.UpdateFlights(new List<UIAirplane>(allPlanesOnScene));
-        }
-
         Time.timeScale = 1f;
-
         if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
-        SceneManager.LoadScene(mainSceneName);
+
+        if (returnCamera != null || returnScreenRoot != null)
+        {
+            if (returnScreenRoot != null)
+            {
+                returnScreenRoot.SetActive(true);
+                CanvasGroup cg = returnScreenRoot.GetComponent<CanvasGroup>();
+                if (cg != null) { cg.alpha = 1f; cg.blocksRaycasts = true; cg.interactable = true; }
+                UnityEngine.UI.GraphicRaycaster[] grs = returnScreenRoot.GetComponentsInChildren<UnityEngine.UI.GraphicRaycaster>(true);
+                foreach (var gr in grs) gr.enabled = true;
+            }
+            if (returnCamera != null)
+            {
+                returnCamera.gameObject.SetActive(true);
+            }
+            if (currentScreenRoot != null) currentScreenRoot.SetActive(false);
+        }
+        else
+        {
+            SceneManager.LoadScene(mainSceneName);
+        }
     }
 
-    void OnDestroy()
-    {
-        Time.timeScale = 1f;
-    }
+    // Legacy alias
+    public void RestoreFlights() => RebuildAll();
+
+    void OnDestroy() { Time.timeScale = 1f; }
 }

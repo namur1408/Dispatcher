@@ -237,8 +237,18 @@ public class UIAirplane : MonoBehaviour
         audioSource.volume = pingVolume; // <-- НОВОЕ: Применяем громкость при старте
         if (canvasGroup != null) canvasGroup.alpha = 0f;
 
-        GameObject foundScanner = GameObject.Find("SweepLine");
-        if (foundScanner != null) sweepLine = foundScanner.transform;
+        // Ищем SweepLine в своей иерархии радара
+        if (transform.parent != null && transform.parent.parent != null)
+        {
+            Transform localScanner = transform.parent.parent.Find("SweepLine");
+            if (localScanner != null) sweepLine = localScanner;
+        }
+        // Фолбэк
+        if (sweepLine == null)
+        {
+            GameObject foundScanner = GameObject.Find("SweepLine");
+            if (foundScanner != null) sweepLine = foundScanner.transform;
+        }
         
         UpdateDespawnRadius();
     }
@@ -756,9 +766,18 @@ public class UIAirplane : MonoBehaviour
     void HandlePing()
     {
         if (sweepLine == null) return;
+
+        // planeAngle — угол самолёта в локальном пространстве radarContent
         float planeAngle = Mathf.Atan2(logicalPosition.y, logicalPosition.x) * Mathf.Rad2Deg;
-        Vector2 sweepDir = sweepLine.up;
-        float sweepAngle = Mathf.Atan2(sweepDir.y, sweepDir.x) * Mathf.Rad2Deg;
+
+        // sweepLine.up — мировые координаты. Переводим в локальное пространство radarContent,
+        // чтобы обе системы координат совпадали.
+        Transform radarParent = rectTransform.parent;
+        Vector3 sweepWorldUp = sweepLine.up;
+        Vector3 sweepLocalDir = radarParent != null
+            ? radarParent.InverseTransformDirection(sweepWorldUp)
+            : sweepWorldUp;
+        float sweepAngle = Mathf.Atan2(sweepLocalDir.y, sweepLocalDir.x) * Mathf.Rad2Deg;
 
         if (Mathf.Abs(Mathf.DeltaAngle(sweepAngle, planeAngle)) < 3f)
         {
@@ -768,7 +787,6 @@ public class UIAirplane : MonoBehaviour
             UpdateHitboxColor();
             if (canvasGroup != null) canvasGroup.alpha = isLandingPhase ? 0.2f : 1f;
 
-            // --- НОВОЕ: Применяем настроенную громкость при каждом пике ---
             if (pingSound != null && Time.time - lastPingTime > 1.0f)
             {
                 audioSource.PlayOneShot(pingSound, pingVolume);
@@ -838,7 +856,7 @@ public class UIAirplane : MonoBehaviour
         }
     }
 
-    public void UpdateInternalSpeed() => _actualSpeed = speed / 50f;
+    public void UpdateInternalSpeed() => _actualSpeed = speed / 25f;
 
     private void CheckZoomVisibility(float zoom)
     {
@@ -925,7 +943,7 @@ public class UIAirplane : MonoBehaviour
         if (activeSegmentIndex >= 0 && activeSegmentIndex < lineSegments.Count)
         {
             UpdateSegmentLook(lineSegments[activeSegmentIndex].GetComponent<RectTransform>(),
-                              rectTransform.anchoredPosition,
+                              logicalPosition,
                               waypoints[0]);
         }
     }

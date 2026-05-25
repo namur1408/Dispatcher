@@ -82,7 +82,7 @@ public class FlightDataManager : MonoBehaviour
     public Queue<FlightData> scriptedFlightsQueue = new Queue<FlightData>();
     public Queue<float> scriptedDelaysQueue = new Queue<float>();
 
-    private float accumulatedFoodConsumption = 0f;
+    public float accumulatedFoodConsumption = 0f;
 
     public const float UNLOAD_TIME = 15f;
     public const float REFUEL_TIME = 15f;
@@ -177,6 +177,7 @@ public class FlightDataManager : MonoBehaviour
             {
                 existing.position = plane.GetLogicalPosition();
                 existing.savedWaypoints = plane.GetWaypoints();
+                existing.UpdateSerializedWaypoints();
                 existing.hasBeenPinged = plane.hasBeenPinged;
                 existing.currentFuel = Mathf.RoundToInt(plane.currentFuel);
                 existing.isInStorm = plane.inStorm;
@@ -605,6 +606,39 @@ public class FlightDataManager : MonoBehaviour
         if (servicedPlanes.Count > 0)
         {
             EnqueueDepartingPlanes(servicedPlanes);
+        }
+    }
+
+    public void LoadState(SaveData data)
+    {
+        this.isShiftActive = data.isShiftActive;
+        this.globalSpawnTimer = data.globalSpawnTimer;
+        
+        this.savedFlights = data.savedFlights;
+        
+        this.scriptedFlightsQueue = new Queue<FlightData>(data.pendingFlights);
+        this.scriptedDelaysQueue = new Queue<float>(data.pendingDelays);
+        
+        this.totalFuel = data.totalFuel;
+        this.totalFood = data.totalFood;
+        this.totalPeople = data.totalPeople;
+        this.totalMedicines = data.totalMedicines;
+        
+        this.startFuelDay = data.startFuelDay;
+        this.startFoodDay = data.startFoodDay;
+        this.startPeopleDay = data.startPeopleDay;
+        this.startMedsDay = data.startMedsDay;
+        
+        this.maxPlanes = data.maxPlanes;
+        this.landedPlanes = data.landedPlanes;
+        this.accumulatedFoodConsumption = data.accumulatedFoodConsumption;
+
+        if (this.savedFlights != null)
+        {
+            foreach (var flight in this.savedFlights)
+            {
+                flight.ReconstructWaypoints();
+            }
         }
     }
 

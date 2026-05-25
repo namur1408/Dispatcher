@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.Events;
 
 public class CommsManager : MonoBehaviour
 {
@@ -187,8 +188,23 @@ public class CommsManager : MonoBehaviour
             contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, startY);
         }
 
+        RefreshData();
+    }
+
+    public void RefreshData()
+    {
+        if (manifestDocInstance != null) { Destroy(manifestDocInstance); manifestDocInstance = null; }
+        if (radarDocInstance != null) { Destroy(radarDocInstance); radarDocInstance = null; }
+        if (cheatSheetDocInstance != null) { Destroy(cheatSheetDocInstance); cheatSheetDocInstance = null; }
+        if (pilotReportDoc != null) { Destroy(pilotReportDoc.gameObject); pilotReportDoc = null; }
+
+        if (chatHistoryText != null) chatHistoryText.text = "";
+        StopAllCoroutines();
+        isTyping = false;
+        isAnimatingPaper = false;
+
         string callsign = RadioManager.activeCallsign;
-        if (FlightDataManager.Instance != null)
+        if (FlightDataManager.Instance != null && !string.IsNullOrEmpty(callsign))
         {
             currentData = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == callsign);
             if (currentData != null)
@@ -207,7 +223,7 @@ public class CommsManager : MonoBehaviour
                 else
                 {
                     chatHistoryText.text = currentData.chatHistory;
-                    ScrollToBottom();
+                    ScrollToBottom(true);
                 }
             }
         }
@@ -688,6 +704,12 @@ public class CommsManager : MonoBehaviour
         isTyping = false;
     }
 
+    [Header("Single Scene Return Mode (Optional)")]
+    public Camera returnCamera;
+    public GameObject returnScreenRoot;
+    public GameObject currentCommsRoot;
+    public UnityEvent onReturn;
+
     public void EndInterrogation()
     {
         if (currentData != null)
@@ -698,7 +720,30 @@ public class CommsManager : MonoBehaviour
         }
         if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager();
         if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
-        SceneManager.LoadScene("SampleScene");
+
+        if (returnCamera != null || returnScreenRoot != null)
+        {
+            // Single scene return mode
+            if (returnScreenRoot != null)
+            {
+                returnScreenRoot.SetActive(true);
+                CanvasGroup cg = returnScreenRoot.GetComponent<CanvasGroup>();
+                if (cg != null) { cg.alpha = 1f; cg.blocksRaycasts = true; cg.interactable = true; }
+                UnityEngine.UI.GraphicRaycaster[] grs = returnScreenRoot.GetComponentsInChildren<UnityEngine.UI.GraphicRaycaster>(true);
+                foreach (var gr in grs) gr.enabled = true;
+            }
+            if (returnCamera != null)
+            {
+                returnCamera.gameObject.SetActive(true);
+            }
+            if (currentCommsRoot != null) currentCommsRoot.SetActive(false);
+        }
+        else
+        {
+            SceneManager.LoadScene("SampleScene");
+        }
+        
+        onReturn?.Invoke();
     }
 
     public void OnFolderTorn()

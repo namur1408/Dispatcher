@@ -18,29 +18,47 @@ public class RadarManager : MonoBehaviour
 
     void Start()
     {
-        if (FlightDataManager.Instance != null && FlightDataManager.Instance.savedFlights.Count > 0)
-        {
-            activeAirplanes.Clear();
-
-            foreach (var data in FlightDataManager.Instance.savedFlights)
-            {
-                RestoreAirplane(data);
-            }
-
-            StartCoroutine(ApplyDecisionsNextFrame());
-        }
+        // Ничего не делаем здесь.
+        // Восстановление самолетов теперь делается через RebuildFromFlightData(),
+        // который вызывается из StoryManager после LoadState().
     }
 
-    void RestoreAirplane(FlightData data)
+    /// <summary>
+    /// Точно как BigRadarLoader.RebuildAll() — читаем FlightDataManager
+    /// и спавним все самолеты, которые ещё в воздухе.
+    /// </summary>
+    public void RebuildFromFlightData()
     {
-        if (data.hasLanded) return;
-        AirplaneSpawner spawner = FindFirstObjectByType<AirplaneSpawner>();
+        if (FlightDataManager.Instance == null) return;
+
+        // Убиваем все текущие визуальные объекты на радаре
+        foreach (var plane in activeAirplanes)
+            if (plane != null) Destroy(plane.gameObject);
+        activeAirplanes.Clear();
+
+        // Читаем прямо из FlightDataManager — так же как это делает BigRadarLoader
+        foreach (var data in FlightDataManager.Instance.savedFlights)
+        {
+            if (data.hasLanded || data.isReadyToDepart) continue;
+            SpawnAndRegister(data);
+        }
+
+        StartCoroutine(ApplyDecisionsNextFrame());
+    }
+
+    private void SpawnAndRegister(FlightData data)
+    {
+        AirplaneSpawner spawner = AirplaneSpawner.Instance;
+        if (spawner == null) spawner = FindFirstObjectByType<AirplaneSpawner>();
         if (spawner == null) return;
 
         GameObject newPlane = Instantiate(spawner.airplanePrefab, spawner.radarContent);
         UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
         if (planeScript != null)
+        {
             planeScript.InitializeFromData(data);
+            RegisterAirplane(planeScript);
+        }
     }
 
     IEnumerator ApplyDecisionsNextFrame()
