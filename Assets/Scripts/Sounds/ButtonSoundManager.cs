@@ -25,6 +25,7 @@ public class ButtonSoundManager : MonoBehaviour
             if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
 
             audioSource.playOnAwake = false;
+            audioSource.ignoreListenerVolume = true;
         }
         else
         {

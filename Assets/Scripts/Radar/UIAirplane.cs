@@ -82,7 +82,6 @@ public class UIAirplane : MonoBehaviour
     {
         Collider2D[] colliders = GetComponentsInChildren<Collider2D>();
         foreach (var col in colliders) col.enabled = active;
-        if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(active);
     }
 
     public enum DispatchStatus { Pending, Approved, Denied }
@@ -141,6 +140,16 @@ public class UIAirplane : MonoBehaviour
         else
         {
             isDeparting = true;
+            isAligningToLand = false;
+            speed *= 4f; // Ускоряем вылетающие самолеты
+            UpdateInternalSpeed();
+            
+            if (FlightDataManager.Instance != null)
+            {
+                var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
+                if (fd != null) fd.speed = speed;
+            }
+            
             if (RunwayManager.Instance != null)
             {
                 Runway rw = RunwayManager.Instance.GetRunwayByID(rwId);
@@ -403,7 +412,7 @@ public class UIAirplane : MonoBehaviour
             return;
         }
 
-        if (dispatchStatus != DispatchStatus.Pending) return;
+        if (dispatchStatus != DispatchStatus.Pending && !isDeparting) return;
 
         if (waypoints.Count == 0)
         {
@@ -744,7 +753,7 @@ public class UIAirplane : MonoBehaviour
                 var flight = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
                 if (flight != null)
                 {
-                    if (flight.hasLanded && FlightDataManager.Instance.ShouldPlaneDepart(flight))
+                    if ((flight.hasLanded && FlightDataManager.Instance.ShouldPlaneDepart(flight)) || flight.isDeparting)
                     {
                         FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
                     }

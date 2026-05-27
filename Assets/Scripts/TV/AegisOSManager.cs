@@ -11,6 +11,40 @@ public class AegisOSManager : MonoBehaviour
     [Header("Main Scene Name")]
     public string mainDeskSceneName = "SampleScene"; 
 
+    [Header("TV Sound Settings")]
+    public AudioClip tvBackgroundSound;
+    [Range(0f, 1f)] public float tvSoundVolume = 0.5f;
+
+    private AudioSource tvAudioSource;
+
+    private float originalListenerVolume = 1f;
+
+    void Awake()
+    {
+        tvAudioSource = gameObject.AddComponent<AudioSource>();
+        tvAudioSource.loop = true;
+        tvAudioSource.playOnAwake = false;
+        tvAudioSource.ignoreListenerVolume = true;
+    }
+
+    void OnEnable()
+    {
+        originalListenerVolume = AudioListener.volume;
+        AudioListener.volume = originalListenerVolume * 0.3f; // Слегка приглушаем остальные звуки
+        if (tvBackgroundSound != null && tvAudioSource != null)
+        {
+            tvAudioSource.clip = tvBackgroundSound;
+            tvAudioSource.volume = tvSoundVolume;
+            if (!tvAudioSource.isPlaying) tvAudioSource.Play();
+        }
+    }
+
+    void OnDisable()
+    {
+        AudioListener.volume = originalListenerVolume; // Восстанавливаем громкость
+        if (tvAudioSource != null) tvAudioSource.Stop();
+    }
+
     void Start()
     {
         if (airTrafficWindow) airTrafficWindow.SetActive(false);

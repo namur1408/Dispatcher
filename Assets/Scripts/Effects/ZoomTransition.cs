@@ -55,6 +55,7 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         // 1. Запускаем звук
         AudioSource localSource = GetComponent<AudioSource>();
         if (localSource == null) localSource = gameObject.AddComponent<AudioSource>();
+        localSource.ignoreListenerVolume = true;
 
         float totalWaitTime = zoomDuration;
 
@@ -64,9 +65,8 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
             localSource.volume = soundVolume;
             localSource.Play();
 
-            // Если указано свое время - используем его, иначе берем длину аудиофайла
-            float soundLength = customSoundDuration > 0f ? customSoundDuration : transitionSound.length;
-            totalWaitTime = Mathf.Max(zoomDuration, soundLength);
+            // Анимация больше не ждет длину звука
+            totalWaitTime = zoomDuration;
         }
         else if (ButtonSoundManager.instance != null)
         {

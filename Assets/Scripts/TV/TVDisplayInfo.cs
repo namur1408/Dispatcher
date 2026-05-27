@@ -243,7 +243,7 @@ public class TVDisplayInfo : MonoBehaviour
 
             foreach (var flight in fdm.savedFlights)
             {
-                if (flight.hasLanded && !flight.isReadyToDepart)
+                if (flight.hasLanded)
                 {
                     hasApprovedPlanes = true;
 
