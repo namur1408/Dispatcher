@@ -258,56 +258,6 @@ public class AirplaneSpawner : MonoBehaviour
     {
         if (crashedData == null) return;
         
-        string[] prefixes = { "GE", "TR", "QY" };
-        string prefix = crashedData.callsign.Length >= 2 ? crashedData.callsign.Substring(0, 2) : "GE";
-        if (prefix != "GE" && prefix != "TR" && prefix != "QY") prefix = prefixes[Random.Range(0, prefixes.Length)];
-        string newCallsign = $"{prefix}-{Random.Range(100, 999)}";
-
-        FlightData replacement = new FlightData(
-            newCallsign,
-            GetRandomSpawnPosition(GetActiveRadarContent()),
-            Vector2.zero,
-            new List<Vector2>(),
-            crashedData.speed,
-            crashedData.cargo,
-            crashedData.cargoAmount
-        );
-
-        replacement.manifestCargo = crashedData.manifestCargo;
-        replacement.manifestCargoAmount = crashedData.manifestCargoAmount;
-        replacement.manifestOrigin = crashedData.manifestOrigin;
-        
-        replacement.spokenCargo = crashedData.spokenCargo;
-        replacement.spokenOrigin = crashedData.spokenOrigin;
-        replacement.spokenWeight = crashedData.spokenWeight;
-        replacement.spokenSpeed = crashedData.spokenSpeed;
-        
-        replacement.customExplanation = crashedData.customExplanation;
-        replacement.explanationCargo = crashedData.explanationCargo;
-        replacement.explanationOrigin = crashedData.explanationOrigin;
-        replacement.explanationWeight = crashedData.explanationWeight;
-        replacement.explanationSpeed = crashedData.explanationSpeed;
-        
-        replacement.customAnswerCargo = crashedData.customAnswerCargo;
-        replacement.customAnswerOrigin = crashedData.customAnswerOrigin;
-        replacement.customAnswerWeight = crashedData.customAnswerWeight;
-        replacement.customAnswerSpeed = crashedData.customAnswerSpeed;
-
-        replacement.customQuestionCargo = crashedData.customQuestionCargo;
-        replacement.customQuestionOrigin = crashedData.customQuestionOrigin;
-        replacement.customQuestionWeight = crashedData.customQuestionWeight;
-        replacement.customQuestionSpeed = crashedData.customQuestionSpeed;
-
-        replacement.planeMaxFuel = crashedData.planeMaxFuel;
-        replacement.currentFuel = replacement.planeMaxFuel;
-        
-        replacement.departureDestination = crashedData.departureDestination;
-
-        if (FlightDataManager.Instance != null)
-        {
-            FlightDataManager.Instance.scriptedFlightsQueue.Enqueue(replacement);
-            FlightDataManager.Instance.scriptedDelaysQueue.Enqueue(15f);
-            Debug.Log($"<color=orange>CRASH RECOVERY: Queued replacement for {crashedData.callsign} as {newCallsign}</color>");
-        }
+        Debug.Log($"<color=red>CRASH: {crashedData.callsign} has crashed. No replacement will be spawned.</color>");
     }
 }

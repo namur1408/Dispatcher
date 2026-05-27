@@ -40,7 +40,7 @@ public class TVDisplayInfo : MonoBehaviour
     [Header("Shift Management")]
     public Button endShiftButton;
     public bool forceEndShiftDebug = false;
-    private int selectedIndex = -1;
+    private string selectedCallsign = "";
 
     private const string COL_HEADER = "#00FF41";
     private const string COL_SEPARATOR = "#1A4A1A";
@@ -63,6 +63,9 @@ public class TVDisplayInfo : MonoBehaviour
 
     private string selectedResourceCallsign = "";
     private Coroutine typingCoroutine;
+    
+    private int lastFlightCount = -1;
+    private Dictionary<string, float> flightHideTimes = new Dictionary<string, float>();
 
     void Start()
     {
@@ -102,6 +105,40 @@ public class TVDisplayInfo : MonoBehaviour
         {
             HandleTextClicks();
             UpdateResourcesText();
+        }
+
+        if (flightHideTimes.Count > 0)
+        {
+            List<string> toHide = new List<string>();
+            foreach (var kvp in flightHideTimes)
+            {
+                if (Time.unscaledTime >= kvp.Value)
+                {
+                    toHide.Add(kvp.Key);
+                }
+            }
+            foreach (var callsign in toHide)
+            {
+                flightHideTimes.Remove(callsign);
+                if (!hiddenFlights.Contains(callsign)) hiddenFlights.Add(callsign);
+            }
+            if (toHide.Count > 0 && flightsPanel != null && flightsPanel.activeSelf)
+            {
+                DisplayFlights();
+            }
+        }
+
+        if (flightsPanel != null && flightsPanel.activeSelf)
+        {
+            if (FlightDataManager.Instance != null && FlightDataManager.Instance.savedFlights.Count != lastFlightCount)
+            {
+                lastFlightCount = FlightDataManager.Instance.savedFlights.Count;
+                DisplayFlights();
+            }
+            else
+            {
+                UpdateFlightListVisuals();
+            }
         }
     }
 
@@ -494,6 +531,46 @@ public class TVDisplayInfo : MonoBehaviour
         UpdateSelectionVisuals();
     }
 
+    void UpdateFlightListVisuals()
+    {
+        if (FlightDataManager.Instance == null) return;
+        var flights = FlightDataManager.Instance.savedFlights;
+
+        foreach (var ui in activeFlightUIs)
+        {
+            if (ui.flightIndex < 0 || ui.flightIndex >= flights.Count) continue;
+            var data = flights[ui.flightIndex];
+            
+            TextMeshProUGUI txt = ui.backgroundImage.GetComponentInChildren<TextMeshProUGUI>();
+            if (txt != null)
+            {
+                string displayName = data.isInStorm ? "NO SIGNAL" : data.callsign;
+                string nameColor = data.isInStorm ? "#888888" : COL_CALLSIGN;
+
+                if (data.decisionMade)
+                {
+                    string decCol = data.approved ? COL_APPROVED : COL_DENIED;
+                    string decIcon = data.approved ? "ALLOWED" : "DENIED ";
+                    txt.text = $"<color={nameColor}><b>{displayName}</b></color>  " +
+                               $"<color={decCol}>[{decIcon}]</color>";
+                }
+                else
+                {
+                    bool isTransit = data.targetPosition != Vector2.zero && string.IsNullOrEmpty(data.assignedRunway);
+                    bool isLanding = !string.IsNullOrEmpty(data.assignedRunway);
+                    string currentStatus = isLanding ? "LANDING" : (isTransit ? "TRANSIT" : "APPROACHING");
+
+                    string stCol = currentStatus == "LANDING" ? COL_APPROVED : (currentStatus == "APPROACHING" ? COL_APPROACH : COL_TRANSIT);
+                    string stIcon = (currentStatus == "LANDING" || currentStatus == "APPROACHING") ? "[LAND]" : "[XSIT]";
+
+                    txt.text = $"<color={nameColor}><b>{displayName}</b></color>  " +
+                               $"<color={stCol}>{stIcon}</color>  " +
+                               $"<color={COL_SPEED}>SPD:{data.speed * 10f:F0} KTS</color>";
+                }
+            }
+        }
+    }
+
     private GameObject AddFrame(GameObject parent)
     {
         GameObject frameObj = new GameObject("SelectionFrame");
@@ -535,9 +612,14 @@ public class TVDisplayInfo : MonoBehaviour
 
     private void UpdateSelectionVisuals()
     {
+        if (FlightDataManager.Instance == null) return;
+        var flights = FlightDataManager.Instance.savedFlights;
+
         foreach (var ui in activeFlightUIs)
         {
-            if (ui.flightIndex == selectedIndex)
+            bool isSelected = (ui.flightIndex >= 0 && ui.flightIndex < flights.Count && flights[ui.flightIndex].callsign == selectedCallsign);
+
+            if (isSelected)
             {
                 if (ui.backgroundImage != null) ui.backgroundImage.color = Color.clear;
                 if (ui.selectionFrame != null) ui.selectionFrame.SetActive(true);
@@ -560,7 +642,7 @@ public class TVDisplayInfo : MonoBehaviour
         var flights = FlightDataManager.Instance.savedFlights;
         if (index < 0 || index >= flights.Count) return;
 
-        selectedIndex = index;
+        selectedCallsign = flights[index].callsign;
         string callsign = flights[index].callsign;
         var data = flights[index];
 
@@ -628,7 +710,13 @@ public class TVDisplayInfo : MonoBehaviour
 
     void RefreshButtons()
     {
-        bool canDecide = selectedIndex >= 0;
+        int index = -1;
+        if (FlightDataManager.Instance != null && !string.IsNullOrEmpty(selectedCallsign))
+        {
+            index = FlightDataManager.Instance.savedFlights.FindIndex(f => f.callsign == selectedCallsign);
+        }
+        
+        bool canDecide = index >= 0;
 
         bool hasSpace = true;
         bool isTransit = false;
@@ -638,10 +726,10 @@ public class TVDisplayInfo : MonoBehaviour
         {
             hasSpace = FlightDataManager.Instance.landedPlanes < FlightDataManager.Instance.maxPlanes;
 
-            if (canDecide && selectedIndex < FlightDataManager.Instance.savedFlights.Count)
+            if (canDecide)
             {
-                isTransit = FlightDataManager.Instance.savedFlights[selectedIndex].targetPosition != Vector2.zero && string.IsNullOrEmpty(FlightDataManager.Instance.savedFlights[selectedIndex].assignedRunway);
-                isInStorm = FlightDataManager.Instance.savedFlights[selectedIndex].isInStorm;
+                isTransit = FlightDataManager.Instance.savedFlights[index].targetPosition != Vector2.zero && string.IsNullOrEmpty(FlightDataManager.Instance.savedFlights[index].assignedRunway);
+                isInStorm = FlightDataManager.Instance.savedFlights[index].isInStorm;
             }
         }
 
@@ -650,7 +738,7 @@ public class TVDisplayInfo : MonoBehaviour
 
         if (canDecide && TVTutorialManager.Instance != null && !TVTutorialManager.isTvTutorialCompleted)
         {
-            string currentCallsign = FlightDataManager.Instance.savedFlights[selectedIndex].callsign;
+            string currentCallsign = FlightDataManager.Instance.savedFlights[index].callsign;
 
             if (!currentCallsign.StartsWith("KO"))
             {
@@ -696,14 +784,16 @@ public class TVDisplayInfo : MonoBehaviour
 
     void OnApproveClicked()
     {
-        if (selectedIndex < 0) return;
+        if (string.IsNullOrEmpty(selectedCallsign)) return;
         var fdm = FlightDataManager.Instance;
         var flights = fdm.savedFlights;
-        if (selectedIndex >= flights.Count) return;
+        
+        int index = flights.FindIndex(f => f.callsign == selectedCallsign);
+        if (index < 0) return;
 
         if (fdm.landedPlanes >= fdm.maxPlanes) return;
 
-        string callsign = flights[selectedIndex].callsign;
+        string callsign = selectedCallsign;
 
         fdm.AddDecision(callsign, true);
         if (selectedLabel != null)
@@ -711,18 +801,23 @@ public class TVDisplayInfo : MonoBehaviour
 
         if (TVTutorialManager.Instance != null) TVTutorialManager.Instance.NotifyFlightAllowed(callsign);
 
-        selectedIndex = -1;
+        selectedCallsign = "";
         RefreshButtons();
         DisplayFlights();
+        
+        float randomDelay = Random.Range(5f, 10f);
+        if (!flightHideTimes.ContainsKey(callsign)) flightHideTimes.Add(callsign, Time.unscaledTime + randomDelay);
     }
 
     void OnDenyClicked()
     {
-        if (selectedIndex < 0) return;
+        if (string.IsNullOrEmpty(selectedCallsign)) return;
         var flights = FlightDataManager.Instance.savedFlights;
-        if (selectedIndex >= flights.Count) return;
+        
+        int index = flights.FindIndex(f => f.callsign == selectedCallsign);
+        if (index < 0) return;
 
-        string callsign = flights[selectedIndex].callsign;
+        string callsign = selectedCallsign;
         FlightDataManager.Instance.AddDecision(callsign, false);
 
         if (selectedLabel != null)
@@ -730,19 +825,12 @@ public class TVDisplayInfo : MonoBehaviour
 
         if (TVTutorialManager.Instance != null) TVTutorialManager.Instance.NotifyFlightDenied(callsign);
 
-        selectedIndex = -1;
+        selectedCallsign = "";
         RefreshButtons();
         DisplayFlights();
 
         float randomDelay = Random.Range(5f, 10f);
-        StartCoroutine(HideFlightAfterDelay(callsign, randomDelay));
-    }
-
-    private IEnumerator HideFlightAfterDelay(string callsign, float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        if (!hiddenFlights.Contains(callsign)) hiddenFlights.Add(callsign);
-        DisplayFlights();
+        if (!flightHideTimes.ContainsKey(callsign)) flightHideTimes.Add(callsign, Time.unscaledTime + randomDelay);
     }
 
     void OnEndShiftClicked()

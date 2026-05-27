@@ -208,6 +208,14 @@ public class CommsManager : MonoBehaviour
         StopAllCoroutines();
         isTyping = false;
         isAnimatingPaper = false;
+        
+        firstFactID = "";
+        firstFactScanner = null;
+        firstFactIndex = -1;
+        pendingQuestionTopic = "";
+        currentLieTopic = "";
+        if (askButton != null) askButton.SetActive(false);
+        if (confrontButton != null) confrontButton.SetActive(false);
 
         string callsign = RadioManager.activeCallsign;
         if (FlightDataManager.Instance != null && !string.IsNullOrEmpty(callsign))
@@ -309,10 +317,19 @@ public class CommsManager : MonoBehaviour
 
         if (folderUI != null)
         {
-            folderUI.SetActive(!currentData.isFolderTorn);
+            bool showFolder = !currentData.isFolderTorn;
+            folderUI.SetActive(showFolder);
+            if (showFolder)
+            {
+                var tearComponents = folderUI.GetComponentsInChildren<FolderTearInteractable>(true);
+                foreach (var tearComponent in tearComponents)
+                {
+                    tearComponent.ResetTear();
+                }
+            }
             if (folderCallsignText != null)
             {
-                folderCallsignText.gameObject.SetActive(!currentData.isFolderTorn);
+                folderCallsignText.gameObject.SetActive(showFolder);
                 folderCallsignText.text = currentData.callsign;
             }
         }
@@ -569,10 +586,17 @@ public class CommsManager : MonoBehaviour
     IEnumerator ResetColorRoutine(FactScanner s, int i, float d)
     {
         yield return new WaitForSecondsRealtime(d);
-        if (s != null)
+        if (s != null && s.gameObject.activeInHierarchy)
         {
-            Color32 originalColor = s.GetComponent<TextMeshProUGUI>().color;
-            s.HighlightLink(i, originalColor);
+            try
+            {
+                Color32 originalColor = s.GetComponent<TextMeshProUGUI>().color;
+                s.HighlightLink(i, originalColor);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning("Skipped highlighting due to mesh missing or object destroyed: " + e.Message);
+            }
         }
     }
 

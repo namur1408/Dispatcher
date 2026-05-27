@@ -749,7 +749,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -166}
+  m_AnchoredPosition: {x: 0, y: -180}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &841571056213841688
@@ -1077,7 +1077,9 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 7150654361787278745}
+  - {fileID: 1894713197053311707}
   m_Father: {fileID: 5206659685431288402}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -2158,13 +2160,13 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1328366637299525365}
-  m_Father: {fileID: 5206659685431288402}
+  m_Father: {fileID: 2771591818835967191}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 1}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -80, y: -69}
-  m_SizeDelta: {x: 206.32007, y: 125.599976}
-  m_Pivot: {x: 1, y: 1}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 458, y: -430}
+  m_SizeDelta: {x: 205.1, y: 181.18}
+  m_Pivot: {x: 0, y: 1}
 --- !u!222 &5589246544918493221
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2193,7 +2195,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -771048440805795301, guid: f53084eb5e65c294992debf4cd6762a6, type: 3}
+  m_Sprite: {fileID: -2859238657272724677, guid: 366b79b5d5c38af429df44469880125a, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -4376,6 +4378,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ReturnToDesk
   mainSceneName: SampleScene
+  returnCamera: {fileID: 0}
+  returnScreenRoot: {fileID: 0}
+  currentScreenRoot: {fileID: 0}
+  onReturn:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &5790224655941821941
 GameObject:
   m_ObjectHideFlags: 0
@@ -4682,8 +4690,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2771591818835967191}
-  - {fileID: 7150654361787278745}
-  - {fileID: 1894713197053311707}
   - {fileID: 7166989310238566126}
   - {fileID: 837361540242262461}
   - {fileID: 795309226789885027}
@@ -5410,11 +5416,11 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7868928735494512711}
-  m_Father: {fileID: 5206659685431288402}
+  m_Father: {fileID: 2771591818835967191}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 85, y: -61}
+  m_AnchoredPosition: {x: 458, y: -179}
   m_SizeDelta: {x: 205.1, y: 181.18}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &6334631657933808756
@@ -6938,6 +6944,14 @@ PrefabInstance:
     - target: {fileID: 684908830278181488, guid: 3bfae610bae146142bc55325dd17d4c8, type: 3}
       propertyPath: m_Name
       value: FlightDataManager
+      objectReference: {fileID: 0}
+    - target: {fileID: 3824988347497685906, guid: 3bfae610bae146142bc55325dd17d4c8, type: 3}
+      propertyPath: maxPeople
+      value: 300
+      objectReference: {fileID: 0}
+    - target: {fileID: 3824988347497685906, guid: 3bfae610bae146142bc55325dd17d4c8, type: 3}
+      propertyPath: maxMedicines
+      value: 20
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -17,9 +17,9 @@ public class FlightDataManager : MonoBehaviour
     public int totalFuel = 1500;
 
     [Header("Warehouse Maximums")]
-    public int maxPeople = 250;
+    public int maxPeople = 300;
     public int maxFuel = 1500;
-    public int maxMedicines = 12;
+    public int maxMedicines = 20;
     public int maxFood = 850;
 
     [Header("Consumption Settings")]
@@ -140,11 +140,10 @@ public class FlightDataManager : MonoBehaviour
                         flight.decisionMade = true;
                         flight.approved = false;
 
-                        // Immediately update its UIAirplane instance on the radar so it turns around
-                        if (RadarManager.Instance != null && RadarManager.Instance.activeAirplanes != null)
+                        UIAirplane[] allPlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
+                        foreach (var plane in allPlanes)
                         {
-                            var plane = RadarManager.Instance.activeAirplanes.Find(p => p != null && p.callsignText != null && p.callsignText.text == flight.callsign);
-                            if (plane != null)
+                            if (plane != null && plane.originalCallsign == flight.callsign)
                             {
                                 plane.Deny();
                             }
@@ -368,21 +367,32 @@ public class FlightDataManager : MonoBehaviour
 
             if (letRefugeesIn) // Branch B (Engineer saved)
             {
-                FlightData md01 = new FlightData("QY-01", new Vector2(-400, -400), Vector2.zero, new List<Vector2>(), 95f, "Medicines", 10, "Medicines", 10, 200f, "Med-Base 4");
-                scriptedFlightsQueue.Enqueue(md01);
-                scriptedDelaysQueue.Enqueue(15f);
-
-                // Спецтехника (EQ-99 -> GE-99) прилетает только если мы приняли инженера!
-                FlightData eq99 = new FlightData("GE-99", new Vector2(0, 600), Vector2.zero, new List<Vector2>(), 80f, "Equipment", 5, "Equipment", 5, 250f, "Eng-Hub");
-                scriptedFlightsQueue.Enqueue(eq99);
-                scriptedDelaysQueue.Enqueue(20f);
-
+                // 1. Fuel transport
                 FlightData fl55 = new FlightData("GE-55", new Vector2(-600, 0), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 250, "Fuel", 250, 300f, "Bastion-3");
                 scriptedFlightsQueue.Enqueue(fl55);
-                scriptedDelaysQueue.Enqueue(20f);
+                scriptedDelaysQueue.Enqueue(0.5f); // 0.5s delay so the next plane spawns almost immediately
 
+                // 2. Fake Medicines (True Cargo: Food, Manifest: Food)
+                FlightData fakeMeds = new FlightData("TR-99", new Vector2(-500, 300), Vector2.zero, new List<Vector2>(), 85f, "Food", 200, "Food", 200, 220f, "Sector-X");
+                fakeMeds.spokenCargo = "Medicines";
+                fakeMeds.customAnswerCargo = "We are carrying critical Medicines! Please let us land immediately!";
+                fakeMeds.explanationCargo = "I know the manifest says Food, but we secretly loaded Medicines to avoid raiders! You have to trust us, we have what you need!";
+                scriptedFlightsQueue.Enqueue(fakeMeds);
+                scriptedDelaysQueue.Enqueue(25f); // 25s delay until the next group
+
+                // 3. Food transport (no deception)
                 FlightData fd42 = new FlightData("GE-42", new Vector2(400, -200), Vector2.zero, new List<Vector2>(), 80f, "Food", 300, "Food", 300, 250f, "Agri-Center");
                 scriptedFlightsQueue.Enqueue(fd42);
+                scriptedDelaysQueue.Enqueue(0.5f); // 0.5s delay so the next plane spawns almost immediately
+
+                // 4. Real Medicines
+                FlightData md01 = new FlightData("QY-01", new Vector2(-400, -400), Vector2.zero, new List<Vector2>(), 95f, "Medicines", 10, "Medicines", 10, 200f, "Med-Base 4");
+                scriptedFlightsQueue.Enqueue(md01);
+                scriptedDelaysQueue.Enqueue(25f); // 25s delay until the final plane
+
+                // 5. Special Equipment for Engineer (Arrives Last)
+                FlightData eq99 = new FlightData("GE-99", new Vector2(0, 600), Vector2.zero, new List<Vector2>(), 80f, "Equipment", 5, "Equipment", 5, 250f, "Eng-Hub");
+                scriptedFlightsQueue.Enqueue(eq99);
                 scriptedDelaysQueue.Enqueue(15f);
             }
             else // Branch A (No Engineer)
@@ -422,10 +432,10 @@ public class FlightDataManager : MonoBehaviour
                 savedFlights[i].decisionMade = true;
                 savedFlights[i].approved = isApproved;
 
-                if (RadarManager.Instance != null && RadarManager.Instance.activeAirplanes != null)
+                UIAirplane[] allPlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
+                foreach (var plane in allPlanes)
                 {
-                    var plane = RadarManager.Instance.activeAirplanes.Find(p => p != null && p.originalCallsign == callsign);
-                    if (plane != null)
+                    if (plane != null && plane.originalCallsign == callsign)
                     {
                         if (isApproved) plane.Approve();
                         else plane.Deny();
@@ -518,6 +528,20 @@ public class FlightDataManager : MonoBehaviour
                 flight.isRefueled = false;
                 flight.isRepaired = true;
             }
+
+            if (callsign == "TR-88")
+            {
+                StartCoroutine(EnemySFLandedRoutine());
+            }
+        }
+    }
+
+    private System.Collections.IEnumerator EnemySFLandedRoutine()
+    {
+        yield return new WaitForSeconds(15f);
+        if (StoryManager.Instance != null)
+        {
+            StoryManager.Instance.TriggerGameOverCaptured();
         }
     }
 
@@ -616,10 +640,34 @@ public class FlightDataManager : MonoBehaviour
         this.isShiftActive = data.isShiftActive;
         this.globalSpawnTimer = data.globalSpawnTimer;
         
-        this.savedFlights = data.savedFlights;
+        // Фильтруем дубликаты из старых битых сохранений
+        this.savedFlights = new System.Collections.Generic.List<FlightData>();
+        System.Collections.Generic.HashSet<string> seenCallsigns = new System.Collections.Generic.HashSet<string>();
         
-        this.scriptedFlightsQueue = new Queue<FlightData>(data.pendingFlights);
-        this.scriptedDelaysQueue = new Queue<float>(data.pendingDelays);
+        foreach (var f in data.savedFlights)
+        {
+            if (!seenCallsigns.Contains(f.callsign))
+            {
+                seenCallsigns.Add(f.callsign);
+                this.savedFlights.Add(f);
+            }
+        }
+        
+        this.scriptedFlightsQueue = new Queue<FlightData>();
+        this.scriptedDelaysQueue = new Queue<float>();
+        
+        for (int i = 0; i < data.pendingFlights.Count; i++)
+        {
+            var f = data.pendingFlights[i];
+            float d = (i < data.pendingDelays.Count) ? data.pendingDelays[i] : 5f;
+            
+            if (!seenCallsigns.Contains(f.callsign))
+            {
+                seenCallsigns.Add(f.callsign);
+                this.scriptedFlightsQueue.Enqueue(f);
+                this.scriptedDelaysQueue.Enqueue(d);
+            }
+        }
         
         this.totalFuel = data.totalFuel;
         this.totalFood = data.totalFood;

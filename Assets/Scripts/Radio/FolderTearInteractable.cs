@@ -25,6 +25,7 @@ public class FolderTearInteractable : MonoBehaviour, IBeginDragHandler, IDragHan
     private float originalWidth;
     private float startRolledX;
     private bool isTorn = false;
+    private bool isInitialized = false;
 
     private AudioSource tearAudioSource;
     private float currentTearSpeed = 0f;
@@ -32,14 +33,38 @@ public class FolderTearInteractable : MonoBehaviour, IBeginDragHandler, IDragHan
 
     void Start()
     {
+        InitIfNeeded();
+        if (sealBaseImage != null)
+        {
+            sealBaseImage.fillAmount = 1f;
+        }
+        UpdateRolledSeal();
+    }
+
+    void InitIfNeeded()
+    {
+        if (isInitialized) return;
         if (sealBaseImage != null)
         {
             originalWidth = sealBaseImage.rectTransform.rect.width;
-            sealBaseImage.fillAmount = 1f;
         }
         if (rolledSeal != null)
         {
             startRolledX = rolledSeal.anchoredPosition.x;
+        }
+        isInitialized = true;
+    }
+
+    public void ResetTear()
+    {
+        InitIfNeeded();
+        isTorn = false;
+        if (sealBaseImage != null) sealBaseImage.fillAmount = 1f;
+        if (rolledSeal != null)
+        {
+            rolledSeal.gameObject.SetActive(false);
+            rolledSeal.anchoredPosition = new Vector2(startRolledX, rolledSeal.anchoredPosition.y);
+            rolledSeal.localScale = Vector3.one;
         }
         UpdateRolledSeal();
     }

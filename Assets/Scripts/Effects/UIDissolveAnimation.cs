@@ -22,6 +22,23 @@ public class UIDissolveAnimation : MonoBehaviour
     void Awake()
     {
         imageComponent = GetComponent<Image>();
+        if (imageComponent != null)
+        {
+            originalMaterial = imageComponent.material;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (imageComponent != null && originalMaterial != null)
+        {
+            imageComponent.material = originalMaterial;
+        }
+        if (materialInstance != null)
+        {
+            Destroy(materialInstance);
+            materialInstance = null;
+        }
     }
 
     public void PlayDissolve()
@@ -36,15 +53,13 @@ public class UIDissolveAnimation : MonoBehaviour
     {
         if (imageComponent == null) yield break;
 
-        originalMaterial = imageComponent.material;
-
         if (dissolveMaterialPrefab != null)
         {
             materialInstance = Instantiate(dissolveMaterialPrefab);
         }
         else
         {
-            materialInstance = Instantiate(imageComponent.material);
+            materialInstance = Instantiate(originalMaterial);
         }
         
         imageComponent.material = materialInstance;
@@ -70,13 +85,5 @@ public class UIDissolveAnimation : MonoBehaviour
         
         OnDissolveComplete?.Invoke();
         gameObject.SetActive(false);
-        
-        // Возвращаем оригинальный материал на случай, если папка будет включена снова
-        imageComponent.material = originalMaterial;
-        
-        if (materialInstance != null)
-        {
-            Destroy(materialInstance);
-        }
     }
 }

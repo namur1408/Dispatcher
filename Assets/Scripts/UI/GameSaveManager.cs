@@ -27,6 +27,8 @@ public class SaveData
     public int maxPlanes;
     public int landedPlanes;
     public float accumulatedFoodConsumption;
+    
+    public List<EmailData> savedEmails = new List<EmailData>();
 }
 
 public static class GameSaveManager
@@ -74,6 +76,8 @@ public static class GameSaveManager
         data.maxPlanes = FlightDataManager.Instance.maxPlanes;
         data.landedPlanes = FlightDataManager.Instance.landedPlanes;
         data.accumulatedFoodConsumption = FlightDataManager.Instance.accumulatedFoodConsumption;
+        
+        data.savedEmails = new List<EmailData>(AegisMailApp.globalInbox);
         
         string json = JsonUtility.ToJson(data, true);
         File.WriteAllText(SavePath, json);
