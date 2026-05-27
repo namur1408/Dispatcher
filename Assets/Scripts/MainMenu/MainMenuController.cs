@@ -285,9 +285,7 @@ public class MainMenuController : MonoBehaviour
 
     public void OnAudioClicked()
     {
-        // Скрываем кнопки, показываем ползунки
-        if (settingsButtonsContainer) settingsButtonsContainer.SetActive(false);
-        if (audioSlidersContainer) audioSlidersContainer.SetActive(true);
+        Debug.Log("Audio Settings Clicked - Coming Soon");
     }
 
     public void OnGraphicsClicked()

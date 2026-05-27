@@ -90,6 +90,8 @@ public class FlightData
     // При isReadyToDepart=true самолёт отображается в Departures, но НЕ спавнится автоматически.
     public bool isReadyToDepart = false;
 
+    public int arrivalDay = 0;
+
     public bool isTakingOff = false;
     public Vector2 takeoffStartPos;
 
@@ -110,6 +112,7 @@ public class FlightData
         manifestCargoAmount = cargoAmount;
         manifestOrigin = "Bastion-" + Random.Range(1, 10);
         
+        arrivalDay = StoryManager.currentDay;
         UpdateSerializedWaypoints();
     }
 
@@ -131,6 +134,7 @@ public class FlightData
         manifestCargoAmount = fakeAmount;
         manifestOrigin = originPort;
 
+        arrivalDay = StoryManager.currentDay;
         UpdateSerializedWaypoints();
     }
 

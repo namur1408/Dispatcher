@@ -383,7 +383,17 @@ public class FlightDataManager : MonoBehaviour
                 // 3. Food transport (no deception)
                 FlightData fd42 = new FlightData("GE-42", new Vector2(400, -200), Vector2.zero, new List<Vector2>(), 80f, "Food", 300, "Food", 300, 250f, "Agri-Center");
                 scriptedFlightsQueue.Enqueue(fd42);
-                scriptedDelaysQueue.Enqueue(0.5f); // 0.5s delay so the next plane spawns almost immediately
+                scriptedDelaysQueue.Enqueue(20f); // 20s delay until Fake Fuel
+
+                // 3.5 Fake Fuel (True Cargo: People, Manifest: People)
+                FlightData fakeFuel = new FlightData("TR-33", new Vector2(300, 500), Vector2.zero, new List<Vector2>(), 75f, "People", 20, "People", 20, 150f, "Sector-B");
+                fakeFuel.spokenCargo = "Fuel";
+                fakeFuel.spokenWeight = "1000";
+                fakeFuel.customAnswerCargo = "We are transporting Fuel for your generators.";
+                fakeFuel.customAnswerWeight = "We are carrying 1000 units of Fuel. We are packed to the brim! Let us land before we drop!";
+                fakeFuel.explanationCargo = "Look, the manifest says People because we disguised our transport! Marauders hunt for fuel, so we had to pretend to be a civilian flight. Please let us land, you need this fuel!";
+                scriptedFlightsQueue.Enqueue(fakeFuel);
+                scriptedDelaysQueue.Enqueue(15f); // 15s delay until Real Meds
 
                 // 4. Real Medicines
                 FlightData md01 = new FlightData("QY-01", new Vector2(-400, -400), Vector2.zero, new List<Vector2>(), 95f, "Medicines", 10, "Medicines", 10, 200f, "Med-Base 4");
@@ -391,8 +401,16 @@ public class FlightDataManager : MonoBehaviour
                 scriptedDelaysQueue.Enqueue(25f); // 25s delay until the final plane
 
                 // 5. Special Equipment for Engineer (Arrives Last)
-                FlightData eq99 = new FlightData("GE-99", new Vector2(0, 600), Vector2.zero, new List<Vector2>(), 80f, "Equipment", 5, "Equipment", 5, 250f, "Eng-Hub");
-                scriptedFlightsQueue.Enqueue(eq99);
+                FlightData eqFake = new FlightData("GE-98", new Vector2(-200, 600), Vector2.zero, new List<Vector2>(), 75f, "Equipment", 5, "Equipment", 5, 250f, "Eng-Hub");
+                eqFake.spokenCargo = "Equipment";
+                eqFake.customAnswerCargo = "We are carrying the special equipment for Chief Engineer Mitchell. Authentication code: AIOX.";
+                scriptedFlightsQueue.Enqueue(eqFake);
+                scriptedDelaysQueue.Enqueue(10f);
+
+                FlightData eqReal = new FlightData("GE-99", new Vector2(200, 600), Vector2.zero, new List<Vector2>(), 80f, "Equipment", 5, "Equipment", 5, 250f, "Eng-Hub");
+                eqReal.spokenCargo = "Equipment";
+                eqReal.customAnswerCargo = "We are carrying the special equipment for Chief Engineer Mitchell. Authentication code: AINM.";
+                scriptedFlightsQueue.Enqueue(eqReal);
                 scriptedDelaysQueue.Enqueue(15f);
             }
             else // Branch A (No Engineer)
@@ -486,6 +504,8 @@ public class FlightDataManager : MonoBehaviour
         else if (c == "People") totalPeople = Mathf.Min(totalPeople + flight.cargoAmount, maxPeople);
         else if (c == "Food") totalFood = Mathf.Min(totalFood + flight.cargoAmount, maxFood);
         else if (c == "Fuel") totalFuel = Mathf.Min(totalFuel + flight.cargoAmount, maxFuel);
+        
+        CheckDepartureReadiness(flight);
     }
 
     private void CompleteRefuel(FlightData flight)
@@ -498,12 +518,32 @@ public class FlightDataManager : MonoBehaviour
 
         totalFuel -= actualFuelTaken;
         flight.currentFuel += actualFuelTaken;
+        
+        CheckDepartureReadiness(flight);
     }
 
     private void CompleteRepair(FlightData flight)
     {
         flight.isRepairing = false;
         flight.isRepaired = true;
+        
+        CheckDepartureReadiness(flight);
+    }
+
+    private void CheckDepartureReadiness(FlightData flight)
+    {
+        if (flight.isUnloaded && flight.isRefueled && flight.isRepaired && flight.hasLanded)
+        {
+            if (flight.arrivalDay > 0 && flight.arrivalDay < StoryManager.currentDay)
+            {
+                flight.isReadyToDepart = true;
+                flight.assignedRunway = "";
+                if (string.IsNullOrEmpty(flight.departureDestination) || flight.departureDestination == "UNKNOWN")
+                {
+                    flight.departureDestination = string.IsNullOrEmpty(flight.manifestOrigin) ? "UNKNOWN" : flight.manifestOrigin;
+                }
+            }
+        }
     }
 
     public void MarkFlightAsLanded(string callsign)
@@ -529,7 +569,7 @@ public class FlightDataManager : MonoBehaviour
                 flight.isRepaired = true;
             }
 
-            if (callsign == "TR-88")
+            if (callsign == "TR-88" || callsign == "GE-98")
             {
                 StartCoroutine(EnemySFLandedRoutine());
             }
@@ -574,28 +614,13 @@ public class FlightDataManager : MonoBehaviour
         {
             Debug.Log($"<color=cyan>Flight {flight.callsign}: hasLanded={flight.hasLanded}, isUnloaded={flight.isUnloaded}, isRefueled={flight.isRefueled}, isRepaired={flight.isRepaired}, isReadyToDepart={flight.isReadyToDepart}, isDeparting={flight.isDeparting}</color>");
 
-            // 1. Если самолет готов к вылету или уже вылетает, сохраняем его на следующий день как вылетающий
-            if (flight.isReadyToDepart || flight.isDeparting)
+            // Сохраняем ТОЛЬКО приземлившиеся самолеты, которые НЕ полностью обслужены и НЕ готовы к вылету.
+            // Все обслуженные или вылетающие самолеты просто пропадают из памяти (улетают за кадром).
+            if (flight.hasLanded && !flight.isReadyToDepart && !flight.isDeparting && !(flight.isUnloaded && flight.isRefueled && flight.isRepaired))
             {
                 preservedPlanes.Add(flight);
-                Debug.Log($"<color=green>Preserving departing flight for next day: {flight.callsign}</color>");
-            }
-            // 2. Если самолет приземлился:
-            else if (flight.hasLanded)
-            {
-                // Если он полностью обслужен, он улетает (переходит в Departures)
-                if (flight.isUnloaded && flight.isRefueled && flight.isRepaired)
-                {
-                    servicedPlanes.Add(flight);
-                    Debug.Log($"<color=green>Found serviced plane for departure: {flight.callsign}</color>");
-                }
-                // Если НЕ полностью обслужен, он остается на базе
-                else
-                {
-                    preservedPlanes.Add(flight);
-                    preservedLandedCount++;
-                    Debug.Log($"<color=orange>Preserving UNSERVICED landed plane on base for next day: {flight.callsign}</color>");
-                }
+                preservedLandedCount++;
+                Debug.Log($"<color=orange>Preserving UNSERVICED landed plane on base for next day: {flight.callsign}</color>");
             }
         }
 
@@ -628,11 +653,6 @@ public class FlightDataManager : MonoBehaviour
         isShiftActive = false;
         scriptedFlightsQueue.Clear();
         scriptedDelaysQueue.Clear();
-
-        if (servicedPlanes.Count > 0)
-        {
-            EnqueueDepartingPlanes(servicedPlanes);
-        }
     }
 
     public void LoadState(SaveData data)
@@ -690,43 +710,5 @@ public class FlightDataManager : MonoBehaviour
                 flight.ReconstructWaypoints();
             }
         }
-    }
-
-    private void EnqueueDepartingPlanes(List<FlightData> servicedPlanes)
-    {
-        // Вместо постановки в очередь спавна, помечаем самолёты как "готовые к вылету".
-        // Они появятся в панели Departures на радаре — спавн произойдёт только после
-        // того, как игрок назначит им полосу вылета.
-        foreach (var plane in servicedPlanes)
-        {
-            FlightData departingPlane = new FlightData(
-                plane.callsign,
-                Vector2.zero,
-                Vector2.zero,
-                new List<Vector2>(),
-                plane.speed,
-                "None",
-                0
-            );
-            departingPlane.currentFuel = plane.planeMaxFuel;
-            departingPlane.planeMaxFuel = plane.planeMaxFuel;
-            departingPlane.manifestCargo = "None";
-            departingPlane.manifestCargoAmount = 0;
-            // Используем manifestOrigin предыдущей смены как "пункт назначения" для UI
-            departingPlane.manifestOrigin = plane.manifestOrigin;
-            departingPlane.departureDestination = string.IsNullOrEmpty(plane.manifestOrigin) ? "UNKNOWN" : plane.manifestOrigin;
-
-            // Ключевой флаг: самолёт ждёт назначения полосы через Departures
-            departingPlane.isReadyToDepart = true;
-            departingPlane.hasLanded = true;
-            departingPlane.isUnloaded = true;
-            departingPlane.isRefueled = true;
-            departingPlane.isRepaired = true;
-
-            savedFlights.Add(departingPlane);
-            Debug.Log($"<color=cyan>Marked ready-to-depart: {departingPlane.callsign} → destination: {departingPlane.departureDestination}</color>");
-        }
-
-        Debug.Log($"<color=cyan>Total ready-to-depart planes in savedFlights: {savedFlights.Count}</color>");
     }
 }

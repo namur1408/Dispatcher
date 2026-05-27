@@ -233,7 +233,8 @@ public class CommsManager : MonoBehaviour
                 if (decryptionMachineObj != null)
                 {
                     bool isSpecialForces = currentData.callsign == "TR-11" || currentData.callsign == "TR-88";
-                    if (StoryManager.currentDay == 2 && isSpecialForces && askedCargo)
+                    bool isEquipment = currentData.callsign == "GE-99" || currentData.callsign == "GE-98";
+                    if (StoryManager.currentDay == 2 && (isSpecialForces || isEquipment) && askedCargo)
                     {
                         decryptionMachineObj.SetActive(true);
                         DecryptionMachine dm = decryptionMachineObj.GetComponentInChildren<DecryptionMachine>(true);
@@ -241,7 +242,9 @@ public class CommsManager : MonoBehaviour
                         {
                             dm.ResetMachine();
                             if (currentData.callsign == "TR-11") dm.SetEncryptedWord("MKPW");
-                            else dm.SetEncryptedWord("MKPU");
+                            else if (currentData.callsign == "TR-88") dm.SetEncryptedWord("MKPU");
+                            else if (currentData.callsign == "GE-99") dm.SetEncryptedWord("AINM");
+                            else if (currentData.callsign == "GE-98") dm.SetEncryptedWord("AIOX");
                         }
                     }
                     else
@@ -309,7 +312,7 @@ public class CommsManager : MonoBehaviour
         pilotReportDoc = reportObj.GetComponent<DocumentUI>();
         UpdatePilotReport();
 
-        if (StoryManager.currentDay == 2 && (currentData.callsign == "TR-11" || currentData.callsign == "TR-88"))
+        if (StoryManager.currentDay == 2 && (currentData.callsign == "TR-11" || currentData.callsign == "TR-88" || currentData.callsign == "GE-99" || currentData.callsign == "GE-98"))
         {
             string shiftText = $"<align=center><b>ENCRYPTION</b></align>\n<b>TODAY'S SHIFT:</b><align=center><b> -8</b></align></size>";
             decryptionPaperInstance = SpawnDocument(decryptionPaperPrefab != null ? decryptionPaperPrefab : defaultDocPrefab, shiftText, new Vector2(0,0), true);
@@ -761,7 +764,8 @@ public class CommsManager : MonoBehaviour
             if (decryptionMachineObj != null)
             {
                 bool isSpecialForces = currentData.callsign == "TR-11" || currentData.callsign == "TR-88";
-                if (StoryManager.currentDay == 2 && isSpecialForces)
+                bool isEquipment = currentData.callsign == "GE-99" || currentData.callsign == "GE-98";
+                if (StoryManager.currentDay == 2 && (isSpecialForces || isEquipment))
                 {
                     decryptionMachineObj.SetActive(true);
                     DecryptionMachine dm = decryptionMachineObj.GetComponentInChildren<DecryptionMachine>(true);
@@ -769,7 +773,9 @@ public class CommsManager : MonoBehaviour
                     {
                         dm.ResetMachine();
                         if (currentData.callsign == "TR-11") dm.SetEncryptedWord("MKPW");
-                        else dm.SetEncryptedWord("MKPU");
+                        else if (currentData.callsign == "TR-88") dm.SetEncryptedWord("MKPU");
+                        else if (currentData.callsign == "GE-99") dm.SetEncryptedWord("AINM");
+                        else if (currentData.callsign == "GE-98") dm.SetEncryptedWord("AIOX");
                     }
                 }
             }

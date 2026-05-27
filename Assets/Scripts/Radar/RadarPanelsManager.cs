@@ -128,6 +128,10 @@ public class RadarPanelsManager : MonoBehaviour
                 if (cfg.button != null)
                 {
                     bool isOccupied = RunwayManager.Instance != null && RunwayManager.Instance.IsRunwayOccupied(cfg.runwayId);
+                    
+                    bool isDeparture = selectedFlightForRunway != null && (selectedFlightForRunway.isReadyToDepart || selectedFlightForRunway.isDeparting);
+                    if (isDeparture) isOccupied = false; // Разрешаем вылет с любой полосы, даже если она занята
+
                     if (cfg.button.interactable == isOccupied)
                     {
                         cfg.button.interactable = !isOccupied;
@@ -330,7 +334,8 @@ public class RadarPanelsManager : MonoBehaviour
         if (selectedFlightForRunway == null) return;
 
         // Occupancy check
-        if (RunwayManager.Instance != null && RunwayManager.Instance.IsRunwayOccupied(runwayId))
+        bool isDeparture = selectedFlightForRunway.isReadyToDepart || selectedFlightForRunway.isDeparting;
+        if (!isDeparture && RunwayManager.Instance != null && RunwayManager.Instance.IsRunwayOccupied(runwayId))
         {
             Debug.LogWarning($"[Runway] Runway {runwayId} is occupied!");
             return;
@@ -338,22 +343,14 @@ public class RadarPanelsManager : MonoBehaviour
 
         // 1. Обновляем данные
         selectedFlightForRunway.assignedRunway = runwayId;
-        selectedFlightForRunway.isAligningToLand = !selectedFlightForRunway.isDeparting;
+        selectedFlightForRunway.isAligningToLand = !selectedFlightForRunway.isDeparting && !selectedFlightForRunway.isReadyToDepart;
 
         if (selectedFlightForRunway.isReadyToDepart)
         {
-            // 2a. Самолёт из предыдущей смены — спавним его на радаре и запускаем вылет
-            selectedFlightForRunway.isReadyToDepart = false;
-            selectedFlightForRunway.isDeparting = true;
-
-            BigRadarLoader loader = Object.FindFirstObjectByType<BigRadarLoader>();
-            if (loader != null)
+            // Самолёт из предыдущей смены — просто удаляем его из игры мгновенно
+            if (FlightDataManager.Instance != null)
             {
-                loader.SpawnDepartingNow(selectedFlightForRunway);
-            }
-            else
-            {
-                Debug.LogWarning("[Runway] BigRadarLoader not found — cannot spawn departing plane!");
+                FlightDataManager.Instance.RemoveDepartedPlane(selectedFlightForRunway.callsign);
             }
         }
         else

@@ -555,7 +555,7 @@ public class StoryManager : MonoBehaviour
                     sender = "Chief Engineer Mitchell",
                     subject = "Thank you from the survivors",
                     date = "20.08.2038",
-                    body = "Dispatcher, I was on board TR-404. You saved my life and the lives of 64 others when our engines were failing. The Director is furious about the fuel shortage, but I've already set up a workspace in the hangar. I will do everything I can to help you optimize the base systems. We owe you our lives."
+                    body = "Dispatcher, I was on board TR-404. You saved my life and the lives of 64 others when our engines were failing. The Director is furious about the fuel shortage, but I've already set up a workspace in the hangar. I will do everything I can to help you optimize the base systems. We owe you our lives.\n\nI have requested a drop of special equipment to help us. To ensure it's not intercepted by marauders, the pilot will give an encrypted code. Put it in the Decryption Machine (shift -8). The real transport will decrypt to the word SAFE."
                 });
             }
             else
