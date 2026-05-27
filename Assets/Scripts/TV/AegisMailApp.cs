@@ -44,6 +44,24 @@ public class AegisMailApp : MonoBehaviour
         ShowEmptyState();
     }
 
+    public static void ClearInbox()
+    {
+        globalInbox.Clear();
+        isInitialized = false;
+    }
+
+    public static void RestoreInbox(List<EmailData> savedEmails)
+    {
+        globalInbox = new List<EmailData>(savedEmails);
+        isInitialized = true;
+        
+        AegisMailApp app = FindFirstObjectByType<AegisMailApp>();
+        if (app != null && app.gameObject.activeInHierarchy)
+        {
+            app.RefreshInbox();
+        }
+    }
+
     public void RefreshInbox()
     {
         foreach (Transform child in emailListContent)

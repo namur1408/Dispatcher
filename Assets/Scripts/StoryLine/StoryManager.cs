@@ -44,6 +44,10 @@ public class StoryManager : MonoBehaviour
     public GameObject gameScreenRoot;
     public GameObject currentStoryRoot;
 
+    public enum Day2Outcome { None, Won, Lost_NoSF }
+    public Day2Outcome currentDay2Outcome = Day2Outcome.None;
+    public int diseaseDeathsThisShift = 0;
+
     void Awake()
     {
         if (Instance == null)
@@ -87,6 +91,11 @@ public class StoryManager : MonoBehaviour
         {
             isFirstGameLoad = false;
             currentDay = GameSaveManager.loadedData.currentDay;
+
+            if (GameSaveManager.loadedData.savedEmails != null && GameSaveManager.loadedData.savedEmails.Count > 0)
+            {
+                AegisMailApp.RestoreInbox(GameSaveManager.loadedData.savedEmails);
+            }
 
             bool shiftWasActive = GameSaveManager.loadedData.isShiftActive;
 
@@ -221,8 +230,13 @@ public class StoryManager : MonoBehaviour
         if (cachedEventSystem != null) cachedEventSystem.enabled = !isLocked;
     }
 
+    private bool isTransitioning = false;
+
     private IEnumerator WaitAndStartDay(int dayNumber, bool isScreenAlreadyBlack = false)
     {
+        if (isTransitioning) yield break;
+        isTransitioning = true;
+
         yield return new WaitForSecondsRealtime(0.5f);
         
         if (dayNumber == 1)
@@ -235,6 +249,46 @@ public class StoryManager : MonoBehaviour
     }
 
 
+    public void TriggerGameOverCaptured()
+    {
+        StartCoroutine(GameOverCapturedRoutine());
+    }
+
+    private IEnumerator GameOverCapturedRoutine()
+    {
+        LockPlayerInput(true);
+        ForceBlackScreen();
+        if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 0f;
+        yield return StartCoroutine(Fade(0f, 1f, 1.5f));
+
+        string text = "<align=center><size=150%><color=#FF3030>BASE CAPTURED</color></size>\n\n<color=#888888><size=70%>COMING SOON...</size></color></align>";
+        yield return StartCoroutine(TypeText(text));
+    }
+
+    public void TriggerGameWonTransition()
+    {
+        StartCoroutine(GameWonTransitionRoutine());
+    }
+
+    private IEnumerator GameWonTransitionRoutine()
+    {
+        LockPlayerInput(true);
+        ForceBlackScreen();
+        if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 0f;
+        yield return StartCoroutine(Fade(0f, 1f, 1.5f));
+
+        string text = "<align=center><size=150%><color=#4AF626>YOU SUCCESSFULLY SAVED THE BASE</color></size>\n\n<size=100%>COMING SOON...</size>\n\n<color=#888888><size=70%>ENDLESS MODE</size></color></align>";
+        yield return StartCoroutine(TypeText(text));
+        
+        yield return new WaitForSecondsRealtime(4f);
+        
+        currentDay++;
+        PlayerPrefs.SetInt("StartDayNumber", currentDay);
+        PlayerPrefs.Save();
+        
+        // Start day 3
+        StartCoroutine(WaitAndStartDay(currentDay, true));
+    }
 
     public void EndCurrentShift()
     {
@@ -244,8 +298,9 @@ public class StoryManager : MonoBehaviour
     private IEnumerator EndShiftRoutine()
     {
         LockPlayerInput(true);
+        diseaseDeathsThisShift = 0;
 
-        try { EvaluateShiftResults(currentDay); } catch { }
+        try { EvaluateShiftResults(currentDay); } catch (System.Exception e) { Debug.LogError("Error in EvaluateShiftResults: " + e.Message + "\n" + e.StackTrace); }
 
         if (FlightDataManager.Instance != null)
         {
@@ -313,8 +368,12 @@ public class StoryManager : MonoBehaviour
             if (eng == 0 && econ == 0) shiftXpGained = 150; 
             else if (eng == 1) shiftXpGained = 50; 
         }
+        else if (currentDay == 2)
+        {
+            shiftXpGained = 150; // Базовый опыт за прохождение второго дня
+        }
 
-        int xpPenalty = starvedToDeath;
+        int xpPenalty = starvedToDeath + diseaseDeathsThisShift;
         int totalXpGained = shiftXpGained - xpPenalty;
         
         int startXp = PlayerPrefs.GetInt("ReputationXP", 0);
@@ -337,14 +396,18 @@ public class StoryManager : MonoBehaviour
         {
             summary += $"<pos=20%>STARVATION DEATHS<pos=70%><color=#FF3030>{starvedToDeath}</color>\n";
         }
+        if (diseaseDeathsThisShift > 0)
+        {
+            summary += $"<pos=20%>DISEASE DEATHS<pos=70%><color=#FF3030>{diseaseDeathsThisShift}</color>\n";
+        }
         
         summary += $"<pos=20%>------------------------------------------------------\n";
         summary += $"<pos=20%>REMAINING FOOD<pos=70%>{Col(fdmTotalFood)}{fdmTotalFood}</color>\n\n";
 
         summary += $"<pos=20%>SHIFT REPUTATION GAIN<pos=70%>{Col(shiftXpGained)}{Sign(shiftXpGained)}{shiftXpGained} XP</color>\n";
-        if (starvedToDeath > 0)
+        if (xpPenalty > 0)
         {
-            summary += $"<pos=20%>STARVATION PENALTY<pos=70%><color=#FF3030>-{xpPenalty} XP</color>\n";
+            summary += $"<pos=20%>CASUALTY PENALTY<pos=70%><color=#FF3030>-{xpPenalty} XP</color>\n";
         }
 
         summary += $"</align></size>\n\n\n\n";
@@ -422,6 +485,17 @@ public class StoryManager : MonoBehaviour
 
         if (barBgObj != null) Destroy(barBgObj);
         if (dayText != null) dayText.text = "";
+
+        if (currentDay2Outcome == Day2Outcome.Lost_NoSF)
+        {
+            TriggerGameOverCaptured();
+            yield break;
+        }
+        else if (currentDay2Outcome == Day2Outcome.Won)
+        {
+            TriggerGameWonTransition();
+            yield break;
+        }
 
         currentDay++;
         PlayerPrefs.SetInt("StartDayNumber", currentDay);
@@ -512,6 +586,7 @@ public class StoryManager : MonoBehaviour
             }
 
             int engineerTrigger = PlayerPrefs.GetInt("Trigger_Engineer", 0);
+            int emergencyEcon = PlayerPrefs.GetInt("BaseEmergencyEconomy", 0);
             int day3Slots = 3;
 
             if (engineerTrigger == 1) // Branch B
@@ -523,6 +598,115 @@ public class StoryManager : MonoBehaviour
                 else if (!acceptedMeds && !acceptedFuel)
                 {
                     day3Slots = 2; // Failed completely
+                }
+
+                int medsNeeded = Mathf.CeilToInt(FlightDataManager.Instance.totalPeople / 15f);
+                int medsUsed = Mathf.Min(medsNeeded, FlightDataManager.Instance.totalMedicines);
+                int peopleSaved = medsUsed * 15;
+                
+                int diseaseDeaths = FlightDataManager.Instance.totalPeople - peopleSaved;
+                if (diseaseDeaths < 0) diseaseDeaths = 0;
+
+                // Потребляем медикаменты на лечение
+                FlightDataManager.Instance.totalMedicines -= medsUsed;
+
+                string emailSubject = "";
+                string emailBody = "";
+
+                if (emergencyEcon == 1) // Branch B-1 (No Fuel on Day 1)
+                {
+                    if (acceptedFuel)
+                    {
+                        if (diseaseDeaths == 0)
+                        {
+                            PlayerPrefs.SetInt("BaseEmergencyEconomy", 0);
+                            emailSubject = "Good job";
+                            emailBody = "Good job, Dispatcher. You managed to secure both fuel and medical supplies. The pathogen is suppressed. We are entering open mode without interference since the power grid is stable. Keep up the good work.";
+                        }
+                        else
+                        {
+                            PlayerPrefs.SetInt("BaseEmergencyEconomy", 0);
+                            emailSubject = "Tragic losses";
+                            emailBody = $"We lost people today because we didn't have enough medical supplies to save everyone. We lost {diseaseDeaths} people to the pathogen. At least you secured the fuel, so the power grid is stable and the interference is gone.";
+                        }
+                    }
+                    else
+                    {
+                        if (diseaseDeaths == 0)
+                        {
+                            PlayerPrefs.SetInt("BaseEmergencyEconomy", 1);
+                            emailSubject = "CRITICAL FUEL SHORTAGE";
+                            emailBody = "You idiot! We had enough meds to save lives from the pathogen, but we have a critical fuel shortage! The generators are dying, the radar is going black, and the interference will only get worse. How are we supposed to survive in the dark?";
+                        }
+                        else
+                        {
+                            PlayerPrefs.SetInt("BaseEmergencyEconomy", 1);
+                            emailSubject = "DISASTER";
+                            emailBody = $"You are an absolute failure. You failed to bring enough fuel, and we didn't have enough medicines. We lost {diseaseDeaths} people to the pathogen, and the generators are completely dead. You are officially relieved of duty... though there is no one left to take your place.";
+                        }
+                    }
+                }
+                else // Branch B-2 (Fuel secured on Day 1)
+                {
+                    if (diseaseDeaths == 0)
+                    {
+                        emailSubject = "Crisis Averted";
+                        emailBody = "Excellent work. We had enough medical supplies to treat all the infected. Everyone survived the quarantine. Keep the skies clear, open mode begins.";
+                    }
+                    else if (diseaseDeaths < FlightDataManager.Instance.totalPeople * 0.5f)
+                    {
+                        emailSubject = "Partial Success";
+                        emailBody = $"We didn't have enough medicine to save everyone. We lost {diseaseDeaths} people to the pathogen. It could have been worse, but it's still a tragedy.";
+                    }
+                    else
+                    {
+                        emailSubject = "YOU ARE FIRED";
+                        emailBody = $"You idiot. A massive part of the base died because we lacked medical supplies. We lost {diseaseDeaths} people today. You are officially relieved of your duties as Dispatcher. Do not return to the control tower.";
+                    }
+                }
+
+                if (diseaseDeaths > 0)
+                {
+                    diseaseDeathsThisShift = diseaseDeaths;
+                    FlightDataManager.Instance.totalPeople -= diseaseDeaths;
+                    if (FlightDataManager.Instance.totalPeople < 0) FlightDataManager.Instance.totalPeople = 0;
+                }
+
+                AegisMailApp.ReceiveNewEmail(new EmailData {
+                    sender = "Director Reed",
+                    subject = emailSubject,
+                    date = "21.08.2038",
+                    body = emailBody
+                });
+            }
+            else // Branch A
+            {
+                bool acceptedFriendSF = false;
+                bool acceptedEnemySF = false;
+                foreach (var flight in FlightDataManager.Instance.savedFlights)
+                {
+                    if (flight.approved)
+                    {
+                        if (flight.callsign == "TR-11") acceptedFriendSF = true;
+                        if (flight.callsign == "TR-88") acceptedEnemySF = true;
+                    }
+                }
+
+                if (!acceptedFriendSF && !acceptedEnemySF)
+                {
+                    currentDay2Outcome = Day2Outcome.Lost_NoSF;
+                }
+                else if (acceptedFriendSF)
+                {
+                    currentDay2Outcome = Day2Outcome.Won;
+                    
+                    AegisMailApp.ReceiveNewEmail(new EmailData
+                    {
+                        sender = "Director Reed",
+                        subject = "Well done, you protected us",
+                        date = "21.08.2038",
+                        body = "Dispatcher. The reinforcements you let in secured the perimeter just in time. The marauders have been repelled. You saved the base. Great job."
+                    });
                 }
             }
 
@@ -547,7 +731,16 @@ public class StoryManager : MonoBehaviour
         {
             if (dayNumber == 1)
             {
-                FlightDataManager.Instance.ResetForNewShift(220, 140, 180, 5);
+                int randomPeople = UnityEngine.Random.Range(105, 126); // 105 to 125 inclusive
+                int randomFuel = UnityEngine.Random.Range(250, 381);   // 250 to 380 inclusive
+                int randomMeds = UnityEngine.Random.Range(0, 3);       // 0 to 2 inclusive
+                
+                // Чтобы на 2-й день без дополнительных поставок еды умерло 3-4 человека (нехватка 6-8 еды).
+                // Считаем, что игрок примет беженцев (+65 человек). 
+                // Суммарное потребление за 2 дня примерно равно количеству людей.
+                int calculatedFood = (randomPeople + 65) - 7;
+
+                FlightDataManager.Instance.ResetForNewShift(randomFuel, calculatedFood, randomPeople, randomMeds);
                 FlightDataManager.Instance.maxPlanes = 3;
             }
             else if (dayNumber == 2)
@@ -569,6 +762,9 @@ public class StoryManager : MonoBehaviour
                     FlightDataManager.Instance.totalMedicines
                 );
                 FlightDataManager.Instance.maxPlanes = PlayerPrefs.GetInt("Day3Slots", 3);
+
+                if (marauderAmbienceRoot != null) marauderAmbienceRoot.SetActive(false);
+                if (crashedPlaneRadarIcon != null) crashedPlaneRadarIcon.SetActive(false);
             }
         }
 
@@ -590,8 +786,13 @@ public class StoryManager : MonoBehaviour
 
         if (FlightDataManager.Instance != null)
         {
+            // Убедимся, что очистили очередь, если вдруг был перезапуск или накладка
+            FlightDataManager.Instance.scriptedFlightsQueue.Clear();
+            FlightDataManager.Instance.scriptedDelaysQueue.Clear();
             FlightDataManager.Instance.StartDaySpawning(dayNumber);
         }
+
+        isTransitioning = false;
 
         if (dayNumber == 2 && PlayerPrefs.GetInt("BaseEmergencyEconomy", 0) == 1)
         {

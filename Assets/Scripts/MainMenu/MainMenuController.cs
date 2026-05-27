@@ -12,6 +12,11 @@ public class MainMenuController : MonoBehaviour
     public GameObject mainButtonsPanel;
     public GameObject continueSelectPanel; // Новая панель для выбора Continue / New Game
     public GameObject modeSelectPanel;
+    public GameObject settingsPanel; // Панель настроек
+
+    [Header("Settings Sub-Panels")]
+    public GameObject settingsButtonsContainer; // Контейнер с кнопками (Languages, Sounds, Graphics)
+    public GameObject audioSlidersContainer;    // Контейнер с ползунками (Master, Music)
 
     [Header("Boot Animation Settings")]
     public TextMeshProUGUI bootText;
@@ -35,6 +40,16 @@ public class MainMenuController : MonoBehaviour
         // Изначально включена только главная панель
         if (modeSelectPanel) modeSelectPanel.SetActive(false);
         if (continueSelectPanel) continueSelectPanel.SetActive(false);
+        if (settingsPanel) settingsPanel.SetActive(false);
+        
+        if (settingsButtonsContainer) settingsButtonsContainer.SetActive(true);
+        if (audioSlidersContainer) audioSlidersContainer.SetActive(false);
+
+        // Применяем сохраненную громкость при старте
+        if (PlayerPrefs.HasKey("MasterVolume"))
+        {
+            AudioListener.volume = PlayerPrefs.GetFloat("MasterVolume");
+        }
 
         if (textContainer != null)
         {
@@ -238,6 +253,73 @@ public class MainMenuController : MonoBehaviour
         StartCoroutine(PanelTransitionGlitch(modeSelectPanel, mainButtonsPanel));
     }
 
+    public void OnSettingsClicked()
+    {
+        // Убедимся, что при входе в настройки показываются кнопки, а не ползунки
+        if (settingsButtonsContainer) settingsButtonsContainer.SetActive(true);
+        if (audioSlidersContainer) audioSlidersContainer.SetActive(false);
+
+        // Переход в панель настроек
+        StartCoroutine(PanelTransitionGlitch(mainButtonsPanel, settingsPanel));
+    }
+
+    public void OnBackFromSettingsClicked()
+    {
+        // Если мы внутри подменю ползунков, возвращаемся к кнопкам настроек
+        if (audioSlidersContainer != null && audioSlidersContainer.activeSelf)
+        {
+            audioSlidersContainer.SetActive(false);
+            if (settingsButtonsContainer) settingsButtonsContainer.SetActive(true);
+        }
+        else
+        {
+            // Иначе возвращаемся в главное меню
+            StartCoroutine(PanelTransitionGlitch(settingsPanel, mainButtonsPanel));
+        }
+    }
+
+    public void OnLanguagesClicked()
+    {
+        Debug.Log("Languages Settings Clicked - Coming Soon");
+    }
+
+    public void OnAudioClicked()
+    {
+        // Скрываем кнопки, показываем ползунки
+        if (settingsButtonsContainer) settingsButtonsContainer.SetActive(false);
+        if (audioSlidersContainer) audioSlidersContainer.SetActive(true);
+    }
+
+    public void OnGraphicsClicked()
+    {
+        Debug.Log("Graphics Settings Clicked - Coming Soon");
+    }
+
+    public void OnMasterVolumeChanged(float value)
+    {
+        AudioListener.volume = value;
+        PlayerPrefs.SetFloat("MasterVolume", value);
+        PlayerPrefs.Save();
+    }
+
+    public void OnMusicVolumeChanged(float value)
+    {
+        PlayerPrefs.SetFloat("MusicVolume", value);
+        PlayerPrefs.Save();
+        // Применяем громкость к BackgroundMusic, если он существует
+        var bgMusic = FindFirstObjectByType<BackgroundMusic>();
+        if (bgMusic != null)
+        {
+            var audioSource = bgMusic.GetComponent<AudioSource>();
+            if (audioSource != null)
+            {
+                // Для простоты напрямую меняем volume AudioSource. 
+                // Идеально было бы умножать на targetVolume, но это самый быстрый способ
+                audioSource.volume = value; 
+            }
+        }
+    }
+
     public void OnStartWithTutorialClicked()
     {
         ResetGlobalStatics(); 
@@ -263,6 +345,7 @@ public class MainMenuController : MonoBehaviour
         DeskTutorialManager.tutorialWasSkipped = false;
         DeskTutorialManager.tutorialStep = 0;
         TutorialManager.isTutorialActive = true;
+        AegisMailApp.ClearInbox();
     }
 
     public void OnExitClicked()

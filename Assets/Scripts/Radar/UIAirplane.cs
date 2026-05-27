@@ -742,9 +742,16 @@ public class UIAirplane : MonoBehaviour
             if (FlightDataManager.Instance != null)
             {
                 var flight = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
-                if (flight != null && flight.hasLanded && FlightDataManager.Instance.ShouldPlaneDepart(flight))
+                if (flight != null)
                 {
-                    FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
+                    if (flight.hasLanded && FlightDataManager.Instance.ShouldPlaneDepart(flight))
+                    {
+                        FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
+                    }
+                    else if (flight.decisionMade && !flight.approved)
+                    {
+                        FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
+                    }
                 }
             }
             Destroy(gameObject);
