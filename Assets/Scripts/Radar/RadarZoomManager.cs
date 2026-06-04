@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
+using UnityEngine.EventSystems;
 
 public class RadarZoomManager : MonoBehaviour
 {
@@ -41,20 +42,52 @@ public class RadarZoomManager : MonoBehaviour
         ClampPosition();
     }
 
+    private System.Collections.Generic.HashSet<int> blockedTouches = new System.Collections.Generic.HashSet<int>();
+    private System.Collections.Generic.List<Touch> validTouches = new System.Collections.Generic.List<Touch>();
+    // Cached to avoid GC allocation every frame
+    private PointerEventData cachedPointerEventData;
+    private System.Collections.Generic.List<RaycastResult> cachedRaycastResults = new System.Collections.Generic.List<RaycastResult>();
+
     void HandleMobileInput()
     {
-        if (Touch.activeTouches.Count == 1)
+        // Clean up blocked touches that are no longer active
+        blockedTouches.RemoveWhere(id => {
+            bool exists = false;
+            foreach (var t in Touch.activeTouches) if (t.touchId == id) exists = true;
+            return !exists;
+        });
+
+        // Mark touches that started on UI as blocked
+        foreach (var touch in Touch.activeTouches)
         {
-            var touch = Touch.activeTouches[0];
+            if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
+            {
+                if (IsPointerOverUIWindow(touch.screenPosition))
+                {
+                    blockedTouches.Add(touch.touchId);
+                }
+            }
+        }
+
+        // Filter out blocked touches (reuse cached list)
+        validTouches.Clear();
+        foreach (var t in Touch.activeTouches)
+        {
+            if (!blockedTouches.Contains(t.touchId)) validTouches.Add(t);
+        }
+
+        if (validTouches.Count == 1)
+        {
+            var touch = validTouches[0];
             if (touch.phase == UnityEngine.InputSystem.TouchPhase.Moved)
             {
                 radarContent.anchoredPosition += touch.delta * panSpeed;
             }
         }
-        else if (Touch.activeTouches.Count == 2)
+        else if (validTouches.Count == 2)
         {
-            var touch0 = Touch.activeTouches[0];
-            var touch1 = Touch.activeTouches[1];
+            var touch0 = validTouches[0];
+            var touch1 = validTouches[1];
 
             Vector2 touch0Prev = touch0.screenPosition - touch0.delta;
             Vector2 touch1Prev = touch1.screenPosition - touch1.delta;
@@ -69,7 +102,13 @@ public class RadarZoomManager : MonoBehaviour
     void HandleZoom()
     {
         float scroll = Mouse.current.scroll.ReadValue().y;
-        if (scroll != 0) ApplyZoom(scroll * zoomSpeed);
+        if (scroll != 0)
+        {
+            if (!IsPointerOverUIWindow(Mouse.current.position.ReadValue()))
+            {
+                ApplyZoom(scroll * zoomSpeed);
+            }
+        }
     }
 
     void ApplyZoom(float zoomDelta)
@@ -85,12 +124,70 @@ public class RadarZoomManager : MonoBehaviour
         }
     }
 
+    private bool isMousePanBlocked = false;
+
     void HandlePan()
     {
-        if (Mouse.current.rightButton.isPressed)
+        if (Mouse.current.rightButton.wasPressedThisFrame)
+        {
+            isMousePanBlocked = IsPointerOverUIWindow(Mouse.current.position.ReadValue());
+        }
+
+        if (Mouse.current.rightButton.wasReleasedThisFrame)
+        {
+            isMousePanBlocked = false;
+        }
+
+        if (Mouse.current.rightButton.isPressed && !isMousePanBlocked)
         {
             radarContent.anchoredPosition += Mouse.current.delta.ReadValue() * panSpeed;
         }
+    }
+
+    private bool IsPointerOverUIWindow(Vector2 screenPosition)
+    {
+        if (EventSystem.current == null) return false;
+
+        // Reuse cached objects to avoid per-frame GC allocations
+        if (cachedPointerEventData == null)
+            cachedPointerEventData = new PointerEventData(EventSystem.current);
+        cachedPointerEventData.position = screenPosition;
+        cachedRaycastResults.Clear();
+        EventSystem.current.RaycastAll(cachedPointerEventData, cachedRaycastResults);
+        
+        foreach (var result in cachedRaycastResults)
+        {
+            // If we hit the radar background, it's a valid pan
+            if (result.gameObject.GetComponent<RadarScreenClicker>() != null) return false;
+
+            // If we hit anything inside the radar content (like airplanes), it's a valid pan
+            if (radarContent != null && result.gameObject.transform.IsChildOf(radarContent)) continue;
+
+            // If we hit a runway, it's also valid to pan from it
+            if (result.gameObject.GetComponentInParent<Runway>() != null) continue;
+
+            // Explicitly check if this hit is a UI control we want to block on
+            Transform t = result.gameObject.transform;
+            bool isUI = false;
+            while (t != null)
+            {
+                if (t.GetComponent<UnityEngine.UI.ScrollRect>() != null ||
+                    t.GetComponent<WindowTopResizer>() != null ||
+                    t.GetComponent<UnityEngine.UI.Button>() != null ||
+                    t.name.IndexOf("Window", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    t.name.IndexOf("Panel", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    t.name.IndexOf("Bottom", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    isUI = true;
+                    break;
+                }
+                t = t.parent;
+            }
+
+            if (isUI) return true;
+        }
+        
+        return false;
     }
 
     void ClampPosition()

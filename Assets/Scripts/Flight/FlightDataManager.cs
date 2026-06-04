@@ -128,6 +128,7 @@ public class FlightDataManager : MonoBehaviour
 
         if (landedPlanes >= maxPlanes)
         {
+            UIAirplane[] allPlanes = null;
             for (int i = 0; i < savedFlights.Count; i++)
             {
                 var flight = savedFlights[i];
@@ -140,12 +141,15 @@ public class FlightDataManager : MonoBehaviour
                         flight.decisionMade = true;
                         flight.approved = false;
 
-                        UIAirplane[] allPlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
-                        foreach (var plane in allPlanes)
+                        if (allPlanes == null && RadarManager.Instance != null) allPlanes = RadarManager.Instance.activeAirplanes.ToArray();
+                        if (allPlanes != null)
                         {
-                            if (plane != null && plane.originalCallsign == flight.callsign)
+                            foreach (var plane in allPlanes)
                             {
-                                plane.Deny();
+                                if (plane != null && plane.originalCallsign == flight.callsign)
+                                {
+                                    plane.Deny();
+                                }
                             }
                         }
                     }
@@ -161,7 +165,7 @@ public class FlightDataManager : MonoBehaviour
         return totalPeople * foodPerPersonPerMinute;
     }
 
-    public void UpdateFlights(List<UIAirplane> airplanes)
+    public void UpdateFlights(List<UIAirplane> airplanes, bool allowDeletions = true)
     {
         List<FlightData> updatedList = new List<FlightData>();
 
@@ -255,7 +259,7 @@ public class FlightDataManager : MonoBehaviour
         {
             // Сохраняем самолёты, которые приняты и приземлились (обслуживаются на базе), 
             // а также те, которые готовы к вылету (ждут в Departures), но ещё не заспавнены на радаре.
-            if (oldFlight.isReadyToDepart || (oldFlight.decisionMade && oldFlight.approved && oldFlight.hasLanded))
+            if (!allowDeletions || oldFlight.isReadyToDepart || (oldFlight.decisionMade && oldFlight.approved && oldFlight.hasLanded))
             {
                 if (!updatedList.Exists(f => f.callsign == oldFlight.callsign))
                 {
@@ -277,6 +281,14 @@ public class FlightDataManager : MonoBehaviour
         }
 
         isShiftActive = true;
+
+        // Проверяем все сохраненные рейсы на готовность к вылету.
+        // Полностью обслуженные самолеты из прошлой смены получат isReadyToDepart=true,
+        // так как их arrivalDay < currentDay (новый день).
+        foreach (var flight in savedFlights)
+        {
+            CheckDepartureReadiness(flight);
+        }
 
         Debug.Log($"<color=magenta>StartDaySpawning called for day {dayNumber}. Queue count before: {scriptedFlightsQueue.Count}</color>");
 
@@ -450,13 +462,16 @@ public class FlightDataManager : MonoBehaviour
                 savedFlights[i].decisionMade = true;
                 savedFlights[i].approved = isApproved;
 
-                UIAirplane[] allPlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
-                foreach (var plane in allPlanes)
+                if (RadarManager.Instance != null)
                 {
-                    if (plane != null && plane.originalCallsign == callsign)
+                    UIAirplane[] allPlanes = RadarManager.Instance.activeAirplanes.ToArray();
+                    foreach (var plane in allPlanes)
                     {
-                        if (isApproved) plane.Approve();
-                        else plane.Deny();
+                        if (plane != null && plane.originalCallsign == callsign)
+                        {
+                            if (isApproved) plane.Approve();
+                            else plane.Deny();
+                        }
                     }
                 }
                 return;
@@ -596,8 +611,26 @@ public class FlightDataManager : MonoBehaviour
         return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 360f;
     }
 
+    public void FreeBaseSlot(string callsign)
+    {
+        var flight = savedFlights.Find(f => f.callsign == callsign);
+        if (flight != null && flight.hasLanded)
+        {
+            flight.hasTakenOff = true;
+            flight.hasLanded = false; // Самолёт снова в воздухе
+            landedPlanes = Mathf.Max(0, landedPlanes - 1);
+            Debug.Log($"<color=lime>[FlightDataManager] {callsign} took off. Base slot freed. landedPlanes: {landedPlanes}</color>");
+        }
+    }
+
     public void RemoveDepartedPlane(string callsign)
     {
+        var flight = savedFlights.Find(f => f.callsign == callsign);
+        if (flight != null && flight.hasLanded)
+        {
+            landedPlanes = Mathf.Max(0, landedPlanes - 1);
+            Debug.Log($"<color=lime>[FlightDataManager] {callsign} departed. landedPlanes: {landedPlanes}</color>");
+        }
         savedFlights.RemoveAll(f => f.callsign == callsign);
     }
 
@@ -614,13 +647,23 @@ public class FlightDataManager : MonoBehaviour
         {
             Debug.Log($"<color=cyan>Flight {flight.callsign}: hasLanded={flight.hasLanded}, isUnloaded={flight.isUnloaded}, isRefueled={flight.isRefueled}, isRepaired={flight.isRepaired}, isReadyToDepart={flight.isReadyToDepart}, isDeparting={flight.isDeparting}</color>");
 
-            // Сохраняем ТОЛЬКО приземлившиеся самолеты, которые НЕ полностью обслужены и НЕ готовы к вылету.
-            // Все обслуженные или вылетающие самолеты просто пропадают из памяти (улетают за кадром).
-            if (flight.hasLanded && !flight.isReadyToDepart && !flight.isDeparting && !(flight.isUnloaded && flight.isRefueled && flight.isRepaired))
+            // Сохраняем приземлившиеся самолеты, которые НЕ вылетели в эту смену:
+            // - частично или полностью обслуженные (на следующий день появятся в Departures)
+            // - NOT те, кто уже взлетел (isDeparting)
+            if (flight.hasLanded && !flight.isDeparting)
             {
                 preservedPlanes.Add(flight);
                 preservedLandedCount++;
-                Debug.Log($"<color=orange>Preserving UNSERVICED landed plane on base for next day: {flight.callsign}</color>");
+                if (flight.isUnloaded && flight.isRefueled && flight.isRepaired)
+                {
+                    Debug.Log($"<color=green>Preserving FULLY SERVICED plane for next-day departure: {flight.callsign}</color>");
+                    // Сбрасываем isReadyToDepart — на следующий день CheckDepartureReadiness сам выставит его
+                    flight.isReadyToDepart = false;
+                }
+                else
+                {
+                    Debug.Log($"<color=orange>Preserving UNSERVICED landed plane on base for next day: {flight.callsign}</color>");
+                }
             }
         }
 
@@ -646,7 +689,7 @@ public class FlightDataManager : MonoBehaviour
         UIAirplane[] leftoverPlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
         foreach (var plane in leftoverPlanes)
         {
-            if (plane != null) Destroy(plane.gameObject);
+            if (plane != null) AirplaneSpawner.Instance.ReturnPlaneToPool(plane);
         }
         if (RadarScreenClicker.selectedPlane != null) RadarScreenClicker.selectedPlane = null;
 

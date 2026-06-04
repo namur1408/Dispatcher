@@ -37,6 +37,9 @@ public class RadarPanelsManager : MonoBehaviour
     private Sprite departureCircleSprite;
 
     private float refreshTimer = 1f;
+    // Cache TMP references per button to avoid GetComponentInChildren every frame
+    private System.Collections.Generic.Dictionary<Button, TextMeshProUGUI> buttonTextCache
+        = new System.Collections.Generic.Dictionary<Button, TextMeshProUGUI>();
 
     private void FixHeaderAnchors(GameObject window)
     {
@@ -130,13 +133,18 @@ public class RadarPanelsManager : MonoBehaviour
                     bool isOccupied = RunwayManager.Instance != null && RunwayManager.Instance.IsRunwayOccupied(cfg.runwayId);
                     
                     bool isDeparture = selectedFlightForRunway != null && (selectedFlightForRunway.isReadyToDepart || selectedFlightForRunway.isDeparting);
-                    if (isDeparture) isOccupied = false; // Разрешаем вылет с любой полосы, даже если она занята
+                    if (isDeparture) isOccupied = false;
 
                     if (cfg.button.interactable == isOccupied)
                     {
                         cfg.button.interactable = !isOccupied;
                         
-                        TextMeshProUGUI txt = cfg.button.GetComponentInChildren<TextMeshProUGUI>();
+                        // Use cached TMP reference
+                        if (!buttonTextCache.TryGetValue(cfg.button, out TextMeshProUGUI txt))
+                        {
+                            txt = cfg.button.GetComponentInChildren<TextMeshProUGUI>();
+                            buttonTextCache[cfg.button] = txt;
+                        }
                         if (txt != null)
                         {
                             Color c = txt.color;
@@ -174,9 +182,9 @@ public class RadarPanelsManager : MonoBehaviour
                 // Обслуженный самолёт, ожидающий назначения полосы вылета
                 newEntry = CreateEntry(flight, departuresContent);
             }
-            else if (flight.isDeparting)
+            else if (flight.isDeparting && !flight.hasTakenOff)
             {
-                // Самолёт уже в воздухе (вылетает)
+                // Самолёт на полосе, но ещё не оторвался от земли (показываем белым)
                 newEntry = CreateEntry(flight, departuresContent);
             }
             else if (flight.targetPosition != Vector2.zero && string.IsNullOrEmpty(flight.assignedRunway))
@@ -347,10 +355,10 @@ public class RadarPanelsManager : MonoBehaviour
 
         if (selectedFlightForRunway.isReadyToDepart)
         {
-            // Самолёт из предыдущей смены — просто удаляем его из игры мгновенно
-            if (FlightDataManager.Instance != null)
+            if (RadarManager.Instance != null)
             {
-                FlightDataManager.Instance.RemoveDepartedPlane(selectedFlightForRunway.callsign);
+                selectedFlightForRunway.hasBeenPinged = true; // Force visibility
+                RadarManager.Instance.SpawnDepartingNow(selectedFlightForRunway);
             }
         }
         else

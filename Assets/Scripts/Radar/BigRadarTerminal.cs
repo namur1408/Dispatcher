@@ -76,7 +76,7 @@ public class BigRadarTerminal : MonoBehaviour
 
     public void SelectPlane(UIAirplane plane)
     {
-        // ИСПРАВЛЕНИЕ 2: Убрали блокировку выбора во время загрузки (!isStartupSequenceDone)
+        // Убрали блокировку выбора во время загрузки (!isStartupSequenceDone)
         if (plane == null) return;
         if (currentSelectedPlane == plane) return;
 
@@ -87,6 +87,7 @@ public class BigRadarTerminal : MonoBehaviour
     private void UpdateSelectedPlaneUI(bool isLiveUpdate)
     {
         if (currentSelectedPlane == null) return;
+
 
         bool isTransit = currentSelectedPlane.targetPosition != Vector2.zero && string.IsNullOrEmpty(currentSelectedPlane.assignedRunway);
 
@@ -183,8 +184,8 @@ public class BigRadarTerminal : MonoBehaviour
     {
         currentSelectedPlane = null;
 
-
         RadioManager.activeCallsign = "";
+
 
         if (selectedPlaneText != null && isStartupSequenceDone)
         {

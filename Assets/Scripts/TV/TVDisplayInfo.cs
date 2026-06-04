@@ -13,6 +13,10 @@ public class TVDisplayInfo : MonoBehaviour
     private List<string> hiddenFlights = new List<string>();
     public GameObject selectionPanelContainer;
     public TextMeshProUGUI detailedInfoText;
+    
+    [Header("AEGIS Detail Panel (необязательно)")]
+    public AegisDetailPanel aegisDetailPanel;
+
     public TextMeshProUGUI selectedLabel;
     public Button approveButton;
     public Button denyButton;
@@ -66,6 +70,7 @@ public class TVDisplayInfo : MonoBehaviour
     
     private int lastFlightCount = -1;
     private Dictionary<string, float> flightHideTimes = new Dictionary<string, float>();
+    private System.Text.StringBuilder resourcesSb = new System.Text.StringBuilder();
 
     void Start()
     {
@@ -234,11 +239,12 @@ public class TVDisplayInfo : MonoBehaviour
 
         if (detailedResourcesText != null)
         {
-            string leftInfo = $"<color={COL_HEADER}><b>RUNWAY STATUS:</b></color>\n";
+            resourcesSb.Clear();
+            resourcesSb.Append($"<color={COL_HEADER}><b>RUNWAY STATUS:</b></color>\n");
             string capCol = fdm.landedPlanes >= fdm.maxPlanes ? COL_DENIED : COL_APPROVED;
-            leftInfo += $"CAPACITY: <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n\n";
+            resourcesSb.Append($"CAPACITY: <color={capCol}><b>{fdm.landedPlanes} / {fdm.maxPlanes}</b></color>\n\n");
 
-            leftInfo += $"<color=white>LANDED PLANES:</color>\n";
+            resourcesSb.Append($"<color=white>LANDED PLANES:</color>\n");
             bool hasApprovedPlanes = false;
 
             foreach (var flight in fdm.savedFlights)
@@ -256,20 +262,20 @@ public class TVDisplayInfo : MonoBehaviour
 
                         string displayCargo = flight.isUnloaded ? "EMPTY" : $"{flight.cargo} ({flight.cargoAmount}{cargoUnit})";
 
-                        leftInfo += $" v <link=\"{flight.callsign}\"><color=#FFFFFF><b>{flight.callsign}</b></color></link>\n";
-                        leftInfo += $"    CARGO: <color=#FFD700>{displayCargo}</color>\n";
-                        leftInfo += $"    TANK FUEL: <color=#FFD700>{flight.currentFuel} / {flight.planeMaxFuel} L</color>\n";
+                        resourcesSb.Append($" v <link=\"{flight.callsign}\"><color=#FFFFFF><b>{flight.callsign}</b></color></link>\n");
+                        resourcesSb.Append($"    CARGO: <color=#FFD700>{displayCargo}</color>\n");
+                        resourcesSb.Append($"    TANK FUEL: <color=#FFD700>{flight.currentFuel} / {flight.planeMaxFuel} L</color>\n");
 
                         if (!flight.isUnloaded)
                         {
                             if (flight.isUnloading)
                             {
                                 float progress = 1f - (flight.unloadTimer / FlightDataManager.UNLOAD_TIME);
-                                leftInfo += $"    {CreateProgressBar(progress)}\n";
+                                resourcesSb.Append($"    {CreateProgressBar(progress)}\n");
                             }
                             else
                             {
-                                leftInfo += $"    <link=\"UNLOAD_{flight.callsign}\"><color=#00FF41><b>[ START UNLOADING ]</b></color></link>\n";
+                                resourcesSb.Append($"    <link=\"UNLOAD_{flight.callsign}\"><color=#00FF41><b>[ START UNLOADING ]</b></color></link>\n");
                             }
                         }
                         else
@@ -279,18 +285,18 @@ public class TVDisplayInfo : MonoBehaviour
                                 if (flight.isRefueling)
                                 {
                                     float progress = 1f - (flight.refuelTimer / FlightDataManager.REFUEL_TIME);
-                                    leftInfo += "    " + CreateProgressBar(progress, "#00BFFF") + "\n";
+                                    resourcesSb.Append("    ").Append(CreateProgressBar(progress, "#00BFFF")).Append("\n");
                                 }
                                 else
                                 {
                                     int neededFuel = flight.planeMaxFuel - Mathf.RoundToInt(flight.currentFuel);
                                     if (fdm.totalFuel > 0)
                                     {
-                                        leftInfo += $"    <link=\"REFUEL_{flight.callsign}\"><color=#00BFFF><b>[ START REFUELING ({neededFuel}L) ]</b></color></link>\n";
+                                        resourcesSb.Append($"    <link=\"REFUEL_{flight.callsign}\"><color=#00BFFF><b>[ START REFUELING ({neededFuel}L) ]</b></color></link>\n");
                                     }
                                     else
                                     {
-                                        leftInfo += $"    <color=#FF3030>[!] NOT ENOUGH FUEL</color>\n";
+                                        resourcesSb.Append($"    <color=#FF3030>[!] NOT ENOUGH FUEL</color>\n");
                                     }
                                 }
                             }
@@ -299,29 +305,31 @@ public class TVDisplayInfo : MonoBehaviour
                                 if (flight.isRepairing)
                                 {
                                     float progress = 1f - (flight.repairTimer / FlightDataManager.REPAIR_TIME);
-                                    leftInfo += "    " + CreateProgressBar(progress, "#FF8C00") + "\n";
+                                    resourcesSb.Append("    ").Append(CreateProgressBar(progress, "#FF8C00")).Append("\n");
                                 }
                                 else
                                 {
-                                    leftInfo += $"    <link=\"REPAIR_{flight.callsign}\"><color=#00FF41><b>[ START MAINTENANCE ]</b></color></link>\n";
+                                    resourcesSb.Append($"    <link=\"REPAIR_{flight.callsign}\"><color=#00FF41><b>[ START MAINTENANCE ]</b></color></link>\n");
                                 }
                             }
                             else
                             {
-                                leftInfo += $"    <color=#00FF41><b>[OK] READY FOR DEPARTURE</b></color>\n";
+                                resourcesSb.Append($"    <color=#00FF41><b>[OK] READY FOR DEPARTURE</b></color>\n");
                             }
                         }
                     }
                     else
                     {
-                        leftInfo += $" <link=\"{flight.callsign}\"><color=#00FF41>{flight.callsign}</color></link>\n";
+                        resourcesSb.Append($" <link=\"{flight.callsign}\"><color=#00FF41>{flight.callsign}</color></link>\n");
                     }
                 }
             }
 
-            if (!hasApprovedPlanes) leftInfo += $"  <color=#555555>[ NO PLANES ON RUNWAYS ]</color>\n";
-            leftInfo += "</size>";
-            if (detailedResourcesText.text != leftInfo) detailedResourcesText.text = leftInfo;
+            if (!hasApprovedPlanes) resourcesSb.Append($"  <color=#555555>[ NO PLANES ON RUNWAYS ]</color>\n");
+            resourcesSb.Append("</size>");
+            
+            string finalStr = resourcesSb.ToString();
+            if (detailedResourcesText.text != finalStr) detailedResourcesText.text = finalStr;
         }
 
         if (warehouseResourcesText != null)
@@ -398,13 +406,15 @@ public class TVDisplayInfo : MonoBehaviour
             bool isFull = fdm != null && fdm.landedPlanes >= fdm.maxPlanes;
 
             int approachingPlanesOnRadar = 0;
-            UIAirplane[] activePlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
-
-            foreach (var plane in activePlanes)
+            if (fdm != null)
             {
-                if (plane.targetPosition == Vector2.zero)
+                for (int i = 0; i < fdm.savedFlights.Count; i++)
                 {
-                    approachingPlanesOnRadar++;
+                    var flight = fdm.savedFlights[i];
+                    if (flight.targetPosition == Vector2.zero && !flight.hasLanded && !flight.hasTakenOff && !flight.isDeparting)
+                    {
+                        approachingPlanesOnRadar++;
+                    }
                 }
             }
 
@@ -660,6 +670,11 @@ public class TVDisplayInfo : MonoBehaviour
                                  $"<color={stCol}>{currentStatus}</color>";
         }
 
+        if (aegisDetailPanel != null)
+        {
+            aegisDetailPanel.ShowPlane(data);
+        }
+
         if (detailedInfoText != null)
         {
             string infoString = $"<color=white><b>FLIGHT DETAILS:</b>\n\n</color>";
@@ -771,6 +786,7 @@ public class TVDisplayInfo : MonoBehaviour
         if (!canDecide && selectedLabel != null)
         {
             selectedLabel.text = $"<color={COL_SEPARATOR}>> SELECT FLIGHT FROM LIST</color>";
+            if (aegisDetailPanel != null) aegisDetailPanel.ShowEmpty();
         }
         else if (isInStorm && selectedLabel != null && !selectedLabel.text.Contains("COMM LOSS"))
         {

@@ -24,6 +24,12 @@ public class BigRadarLoader : MonoBehaviour
 
     public static bool isGlobalWarningActive = false;
 
+    private float conflictCheckTimer = 0f;
+    private const float CONFLICT_CHECK_INTERVAL = 0.15f;
+
+    // Pool to avoid Destroy/Instantiate on every canvas switch
+    private List<UIAirplane> planePool = new List<UIAirplane>();
+
     void OnEnable()
     {
         // Full rebuild when screen opens
@@ -35,7 +41,7 @@ public class BigRadarLoader : MonoBehaviour
         // Save big radar state first so we have fresh positions for the small radar
         if (FlightDataManager.Instance != null && activePlanes != null && activePlanes.Count > 0)
         {
-            FlightDataManager.Instance.UpdateFlights(activePlanes);
+            FlightDataManager.Instance.UpdateFlights(activePlanes, false);
             if (RadarManager.Instance != null)
             {
                 RadarManager.Instance.RebuildFromFlightData();
@@ -55,7 +61,12 @@ public class BigRadarLoader : MonoBehaviour
         if (BigRadarTerminal.Instance != null)
             BigRadarTerminal.Instance.SetPlaneCount(activePlanes.Count);
 
-        CheckForConflicts();
+        conflictCheckTimer -= Time.deltaTime;
+        if (conflictCheckTimer <= 0f)
+        {
+            conflictCheckTimer = CONFLICT_CHECK_INTERVAL;
+            CheckForConflicts();
+        }
     }
 
     // ── Sync ─────────────────────────────────────────────────────────────────
@@ -64,10 +75,12 @@ public class BigRadarLoader : MonoBehaviour
     {
         var savedFlights = FlightDataManager.Instance.savedFlights;
 
-        // 1. Add planes that are in FlightDataManager but not on big radar yet
+        // 1. Add planes that are in FlightDataManager but not on big radar yet.
+        // Показываем самолеты которые: ещё не сели ИЛИ уже вылетают (isDeparting).
         foreach (var data in savedFlights)
         {
-            if (data.hasLanded || data.isReadyToDepart) continue;
+            bool shouldShow = (!data.hasLanded || data.isDeparting) && !data.isReadyToDepart;
+            if (!shouldShow) continue;
 
             if (!planeMap.ContainsKey(data.callsign))
             {
@@ -75,14 +88,15 @@ public class BigRadarLoader : MonoBehaviour
             }
         }
 
-        // 2. Remove planes from big radar that are no longer active in FlightDataManager
+        // 2. Remove planes from big radar that are no longer active.
         List<string> toRemove = new List<string>();
         foreach (var kv in planeMap)
         {
             if (kv.Value == null) { toRemove.Add(kv.Key); continue; }
 
             var fd = savedFlights.Find(f => f.callsign == kv.Key);
-            if (fd == null || fd.hasLanded)
+            // Удаляем только если рейс вообще исчез ИЛИ сел и НЕ вылетает
+            if (fd == null || (fd.hasLanded && !fd.isDeparting))
                 toRemove.Add(kv.Key);
         }
         foreach (var key in toRemove)
@@ -98,12 +112,12 @@ public class BigRadarLoader : MonoBehaviour
 
     void SpawnPlane(FlightData data)
     {
-        if (airplanePrefab == null || radarContent == null) return;
+        if (radarContent == null) return;
 
-        GameObject go = Instantiate(airplanePrefab, radarContent, false);
-        UIAirplane plane = go.GetComponent<UIAirplane>();
-        if (plane == null) { Destroy(go); return; }
+        UIAirplane plane = GetFromPool(radarContent);
+        if (plane == null) return;
 
+        plane.isBigRadarCopy = true;
         plane.InitializeFromData(data);
 
         activePlanes.Add(plane);
@@ -123,18 +137,46 @@ public class BigRadarLoader : MonoBehaviour
 
         foreach (var data in FlightDataManager.Instance.savedFlights)
         {
-            if (data.hasLanded || data.isReadyToDepart) continue;
+            bool shouldShow = (!data.hasLanded || data.isDeparting) && !data.isReadyToDepart;
+            if (!shouldShow) continue;
             SpawnPlane(data);
         }
     }
 
     void ClearAll()
     {
+        // Deactivate into pool instead of Destroy — eliminates the freeze on canvas switch
         foreach (var kv in planeMap)
-            if (kv.Value != null) Destroy(kv.Value.gameObject);
-
+        {
+            if (kv.Value != null)
+            {
+                kv.Value.gameObject.SetActive(false);
+                if (!planePool.Contains(kv.Value))
+                    planePool.Add(kv.Value);
+            }
+        }
         planeMap.Clear();
         activePlanes.Clear();
+    }
+
+    private UIAirplane GetFromPool(Transform parent)
+    {
+        for (int i = 0; i < planePool.Count; i++)
+        {
+            if (planePool[i] != null && !planePool[i].gameObject.activeSelf)
+            {
+                planePool[i].transform.SetParent(parent, false);
+                planePool[i].gameObject.SetActive(true);
+                planePool[i].ResetPlane();
+                return planePool[i];
+            }
+        }
+        // Only Instantiate if pool is exhausted
+        if (airplanePrefab == null) return null;
+        GameObject go = Instantiate(airplanePrefab, parent, false);
+        UIAirplane plane = go.GetComponent<UIAirplane>();
+        if (plane != null) planePool.Add(plane);
+        return plane;
     }
 
     // ── Conflict detection ────────────────────────────────────────────────────
@@ -142,30 +184,45 @@ public class BigRadarLoader : MonoBehaviour
     private void CheckForConflicts()
     {
         bool anyWarning = false;
+        float warningDistanceSq = warningDistance * warningDistance;
 
-        foreach (var plane in activePlanes)
-            if (plane != null) plane.SetWarning(false);
+        int count = activePlanes.Count;
+        if (count == 0) return;
 
-        for (int i = 0; i < activePlanes.Count; i++)
+        // Compute positions once
+        Vector2[] positions = new Vector2[count];
+        for (int i = 0; i < count; i++)
+            if (activePlanes[i] != null) positions[i] = activePlanes[i].GetLogicalPosition();
+
+        // Compute final warning states FIRST, then apply — avoids double color update (flicker)
+        bool[] newWarnings = new bool[count];
+
+        for (int i = 0; i < count; i++)
         {
-            for (int j = i + 1; j < activePlanes.Count; j++)
+            if (activePlanes[i] == null || activePlanes[i].isLandingPhase || activePlanes[i].isTakingOff) continue;
+            for (int j = i + 1; j < count; j++)
             {
-                UIAirplane a = activePlanes[i];
-                UIAirplane b = activePlanes[j];
-                if (a == null || b == null) continue;
+                if (activePlanes[j] == null || activePlanes[j].isLandingPhase || activePlanes[j].isTakingOff) continue;
+                float dx = positions[i].x - positions[j].x;
+                float dy = positions[i].y - positions[j].y;
+                float distSq = dx * dx + dy * dy;
 
-                float dist = Vector2.Distance(
-                    a.GetComponent<RectTransform>().anchoredPosition,
-                    b.GetComponent<RectTransform>().anchoredPosition);
+                // Hysteresis to prevent flickering at the boundary
+                bool currentlyInDanger = activePlanes[i].isInDanger || activePlanes[j].isInDanger;
+                float thresholdSq = currentlyInDanger ? (135f * 135f) : warningDistanceSq;
 
-                if (dist < warningDistance)
+                if (distSq < thresholdSq)
                 {
-                    a.SetWarning(true);
-                    b.SetWarning(true);
+                    newWarnings[i] = true;
+                    newWarnings[j] = true;
                     anyWarning = true;
                 }
             }
         }
+
+        // Apply — SetWarning skips UpdateHitboxColor if state unchanged
+        for (int i = 0; i < count; i++)
+            if (activePlanes[i] != null) activePlanes[i].SetWarning(newWarnings[i]);
 
         isGlobalWarningActive = anyWarning;
     }
@@ -174,7 +231,7 @@ public class BigRadarLoader : MonoBehaviour
 
     public void SpawnDepartingNow(FlightData data)
     {
-        if (airplanePrefab == null || radarContent == null) return;
+        if (radarContent == null) return;
 
         data.isReadyToDepart = false;
         data.isDeparting = true;
@@ -205,7 +262,7 @@ public class BigRadarLoader : MonoBehaviour
             }
 
             if (RadarManager.Instance != null)
-                RadarManager.Instance.RegisterAirplane(plane);
+                RadarManager.Instance.UnregisterAirplane(plane);
         }
     }
 

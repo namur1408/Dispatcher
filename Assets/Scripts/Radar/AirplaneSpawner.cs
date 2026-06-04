@@ -21,6 +21,44 @@ public class AirplaneSpawner : MonoBehaviour
     public float minSpawnDistance = 200f;
     private bool storyPlaneCrashed = false;
 
+    private List<UIAirplane> planePool = new List<UIAirplane>();
+
+    public UIAirplane GetPlaneFromPool(Transform parent)
+    {
+        // try find inactive plane
+        foreach (var plane in planePool)
+        {
+            if (plane != null && !plane.gameObject.activeInHierarchy)
+            {
+                plane.transform.SetParent(parent, false);
+                plane.gameObject.SetActive(true);
+                plane.ResetPlane(); // Initialize state
+                return plane;
+            }
+        }
+        
+        // spawn new
+        GameObject newObj = Instantiate(airplanePrefab, parent, false);
+        UIAirplane newPlane = newObj.GetComponent<UIAirplane>();
+        if (newPlane != null)
+        {
+            planePool.Add(newPlane);
+        }
+        return newPlane;
+    }
+
+    public void ReturnPlaneToPool(UIAirplane plane)
+    {
+        if (plane != null)
+        {
+            plane.gameObject.SetActive(false);
+            if (RadarManager.Instance != null)
+            {
+                RadarManager.Instance.UnregisterAirplane(plane);
+            }
+        }
+    }
+
     void Awake()
     {
         Instance = this;
@@ -80,8 +118,7 @@ public class AirplaneSpawner : MonoBehaviour
             startPos = FindSafeSpawnPosition(startPos, contentParent);
         }
 
-        GameObject newPlane = Instantiate(airplanePrefab, contentParent, false);
-        UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
+        UIAirplane planeScript = GetPlaneFromPool(contentParent);
 
         if (planeScript != null)
         {
@@ -148,8 +185,7 @@ public class AirplaneSpawner : MonoBehaviour
         FlightData randomData = new FlightData(callsign, startPos, targetPos, new List<Vector2>(), speed, cargo, amount);
         randomData.currentFuel = fuel;
 
-        GameObject newPlane = Instantiate(airplanePrefab, contentParent, false);
-        UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
+        UIAirplane planeScript = GetPlaneFromPool(contentParent);
 
         if (planeScript != null)
         {
@@ -239,8 +275,7 @@ public class AirplaneSpawner : MonoBehaviour
             // Пропускаем уже приземлённые или вылетающие — они в Departures, не на радаре
             if (data.hasLanded || data.isReadyToDepart) continue;
 
-            GameObject newPlane = Instantiate(airplanePrefab, currentContent, false);
-            UIAirplane planeScript = newPlane.GetComponent<UIAirplane>();
+            UIAirplane planeScript = GetPlaneFromPool(currentContent);
 
             if (planeScript != null)
             {

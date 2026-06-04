@@ -22,6 +22,7 @@ public class FlightData
     public string assignedRunway = "";
     public bool isAligningToLand = false;
     public bool isDeparting = false;
+    public bool hasTakenOff = false;
     public string departureDestination = "";
 
     public string cargo;

@@ -5,14 +5,18 @@ public class TimeScaleUI : MonoBehaviour
 {
     public TextMeshProUGUI speedText;
 
+    private float lastSpeed = -1f;
+
     void Update()
     {
         if (TimeScaleController.Instance != null && speedText != null)
         {
-            int level = TimeScaleController.Instance.GetSpeedLevel();
             float speed = TimeScaleController.Instance.GetCurrentSpeed();
-
-            speedText.text = $"<color=#00FF41>SPEED: {speed}x</color>";
+            if (speed != lastSpeed)
+            {
+                lastSpeed = speed;
+                speedText.text = $"<color=#00FF41>SPEED: {speed}x</color>";
+            }
         }
     }
 }

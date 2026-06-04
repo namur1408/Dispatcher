@@ -26,9 +26,12 @@ public class UIAirplane : MonoBehaviour
     [Header("Collision Hitbox")]
     public Image hitboxVisual;
     private bool isColliding = false;
-    private bool isInDanger = false;
+    public bool isInDanger = false;
+    private float dangerTimer = 0f;
     public bool inStorm = false;
     private string realCallsign;
+
+    [HideInInspector] public bool isBigRadarCopy = false;
 
     [Header("Fuel Mechanics")]
     public float currentFuel = 100f;
@@ -78,10 +81,43 @@ public class UIAirplane : MonoBehaviour
 
     public bool isLandingPhase = false;
 
+    private Collider2D[] myColliders;
+
     public void SetCollidersActive(bool active)
     {
-        Collider2D[] colliders = GetComponentsInChildren<Collider2D>();
-        foreach (var col in colliders) col.enabled = active;
+        if (myColliders == null) myColliders = GetComponentsInChildren<Collider2D>(true);
+        foreach (var col in myColliders) col.enabled = active;
+    }
+
+    public void ResetPlane()
+    {
+        wasInitialized = false;
+        isTakingOff = false;
+        isLandingPhase = false;
+        isDeparting = false;
+        isAligningToLand = false;
+        isHolding = false;
+        isOutOfFuel = false;
+        inStorm = false;
+        hasBeenPinged = false;
+        isInDanger = false;
+        isColliding = false;
+        dangerTimer = 0f;
+        isBigRadarCopy = false;
+        assignedRunway = "";
+        cargo = "";
+        dispatchStatus = DispatchStatus.Pending;
+        waypoints.Clear();
+        foreach (var marker in activeMarkers) if (marker != null) Destroy(marker);
+        activeMarkers.Clear();
+        foreach (var seg in lineSegments) if (seg != null) Destroy(seg);
+        lineSegments.Clear();
+        SetCollidersActive(true);
+        if (canvasGroup != null) canvasGroup.alpha = 1f;
+        if (callsignText != null) callsignText.gameObject.SetActive(true);
+        if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(true);
+        emergencyTimer = 20f;
+        currentFuel = 100f; // Default, will be overwritten by InitializeFromData
     }
 
     public enum DispatchStatus { Pending, Approved, Denied }
@@ -141,8 +177,15 @@ public class UIAirplane : MonoBehaviour
         {
             isDeparting = true;
             isAligningToLand = false;
-            speed *= 4f; // Ускоряем вылетающие самолеты
+            speed = 80f; // Та же что у обычных самолетов
             UpdateInternalSpeed();
+            
+            // Визуальный эффект взлёта: тусклость + скрываем текст/маршрут (как при посадке)
+            if (canvasGroup != null) canvasGroup.alpha = 0.3f;
+            if (callsignText != null) callsignText.gameObject.SetActive(false);
+            foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(false);
+            foreach (var segment in lineSegments) if (segment != null) segment.SetActive(false);
+            if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(false);
             
             if (FlightDataManager.Instance != null)
             {
@@ -239,8 +282,10 @@ public class UIAirplane : MonoBehaviour
     {
         rectTransform = GetComponent<RectTransform>();
         canvasGroup = GetComponent<CanvasGroup>();
+        myColliders = GetComponentsInChildren<Collider2D>(true);
 
-        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;
 
         audioSource.volume = pingVolume; // <-- НОВОЕ: Применяем громкость при старте
@@ -288,7 +333,10 @@ public class UIAirplane : MonoBehaviour
         fuelAtLastPing = currentFuel;
 
         UpdateInternalSpeed();
-        if (RadarManager.Instance != null) RadarManager.Instance.RegisterAirplane(this);
+        // Регистрируем только если не зарегистрировали раньше вручную (например, SpawnDepartingNow)
+        // Копии большого радара НЕ регистрируются — у BigRadarLoader своя система конфликтов
+        if (!isBigRadarCopy && RadarManager.Instance != null && !RadarManager.Instance.activeAirplanes.Contains(this))
+            RadarManager.Instance.RegisterAirplane(this);
     }
 
     public void SetCallsign(string newCallsign)
@@ -331,7 +379,8 @@ public class UIAirplane : MonoBehaviour
         waypoints = new List<Vector2>(data.savedWaypoints);
 
         hasBeenPinged = data.hasBeenPinged;
-        if (hasBeenPinged && canvasGroup != null)
+        // Вылетающие самолеты всегда видимы сразу — без ожидания пинга радара
+        if ((hasBeenPinged || data.isDeparting) && canvasGroup != null)
         {
             canvasGroup.alpha = 1f;
         }
@@ -364,6 +413,12 @@ public class UIAirplane : MonoBehaviour
         if (isTakingOff)
         {
             SetCollidersActive(false);
+            // Визуальное состояние взлёта при восстановлении
+            if (canvasGroup != null) canvasGroup.alpha = 0.3f;
+            if (callsignText != null) callsignText.gameObject.SetActive(false);
+            foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(false);
+            foreach (var segment in lineSegments) if (segment != null) segment.SetActive(false);
+            if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(false);
             Debug.Log($"<color=green>[UIAirplane] Restored {realCallsign} in takeoff state: isTakingOff={isTakingOff}, takeoffStartPos={takeoffStartPos}, pos={logicalPosition}</color>");
         }
 
@@ -497,6 +552,8 @@ public class UIAirplane : MonoBehaviour
 
     void Update()
     {
+        if (dangerTimer > 0f) dangerTimer -= Time.deltaTime;
+
         if (!string.IsNullOrEmpty(assignedRunway) && !isDeparting)
         {
             if (RunwayManager.Instance != null)
@@ -564,7 +621,17 @@ public class UIAirplane : MonoBehaviour
             {
                 isTakingOff = false;
                 SetCollidersActive(true);
-                Debug.Log($"<color=cyan>[UIAirplane] {realCallsign} has taken off! Hitbox enabled. Distance: {dist:F1} units from start {takeoffStartPos}</color>");
+                // Восстанавливаем внешний вид — alpha вернётся к 1 на следующем пинге радара
+                if (callsignText != null) callsignText.gameObject.SetActive(true);
+                foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(true);
+                if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(true);
+                RebuildRouteLayer();
+
+                // Освобождаем место на базе — самолет вылетел, но с радара не удаляем
+                if (FlightDataManager.Instance != null)
+                    FlightDataManager.Instance.FreeBaseSlot(originalCallsign);
+
+                Debug.Log($"<color=cyan>[UIAirplane] {realCallsign} has taken off! Base slot freed.</color>");
             }
         }
 
@@ -597,8 +664,8 @@ public class UIAirplane : MonoBehaviour
         {
             emergencyTimer -= Time.deltaTime;
 
-            if (Mathf.FloorToInt(Time.time * 3) % 2 == 0) callsignText.text = "MAYDAY";
-            else callsignText.text = "";
+            string targetText = (Mathf.FloorToInt(Time.time * 3) % 2 == 0) ? "MAYDAY" : "";
+            if (callsignText.text != targetText) callsignText.text = targetText;
 
             if (emergencyTimer <= 0)
             {
@@ -687,8 +754,7 @@ public class UIAirplane : MonoBehaviour
                         foreach (var segment in lineSegments) if (segment != null) segment.SetActive(false);
 
                         // Disable ALL colliders so it's a "ghost"
-                        Collider2D[] colliders = GetComponentsInChildren<Collider2D>();
-                        foreach (var col in colliders) col.enabled = false;
+                        SetCollidersActive(false);
                         if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(false);
 
                         // Target the REAL runway position now
@@ -724,12 +790,12 @@ public class UIAirplane : MonoBehaviour
                         if (FlightDataManager.Instance != null) FlightDataManager.Instance.MarkFlightAsLanded(realCallsign);
                         if (VideoLandingManager.Instance != null) VideoLandingManager.Instance.RequestLandingVideo();
                         if (RunwayManager.Instance != null) RunwayManager.Instance.OccupyRunway(assignedRunway, 15f);
-                        Destroy(gameObject);
+                        AirplaneSpawner.Instance.ReturnPlaneToPool(this);
                     }
                     else 
                     {
                         // In any other case, if we reached the end of waypoints, just despawn
-                        Destroy(gameObject);
+                        AirplaneSpawner.Instance.ReturnPlaneToPool(this);
                     }
                 }
             }
@@ -744,7 +810,10 @@ public class UIAirplane : MonoBehaviour
             CheckZoomVisibility(zoom);
         }
 
-        if (lineSegments.Count > 0 && !isHolding) UpdateFirstSegment();
+        if (lineSegments.Count > 0 && !isHolding && !isTakingOff && hasBeenPinged)
+        {
+            // Ничего — линия обновляется только в HandlePing(), там же где обновляется позиция самолета
+        }
 
         if (Vector2.Distance(Vector2.zero, logicalPosition) > despawnRadius)
         {
@@ -763,7 +832,7 @@ public class UIAirplane : MonoBehaviour
                     }
                 }
             }
-            Destroy(gameObject);
+            AirplaneSpawner.Instance.ReturnPlaneToPool(this);
         }
     }
 
@@ -802,7 +871,12 @@ public class UIAirplane : MonoBehaviour
             fuelAtLastPing = currentFuel;
             UpdateVisualRotation();
             UpdateHitboxColor();
-            if (canvasGroup != null) canvasGroup.alpha = isLandingPhase ? 0.2f : 1f;
+            // Во время взлёта альфу не сбрасываем в 1 — самолет должен оставаться тусклым
+            if (canvasGroup != null) canvasGroup.alpha = (isLandingPhase || isTakingOff) ? 0.3f : 1f;
+
+            // Линия маршрута обновляется ТОЛЬКО здесь — синхронно с прыжком самолета
+            if (!isTakingOff && !isLandingPhase && lineSegments.Count > 0 && !isHolding)
+                UpdateFirstSegment();
 
             if (pingSound != null && Time.time - lastPingTime > 1.0f)
             {
@@ -842,9 +916,9 @@ public class UIAirplane : MonoBehaviour
 
     void FadeOut()
     {
-        if (isLandingPhase)
+        if (isLandingPhase || isTakingOff)
         {
-            if (canvasGroup != null) canvasGroup.alpha = 0.2f;
+            if (canvasGroup != null) canvasGroup.alpha = 0.3f;
             SyncRouteAlpha();
             return;
         }
@@ -953,10 +1027,9 @@ public class UIAirplane : MonoBehaviour
 
     private void UpdateFirstSegment()
     {
-        if (isLandingPhase || waypoints.Count == 0) return;
+        if (waypoints.Count == 0) return;
 
         int activeSegmentIndex = waypoints.Count - 1;
-
         if (activeSegmentIndex >= 0 && activeSegmentIndex < lineSegments.Count)
         {
             UpdateSegmentLook(lineSegments[activeSegmentIndex].GetComponent<RectTransform>(),
@@ -1085,7 +1158,12 @@ public class UIAirplane : MonoBehaviour
         if (AirplaneSpawner.Instance != null && FlightDataManager.Instance != null)
         {
             var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
-            if (fd != null) AirplaneSpawner.Instance.NotifyPlaneCrashed(fd);
+            if (fd != null) 
+            {
+                AirplaneSpawner.Instance.NotifyPlaneCrashed(fd);
+            }
+            // Удаляем самолет из списков менеджера (чтобы он пропал из терминала и не занимал место)
+            FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
         }
 
         if (RadarTutorialManager.Instance != null && !RadarTutorialManager.isRadarTutorialCompleted)
@@ -1120,8 +1198,24 @@ public class UIAirplane : MonoBehaviour
     public void SetWarning(bool warn)
     {
         if (isColliding) return;
-        isInDanger = warn;
-        UpdateHitboxColor();
+        
+        if (warn)
+        {
+            dangerTimer = 2f; // Держим предупреждение минимум 2 секунды
+            if (!isInDanger)
+            {
+                isInDanger = true;
+                UpdateHitboxColor();
+            }
+        }
+        else
+        {
+            if (isInDanger && dangerTimer <= 0f)
+            {
+                isInDanger = false;
+                UpdateHitboxColor();
+            }
+        }
     }
 
     private void UpdateHitboxColor()
