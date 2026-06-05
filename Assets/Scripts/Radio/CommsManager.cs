@@ -172,7 +172,7 @@ public class CommsManager : MonoBehaviour
         }
     }
 
-    void Start()
+    void OnEnable()
     {
         if (ButtonSoundManager.instance != null)
         {
@@ -269,7 +269,7 @@ public class CommsManager : MonoBehaviour
     string GetStatedOrigin() => !string.IsNullOrEmpty(currentData.spokenOrigin) ? currentData.spokenOrigin : currentData.manifestOrigin;
     string GetStatedCargo() => !string.IsNullOrEmpty(currentData.spokenCargo) ? currentData.spokenCargo : currentData.manifestCargo;
     string GetStatedWeight() => !string.IsNullOrEmpty(currentData.spokenWeight) ? currentData.spokenWeight : currentData.manifestCargoAmount.ToString();
-    string GetStatedSpeed() => !string.IsNullOrEmpty(currentData.spokenSpeed) ? currentData.spokenSpeed : (currentData.speed * 10f).ToString();
+    string GetStatedSpeed() => !string.IsNullOrEmpty(currentData.spokenSpeed) ? currentData.spokenSpeed : (currentData.speed * 5f).ToString();
 
     void GenerateDocuments()
     {
@@ -285,7 +285,7 @@ public class CommsManager : MonoBehaviour
         manifestDocInstance = SpawnDocument(manifestPrefab, manifestText, currentData.manifestPos, true);
 
         string radarLogText = $"<align=center><b>RADAR REPORT</b></align>\n\n" +
-                              $"<b>SPEED:</b> <link=\"rad_speed\">{currentData.speed * 10f} KTS</link>\n" +
+                              $"<b>SPEED:</b> <link=\"rad_speed\">{currentData.speed * 5f} KTS</link>\n" +
                               $"<b>CLASS:</b> {GetPlaneClass()}\n" +
                               $"{highlightStart}<b>SENSOR:</b>{highlightEnd} UNKNOWN\n";
         radarDocInstance = SpawnDocument(radarPrefab, radarLogText, currentData.radarPos, false);
@@ -294,13 +294,13 @@ public class CommsManager : MonoBehaviour
         {
             string cheatSheetText = $"<size=80%><b>QUICK REF:</b>\n\n" +
                                     $"<b>[GE] Heavy Cargo</b>\n" +
-                                    $"<link=\"rule_ge_speed\">Speed: < 850 KTS</link>\n" +
+                                    $"<link=\"rule_ge_speed\">Speed: < 425 KTS</link>\n" +
                                     $"<link=\"rule_ge_weight\">Max Wt: 500 UNITS</link>\n\n" +
                                     $"<b>[TR] Passenger</b>\n" +
                                     $"<link=\"rule_tr_cargo\">Cargo: PEOPLE ONLY</link>\n" +
-                                    $"<link=\"rule_tr_speed\">Speed: 700-780 KTS</link>\n\n" +
+                                    $"<link=\"rule_tr_speed\">Speed: 350-390 KTS</link>\n\n" +
                                     $"<b>[QY] Light Courier</b>\n" +
-                                    $"<link=\"rule_qy_speed\">Speed: > 800 KTS</link>\n" +
+                                    $"<link=\"rule_qy_speed\">Speed: > 400 KTS</link>\n" +
                                     $"<link=\"rule_qy_weight\">Max Wt: 50 UNITS</link>\n</size>";
             cheatSheetDocInstance = SpawnDocument(cheatSheetPrefab, cheatSheetText, currentData.cheatSheetPos, false);
         }
@@ -474,8 +474,8 @@ public class CommsManager : MonoBehaviour
                 if (rule == "rule_ge_speed" && (fact == "rad_speed" || fact == "rep_speed"))
                 {
                     isValid = true;
-                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 10f : float.Parse(GetStatedSpeed());
-                    if (speedToCheck >= 850f) isLie = true;
+                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : float.Parse(GetStatedSpeed());
+                    if (speedToCheck >= 425f) isLie = true;
                 }
                 else if (rule == "rule_ge_weight" && (fact == "man_weight" || fact == "rep_weight"))
                 {
@@ -495,8 +495,8 @@ public class CommsManager : MonoBehaviour
                 else if (rule == "rule_tr_speed" && (fact == "rad_speed" || fact == "rep_speed"))
                 {
                     isValid = true;
-                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 10f : float.Parse(GetStatedSpeed());
-                    if (speedToCheck < 700f || speedToCheck > 780f) isLie = true;
+                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : float.Parse(GetStatedSpeed());
+                    if (speedToCheck < 350f || speedToCheck > 390f) isLie = true;
                 }
             }
             else if (rule.Contains("_qy_") && currentData.callsign.StartsWith("QY"))
@@ -504,8 +504,8 @@ public class CommsManager : MonoBehaviour
                 if (rule == "rule_qy_speed" && (fact == "rad_speed" || fact == "rep_speed"))
                 {
                     isValid = true;
-                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 10f : float.Parse(GetStatedSpeed());
-                    if (speedToCheck <= 800f) isLie = true;
+                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : float.Parse(GetStatedSpeed());
+                    if (speedToCheck <= 400f) isLie = true;
                 }
                 else if (rule == "rule_qy_weight" && (fact == "man_weight" || fact == "rep_weight"))
                 {
@@ -547,7 +547,7 @@ public class CommsManager : MonoBehaviour
             }
             else if (CheckPair(firstFactID, secondID, "rad_speed", "rep_speed"))
             {
-                isValid = true; isLie = ((currentData.speed * 10f).ToString() != GetStatedSpeed());
+                isValid = true; isLie = ((currentData.speed * 5f).ToString() != GetStatedSpeed());
             }
         }
 

@@ -292,9 +292,11 @@ public class RadarPanelsManager : MonoBehaviour
     {
         // Allow runway assignment if:
         // - прилёт, одобрен, нет полосы
+        // - прилёт, одобрен, есть полоса, но самолёт ещё выравнивается (не начал садиться) — смена полосы
         // - вылетает (isDeparting), нет полосы
         // - готов к вылету (isReadyToDepart), нет полосы (ждёт назначения)
         bool canAssign = (!data.isDeparting && !data.isReadyToDepart && data.approved && string.IsNullOrEmpty(data.assignedRunway))
+                      || (!data.isDeparting && !data.isReadyToDepart && data.approved && !string.IsNullOrEmpty(data.assignedRunway) && data.isAligningToLand && !data.isLandingPhase)
                       || (data.isDeparting && string.IsNullOrEmpty(data.assignedRunway))
                       || (data.isReadyToDepart && string.IsNullOrEmpty(data.assignedRunway));
 
@@ -370,6 +372,12 @@ public class RadarPanelsManager : MonoBehaviour
                 if (plane != null && (plane.originalCallsign == selectedFlightForRunway.callsign ||
                                      (plane.callsignText != null && plane.callsignText.text == selectedFlightForRunway.callsign)))
                 {
+                    // Если у самолёта уже была назначена полоса — сбрасываем старое состояние
+                    if (!string.IsNullOrEmpty(plane.assignedRunway))
+                    {
+                        plane.assignedRunway = "";
+                        plane.isAligningToLand = false;
+                    }
                     plane.SetAssignedRunway(runwayId, !selectedFlightForRunway.isDeparting);
                 }
             }

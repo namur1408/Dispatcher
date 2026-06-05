@@ -80,7 +80,7 @@ public class AegisDetailPanel : MonoBehaviour
         if (aircraftTypeText) aircraftTypeText.text = typeLabel;
 
         // ── Speed ──
-        if (speedValue) speedValue.text = $"SPEED        {plane.speed * 10f:0} KTS";
+        if (speedValue) speedValue.text = $"SPEED        {plane.speed * 5f:0} KTS";
 
         // ── Cargo ──
         if (cargoValue)
@@ -192,7 +192,7 @@ public class AegisDetailPanel : MonoBehaviour
         if (aircraftTypeText) aircraftTypeText.text = typeLabel;
 
         // ── Speed ──
-        if (speedValue) speedValue.text = $"SPEED        {plane.speed * 10f:0} KTS";
+        if (speedValue) speedValue.text = $"SPEED        {plane.speed * 5f:0} KTS";
 
         // ── Cargo ──
         if (cargoValue)

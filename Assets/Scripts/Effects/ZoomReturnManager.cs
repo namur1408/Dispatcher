@@ -29,6 +29,14 @@ public class ZoomReturnManager : MonoBehaviour
 
     private IEnumerator PrepareAndZoomOut()
     {
+        // 0. Создаём полностью черный оверлей ДО ожидания кадра, чтобы скрыть "прыжок"
+        GameObject fadeObj = new GameObject("ReturnFadeOverlay");
+        Canvas fadeCanvas = fadeObj.AddComponent<Canvas>();
+        fadeCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        fadeCanvas.sortingOrder = 9999;
+        UnityEngine.UI.Image fadeImage = fadeObj.AddComponent<UnityEngine.UI.Image>();
+        fadeImage.color = new Color(0f, 0f, 0f, 1f); // Полностью черный для скрытия загрузки
+
         // 1. Делаем контейнер временно прозрачным на 1 кадр, чтобы скрыть "прыжок"
         CanvasGroup canvasGroup = rootContainer.GetComponent<CanvasGroup>();
         if (canvasGroup == null) canvasGroup = rootContainer.gameObject.AddComponent<CanvasGroup>();
@@ -45,20 +53,21 @@ public class ZoomReturnManager : MonoBehaviour
         if (targetObj != null)
         {
             Debug.Log($"<color=green>[ZoomReturn]</color> Найден объект для возврата: {targetObj.name}");
-            // Передаем обычный Transform (как в скрипте входа), чтобы работало с любыми объектами
-            yield return StartCoroutine(ZoomOutAnimation(targetObj.transform, canvasGroup));
+            // Передаем fadeImage и fadeObj в функцию анимации
+            yield return StartCoroutine(ZoomOutAnimation(targetObj.transform, canvasGroup, fadeImage, fadeObj));
         }
         else
         {
             Debug.LogError($"<color=red>[ZoomReturn]</color> Ошибка! Не найден объект с именем: {pendingReturnTargetName}. Возврат из центра.");
             canvasGroup.alpha = 1f; // Возвращаем видимость, если сломалось
+            Destroy(fadeObj);
         }
 
         // Очищаем переменную
         pendingReturnTargetName = "";
     }
 
-    private IEnumerator ZoomOutAnimation(Transform zoomTarget, CanvasGroup canvasGroup)
+    private IEnumerator ZoomOutAnimation(Transform zoomTarget, CanvasGroup canvasGroup, UnityEngine.UI.Image fadeImage, GameObject fadeObj)
     {
         bool wasAdditive = (rootContainer.localScale.x > 1.5f);
 
@@ -98,6 +107,12 @@ public class ZoomReturnManager : MonoBehaviour
         }
 
         canvasGroup.alpha = 1f;
+        
+        // Открываем зумированный кадр (снижаем черноту до 70%)
+        fadeImage.color = new Color(0f, 0f, 0f, 0.7f);
+
+        // Зависаем немного перед объектом перед началом отдаления
+        yield return new WaitForSecondsRealtime(0.15f);
 
         float elapsedTime = 0f;
         while (elapsedTime < zoomDuration)
@@ -108,6 +123,9 @@ public class ZoomReturnManager : MonoBehaviour
 
             rootContainer.localScale = Vector3.Lerp(zoomedScale, normalScale, smooth);
             rootContainer.anchoredPosition = Vector2.Lerp(zoomedPos, normalPos, smooth);
+            
+            // Плавное исчезновение черного затемнения
+            fadeImage.color = new Color(0f, 0f, 0f, Mathf.Lerp(0.7f, 0f, smooth));
 
             float currentScaleRatio = rootContainer.localScale.x / normalScale.x;
             for (int i = 0; i < lights.Length; i++)
@@ -121,5 +139,8 @@ public class ZoomReturnManager : MonoBehaviour
 
         rootContainer.localScale = normalScale;
         rootContainer.anchoredPosition = normalPos;
+        canvasGroup.alpha = 1f;
+
+        Destroy(fadeObj);
     }
 }

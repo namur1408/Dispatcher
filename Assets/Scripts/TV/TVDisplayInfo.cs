@@ -499,7 +499,7 @@ public class TVDisplayInfo : MonoBehaviour
 
                     txt.text = $"<color={nameColor}><b>{displayName}</b></color>  " +
                                $"<color={stCol}>{stIcon}</color>  " +
-                               $"<color={COL_SPEED}>SPD:{data.speed * 10f:F0} KTS</color>";
+                               $"<color={COL_SPEED}>SPD:{data.speed * 5f:F0} KTS</color>";
                 }
 
                 Image img = entry.GetComponent<Image>();
@@ -575,7 +575,7 @@ public class TVDisplayInfo : MonoBehaviour
 
                     txt.text = $"<color={nameColor}><b>{displayName}</b></color>  " +
                                $"<color={stCol}>{stIcon}</color>  " +
-                               $"<color={COL_SPEED}>SPD:{data.speed * 10f:F0} KTS</color>";
+                               $"<color={COL_SPEED}>SPD:{data.speed * 5f:F0} KTS</color>";
                 }
             }
         }
