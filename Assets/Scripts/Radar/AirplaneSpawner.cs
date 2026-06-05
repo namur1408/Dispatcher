@@ -184,6 +184,7 @@ public class AirplaneSpawner : MonoBehaviour
 
         FlightData randomData = new FlightData(callsign, startPos, targetPos, new List<Vector2>(), speed, cargo, amount);
         randomData.currentFuel = fuel;
+        randomData.personality = PilotDialogue.GetRandomPersonality();
 
         UIAirplane planeScript = GetPlaneFromPool(contentParent);
 

@@ -282,3 +282,14 @@ MonoBehaviour:
   dragDamping: 10
   enableSquash: 1
   squashAmount: 0.05
+  enableBend: 1
+  baseSagAmount: -60
+  bendMultiplier: 10
+  maxBendAmount: 80
+  bendSpringForce: 8
+  bendInertia: 0.15
+  enableLift: 1
+  liftScaleMultiplier: 1.05
+  shadowDistance: 20
+  shadowAlpha: 0.4
+  liftSpeed: 12

@@ -52,6 +52,9 @@ public class ReturnToDesk : MonoBehaviour
                 returnCamera.gameObject.SetActive(true);
             }
             if (currentScreenRoot != null) currentScreenRoot.SetActive(false);
+
+            ZoomReturnManager zrm = FindAnyObjectByType<ZoomReturnManager>();
+            if (zrm != null) zrm.TriggerReturnAnimation();
         }
         else
         {

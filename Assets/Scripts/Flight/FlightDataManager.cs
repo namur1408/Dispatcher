@@ -350,14 +350,17 @@ public class FlightDataManager : MonoBehaviour
         else if (dayNumber == 1)
         {
             FlightData ge102 = new FlightData("GE-102", new Vector2(-535, 119), Vector2.zero, new List<Vector2>(), 80f, "Fuel", 200, "Fuel", 200, 250f, "Bastion-3");
+            ge102.personality = PilotPersonality.Aggressive;
             scriptedFlightsQueue.Enqueue(ge102);
             scriptedDelaysQueue.Enqueue(15f);
 
             FlightData qy884 = new FlightData("QY-884", new Vector2(437, -357), Vector2.zero, new List<Vector2>(), 95f, "Food", 200, "Food", 200, 250f, "Bastion-5");
+            qy884.personality = PilotPersonality.Nervous;
             scriptedFlightsQueue.Enqueue(qy884);
             scriptedDelaysQueue.Enqueue(20f);
 
             FlightData tr404 = new FlightData("TR-404", new Vector2(0, 535), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Food", 50, 100f, "Sector-Z");
+            tr404.personality = PilotPersonality.Desperate;
             tr404.spokenCargo = "Food";
             tr404.spokenOrigin = "Bastion-4";
             tr404.explanationOrigin = "Sector Z has been destroyed, Control. We barely managed to escape! We probably made a mistake in the rush.";
@@ -366,10 +369,12 @@ public class FlightDataManager : MonoBehaviour
             scriptedDelaysQueue.Enqueue(20f);
 
             FlightData ge201 = new FlightData("GE-201", new Vector2(-416, 476), Vector2.zero, new List<Vector2>(), 84f, "Fuel", 150, "Fuel", 150, 250f, "Bastion-1");
+            ge201.personality = PilotPersonality.Standard;
             scriptedFlightsQueue.Enqueue(ge201);
             scriptedDelaysQueue.Enqueue(15f);
 
             FlightData ge305 = new FlightData("GE-305", new Vector2(-200, -500), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 100, "Fuel", 100, 250f, "Bastion-2");
+            ge305.personality = PilotPersonality.Cold;
             scriptedFlightsQueue.Enqueue(ge305);
             scriptedDelaysQueue.Enqueue(15f);
         }
@@ -381,11 +386,13 @@ public class FlightDataManager : MonoBehaviour
             {
                 // 1. Fuel transport
                 FlightData fl55 = new FlightData("GE-55", new Vector2(-600, 0), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 250, "Fuel", 250, 300f, "Bastion-3");
+                fl55.personality = PilotPersonality.Standard;
                 scriptedFlightsQueue.Enqueue(fl55);
                 scriptedDelaysQueue.Enqueue(0.5f); // 0.5s delay so the next plane spawns almost immediately
 
                 // 2. Fake Medicines (True Cargo: Food, Manifest: Food)
                 FlightData fakeMeds = new FlightData("TR-99", new Vector2(-500, 300), Vector2.zero, new List<Vector2>(), 85f, "Food", 200, "Food", 200, 220f, "Sector-X");
+                fakeMeds.personality = PilotPersonality.Nervous;
                 fakeMeds.spokenCargo = "Medicines";
                 fakeMeds.customAnswerCargo = "We are carrying critical Medicines! Please let us land immediately!";
                 fakeMeds.explanationCargo = "I know the manifest says Food, but we secretly loaded Medicines to avoid raiders! You have to trust us, we have what you need!";
@@ -394,11 +401,13 @@ public class FlightDataManager : MonoBehaviour
 
                 // 3. Food transport (no deception)
                 FlightData fd42 = new FlightData("GE-42", new Vector2(400, -200), Vector2.zero, new List<Vector2>(), 80f, "Food", 300, "Food", 300, 250f, "Agri-Center");
+                fd42.personality = PilotPersonality.Standard;
                 scriptedFlightsQueue.Enqueue(fd42);
                 scriptedDelaysQueue.Enqueue(20f); // 20s delay until Fake Fuel
 
                 // 3.5 Fake Fuel (True Cargo: People, Manifest: People)
                 FlightData fakeFuel = new FlightData("TR-33", new Vector2(300, 500), Vector2.zero, new List<Vector2>(), 75f, "People", 20, "People", 20, 150f, "Sector-B");
+                fakeFuel.personality = PilotPersonality.Desperate;
                 fakeFuel.spokenCargo = "Fuel";
                 fakeFuel.spokenWeight = "1000";
                 fakeFuel.customAnswerCargo = "We are transporting Fuel for your generators.";
@@ -409,17 +418,20 @@ public class FlightDataManager : MonoBehaviour
 
                 // 4. Real Medicines
                 FlightData md01 = new FlightData("QY-01", new Vector2(-400, -400), Vector2.zero, new List<Vector2>(), 95f, "Medicines", 10, "Medicines", 10, 200f, "Med-Base 4");
+                md01.personality = PilotPersonality.Standard;
                 scriptedFlightsQueue.Enqueue(md01);
                 scriptedDelaysQueue.Enqueue(25f); // 25s delay until the final plane
 
                 // 5. Special Equipment for Engineer (Arrives Last)
                 FlightData eqFake = new FlightData("GE-98", new Vector2(-200, 600), Vector2.zero, new List<Vector2>(), 75f, "Equipment", 5, "Equipment", 5, 250f, "Eng-Hub");
+                eqFake.personality = PilotPersonality.Cold;
                 eqFake.spokenCargo = "Equipment";
                 eqFake.customAnswerCargo = "We are carrying the special equipment for Chief Engineer Mitchell. Authentication code: AIOX.";
                 scriptedFlightsQueue.Enqueue(eqFake);
                 scriptedDelaysQueue.Enqueue(10f);
 
                 FlightData eqReal = new FlightData("GE-99", new Vector2(200, 600), Vector2.zero, new List<Vector2>(), 80f, "Equipment", 5, "Equipment", 5, 250f, "Eng-Hub");
+                eqReal.personality = PilotPersonality.Aggressive;
                 eqReal.spokenCargo = "Equipment";
                 eqReal.customAnswerCargo = "We are carrying the special equipment for Chief Engineer Mitchell. Authentication code: AINM.";
                 scriptedFlightsQueue.Enqueue(eqReal);
@@ -429,6 +441,7 @@ public class FlightDataManager : MonoBehaviour
             {
                 // Enemy SF
                 FlightData sfEnemy = new FlightData("TR-88", new Vector2(-500, 400), Vector2.zero, new List<Vector2>(), 78f, "People", 50, "People", 50, 150f, "HQ-Alpha");
+                sfEnemy.personality = PilotPersonality.Cold;
                 sfEnemy.spokenCargo = "Reinforcements";
                 sfEnemy.customAnswerCargo = "We are the reinforcements requested by the Director. Authentication code: MKPU.";
                 scriptedFlightsQueue.Enqueue(sfEnemy);
@@ -436,16 +449,19 @@ public class FlightDataManager : MonoBehaviour
 
                 // Friend SF (TR passenger planes)
                 FlightData sfFriend = new FlightData("TR-11", new Vector2(500, 300), Vector2.zero, new List<Vector2>(), 75f, "People", 50, "People", 50, 150f, "HQ-Alpha");
+                sfFriend.personality = PilotPersonality.Aggressive;
                 sfFriend.spokenCargo = "Reinforcements";
                 sfFriend.customAnswerCargo = "We are the reinforcements requested by the Director. Authentication code: MKPW.";
                 scriptedFlightsQueue.Enqueue(sfFriend);
                 scriptedDelaysQueue.Enqueue(15f);
 
                 FlightData fl55 = new FlightData("GE-55", new Vector2(-600, 0), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 250, "Fuel", 250, 300f, "Bastion-3");
+                fl55.personality = PilotPersonality.Standard;
                 scriptedFlightsQueue.Enqueue(fl55);
                 scriptedDelaysQueue.Enqueue(20f);
 
                 FlightData fd42 = new FlightData("GE-42", new Vector2(400, -200), Vector2.zero, new List<Vector2>(), 80f, "Food", 300, "Food", 300, 250f, "Agri-Center");
+                fd42.personality = PilotPersonality.Nervous;
                 scriptedFlightsQueue.Enqueue(fd42);
                 scriptedDelaysQueue.Enqueue(15f);
             }

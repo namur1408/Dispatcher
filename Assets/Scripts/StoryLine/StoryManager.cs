@@ -769,10 +769,15 @@ public class StoryManager : MonoBehaviour
         }
 
         string displayDate = (18 + dayNumber) + ".08.2038";
-        string targetText = $"<size=150%>SHIFT {dayNumber}</size>\r\n\r\n\r\n<color=#888888><size=70%>{displayDate}</size></color>";
+        if (dayText != null) dayText.text = ""; // Ensure old text is cleared
 
-        yield return StartCoroutine(TypeText(targetText));
-        yield return new WaitForSecondsRealtime(2.5f);
+        ShiftIntroBuilder builder = Object.FindFirstObjectByType<ShiftIntroBuilder>();
+        if (builder == null) 
+        {
+            builder = new GameObject("ShiftIntroBuilder").AddComponent<ShiftIntroBuilder>();
+        }
+
+        yield return StartCoroutine(builder.PlaySequence(dayText.transform.parent, dayText.font, dayNumber, displayDate));
 
         if (dayNumber == 1) SendDay1Directives();
         else if (dayNumber == 2) SendDay2Directives();

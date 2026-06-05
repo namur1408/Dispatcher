@@ -346,16 +346,16 @@ public class CommsManager : MonoBehaviour
         string reportText = $"<align=center><b>PILOT'S STATEMENT</b></align>\n\n";
 
         if (askedOrigin) reportText += $"<b>ORIGIN:</b> <link=\"rep_origin\">{GetStatedOrigin()}</link>\n";
-        else reportText += $"<link=\"unlock_origin\"><b>ORIGIN:</b></link> _________\n";
+        else reportText += $"<link=\"unlock_origin\"><b>ORIGIN:</b></link>\n";
 
         if (askedCargo) reportText += $"<b>CARGO:</b> {highlightStart}<link=\"rep_cargo\">{GetStatedCargo().ToUpper()}</link>{highlightEnd}\n";
-        else reportText += $"{highlightStart}<link=\"unlock_cargo\"><b>CARGO:</b></link>{highlightEnd} _________\n";
+        else reportText += $"{highlightStart}<link=\"unlock_cargo\"><b>CARGO:</b></link>{highlightEnd}\n";
 
         if (askedWeight) reportText += $"<b>WEIGHT:</b> <link=\"rep_weight\">{GetStatedWeight()} UNITS</link>\n";
-        else reportText += $"<link=\"unlock_weight\"><b>WEIGHT:</b></link> _________\n";
+        else reportText += $"<link=\"unlock_weight\"><b>WEIGHT:</b></link>\n";
 
         if (askedSpeed) reportText += $"<b>SPEED:</b> <link=\"rep_speed\">{GetStatedSpeed()} KTS</link>\n";
-        else reportText += $"<link=\"unlock_speed\"><b>SPEED:</b></link> _________\n";
+        else reportText += $"<link=\"unlock_speed\"><b>SPEED:</b></link>\n";
 
         pilotReportDoc.SetContent(reportText);
     }
@@ -417,7 +417,7 @@ public class CommsManager : MonoBehaviour
                     : "State your cargo purpose.";
                 answer = !string.IsNullOrEmpty(currentData.customAnswerCargo)
                     ? currentData.customAnswerCargo
-                    : $"We are transporting {GetStatedCargo().ToUpper()}.";
+                    : PilotDialogue.GetAnswer(currentData.personality, "cargo", GetStatedCargo().ToUpper());
                 break;
             case "origin":
                 question = !string.IsNullOrEmpty(currentData.customQuestionOrigin)
@@ -425,7 +425,7 @@ public class CommsManager : MonoBehaviour
                     : "Confirm your point of origin.";
                 answer = !string.IsNullOrEmpty(currentData.customAnswerOrigin)
                     ? currentData.customAnswerOrigin
-                    : $"Flight originated from {GetStatedOrigin()}.";
+                    : PilotDialogue.GetAnswer(currentData.personality, "origin", GetStatedOrigin());
                 break;
             case "weight":
                 question = !string.IsNullOrEmpty(currentData.customQuestionWeight)
@@ -433,7 +433,7 @@ public class CommsManager : MonoBehaviour
                     : "Report cargo weight.";
                 answer = !string.IsNullOrEmpty(currentData.customAnswerWeight)
                     ? currentData.customAnswerWeight
-                    : $"Manifest states {GetStatedWeight()} UNITS.";
+                    : PilotDialogue.GetAnswer(currentData.personality, "weight", GetStatedWeight());
                 break;
             case "speed":
                 question = !string.IsNullOrEmpty(currentData.customQuestionSpeed)
@@ -441,7 +441,7 @@ public class CommsManager : MonoBehaviour
                     : "Confirm your current airspeed.";
                 answer = !string.IsNullOrEmpty(currentData.customAnswerSpeed)
                     ? currentData.customAnswerSpeed
-                    : $"Instruments show {GetStatedSpeed()} KTS.";
+                    : PilotDialogue.GetAnswer(currentData.personality, "speed", GetStatedSpeed());
                 break;
         }
 
@@ -612,7 +612,7 @@ public class CommsManager : MonoBehaviour
             currentData.isCargoKnown = true;
         }
 
-        string exp = "Atmospheric interference, dispatcher. Everything is normal.";
+        string exp = PilotDialogue.GetConfrontResponse(currentData.personality);
 
         if (currentLieTopic == "cargo" && !string.IsNullOrEmpty(currentData.explanationCargo)) exp = currentData.explanationCargo;
         else if (currentLieTopic == "origin" && !string.IsNullOrEmpty(currentData.explanationOrigin)) exp = currentData.explanationOrigin;
@@ -728,7 +728,7 @@ public class CommsManager : MonoBehaviour
         chatHistoryText.text = "";
 
         string prefix = $"<b>[{currentData.callsign}]:</b> ";
-        string message = "Bastion-7, requesting landing corridor.";
+        string message = PilotDialogue.GetGreeting(currentData.personality, currentData.callsign);
 
         chatHistoryText.text += prefix + message + "\n\n";
         
@@ -746,7 +746,8 @@ public class CommsManager : MonoBehaviour
         chatHistoryText.text += $"<b>[YOU]:</b> {question}\n\n";
         ScrollToBottom(true);
         
-        yield return new WaitForSecondsRealtime(Random.Range(2f, 3f)); // Пауза 2-3 секунды перед ответом
+        var (minDelay, maxDelay) = PilotDialogue.GetResponseDelay(currentData.personality);
+        yield return new WaitForSecondsRealtime(Random.Range(minDelay, maxDelay)); // Пауза зависит от личности пилота
 
         string prefix = $"<b>[{currentData.callsign}]:</b> ";
         chatHistoryText.text += prefix + answer + "\n\n";
@@ -821,6 +822,9 @@ public class CommsManager : MonoBehaviour
                 returnCamera.gameObject.SetActive(true);
             }
             if (currentCommsRoot != null) currentCommsRoot.SetActive(false);
+
+            ZoomReturnManager zrm = FindAnyObjectByType<ZoomReturnManager>();
+            if (zrm != null) zrm.TriggerReturnAnimation();
         }
         else
         {

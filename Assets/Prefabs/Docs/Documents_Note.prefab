@@ -221,7 +221,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: -6347362508506417215, guid: c6c6c737a7d299e4b828d0c32d4115d0, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -284,3 +284,14 @@ MonoBehaviour:
   dragDamping: 10
   enableSquash: 1
   squashAmount: 0.05
+  enableBend: 1
+  baseSagAmount: -60
+  bendMultiplier: 10
+  maxBendAmount: 80
+  bendSpringForce: 8
+  bendInertia: 0.15
+  enableLift: 1
+  liftScaleMultiplier: 1.05
+  shadowDistance: 20
+  shadowAlpha: 0.4
+  liftSpeed: 12

@@ -10,7 +10,7 @@ public class ZoomReturnManager : MonoBehaviour
 
     [Header("Настройки отдаления")]
     public RectTransform rootContainer; // Твой ScreenContent
-    public float zoomDuration = 0.5f;
+    public float zoomDuration = 0.2f;
     public float startingZoomMultiplier = 2.5f;
 
     void Start()

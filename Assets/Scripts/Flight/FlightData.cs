@@ -1,10 +1,20 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+public enum PilotPersonality
+{
+    Standard,
+    Aggressive,
+    Nervous,
+    Cold,
+    Desperate
+}
+
 [System.Serializable]
 public class FlightData
 {
     public string callsign;
+    public PilotPersonality personality = PilotPersonality.Standard;
     public Vector2 position;
     public Vector2 targetPosition;
     public List<Vector2> savedWaypoints = new List<Vector2>();

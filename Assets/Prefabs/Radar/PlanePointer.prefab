@@ -104,7 +104,9 @@ MonoBehaviour:
   routeSegmentPrefab: {fileID: 8453672744373194292, guid: fa4d9243782f57842a5b2f359c872c08, type: 3}
   waypointMarkerPrefab: {fileID: 4447171322116784114, guid: 9bd0c0c225f04744489f2a06b7489c74, type: 3}
   hitboxVisual: {fileID: 7097506196762670886}
+  isInDanger: 0
   inStorm: 0
+  isBigRadarCopy: 0
   currentFuel: 300
   distancePerFuelUnit: 10
   emergencyTimer: 20
@@ -117,6 +119,9 @@ MonoBehaviour:
   isAligningToLand: 0
   isDeparting: 0
   departureDestination: 
+  isTakingOff: 0
+  takeoffStartPos: {x: 0, y: 0}
+  isLandingPhase: 0
   dispatchStatus: 0
 --- !u!225 &-132890971376957439
 CanvasGroup:
@@ -458,8 +463,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: New Text
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 36a8058d35c36554b9ead4b7db4c8706, type: 2}
-  m_sharedMaterial: {fileID: -4993873307652430692, guid: 36a8058d35c36554b9ead4b7db4c8706, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: aa00fcd9b429c7241bcb153a6a4e1642, type: 2}
+  m_sharedMaterial: {fileID: -3858337551282388926, guid: aa00fcd9b429c7241bcb153a6a4e1642, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
