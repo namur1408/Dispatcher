@@ -88,6 +88,9 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
             asyncLoad.allowSceneActivation = false;
         }
 
+        // Задержка перед началом зума (дает время сцене подгрузиться)
+        yield return new WaitForSecondsRealtime(0.1f);
+
         // 2. Анимация Зума (она задает темп)
         Vector3 startScale = rootContainer.localScale;
         Vector3 targetScale = startScale * zoomMultiplier;

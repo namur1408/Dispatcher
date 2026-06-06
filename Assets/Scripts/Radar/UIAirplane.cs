@@ -177,7 +177,7 @@ public class UIAirplane : MonoBehaviour
         {
             isDeparting = true;
             isAligningToLand = false;
-            speed = 80f; // Та же что у обычных самолетов
+            speed = 68f; // Departure speed (reduced for realism)
             UpdateInternalSpeed();
             
             // Визуальный эффект взлёта: тусклость + скрываем текст/маршрут (как при посадке)
@@ -642,14 +642,6 @@ public class UIAirplane : MonoBehaviour
         {
             float fuelConsumed = distanceMoved / distancePerFuelUnit;
             currentFuel -= fuelConsumed;
-            if (cargo == "Fuel" && FlightDataManager.Instance != null)
-            {
-                var flightData = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == realCallsign);
-                if (flightData != null)
-                {
-                    flightData.cargoAmount = Mathf.Max(0, Mathf.RoundToInt(currentFuel));
-                }
-            }
 
             if (currentFuel <= 0)
             {
@@ -671,13 +663,26 @@ public class UIAirplane : MonoBehaviour
             {
                 Debug.Log($"<color=red>АВАРИЯ: {realCallsign} рухнул из-за нехватки топлива!</color>");
 
-                if (AirplaneSpawner.Instance != null && FlightDataManager.Instance != null)
+                if (FlightDataManager.Instance != null)
                 {
                     var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
-                    if (fd != null) AirplaneSpawner.Instance.NotifyPlaneCrashed(fd);
+                    if (fd != null)
+                    {
+                        if (AirplaneSpawner.Instance != null)
+                            AirplaneSpawner.Instance.NotifyPlaneCrashed(fd);
+                    }
+                    FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
                 }
 
-                DestroyPlane();
+                if (RadarScreenClicker.selectedPlane == this)
+                {
+                    if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.ClearSelection();
+                }
+
+                if (AirplaneSpawner.Instance != null)
+                    AirplaneSpawner.Instance.ReturnPlaneToPool(this);
+                else
+                    Destroy(gameObject);
                 return;
             }
         }
@@ -947,7 +952,7 @@ public class UIAirplane : MonoBehaviour
         }
     }
 
-    public void UpdateInternalSpeed() => _actualSpeed = speed / 25f;
+    public void UpdateInternalSpeed() => _actualSpeed = speed / 29f;
 
     private void CheckZoomVisibility(float zoom)
     {

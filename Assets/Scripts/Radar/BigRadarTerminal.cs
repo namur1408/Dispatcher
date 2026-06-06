@@ -122,7 +122,7 @@ public class BigRadarTerminal : MonoBehaviour
         {
             fullText = $"  SELECTED TARGET\n\n" +
                        $">CALLSIGN: {currentSelectedPlane.callsignText.text}\n" +
-                       $">SPEED:    {currentSelectedPlane.speed * 10f} KTS\n" +
+                       $">SPEED:    {currentSelectedPlane.speed * 5f} KTS\n" +
                        $">TYPE:     <color=#00BFFF>TRANSIT (XSIT)</color>";
         }
         else
@@ -164,7 +164,7 @@ public class BigRadarTerminal : MonoBehaviour
 
             fullText = $"  SELECTED TARGET\n\n" +
                        $">CALLSIGN: {currentSelectedPlane.callsignText.text}\n" +
-                       $">SPEED:    {currentSelectedPlane.speed * 10f} KTS\n" +
+                       $">SPEED:    {currentSelectedPlane.speed * 5f} KTS\n" +
                        $">CARGO:    <color=#FFD700>{cargoInfo}</color>\n" +
                        $">FUEL:     {fuelDisplay}\n" +
                        $">STATUS:   <color={colorHex}>{statusString}</color>";
