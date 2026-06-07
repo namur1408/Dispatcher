@@ -55,6 +55,7 @@ public class IntroManager : MonoBehaviour
     private bool isTyping = false;
     private bool isSpeaking = false;
     private bool skipRequested = false;
+    private AsyncOperation preloadOp;
 
     void Start()
     {
@@ -97,6 +98,12 @@ public class IntroManager : MonoBehaviour
 
     IEnumerator IntroSequence()
     {
+        preloadOp = SceneManager.LoadSceneAsync(mainSceneName);
+        if (preloadOp != null)
+        {
+            preloadOp.allowSceneActivation = false;
+        }
+
         for (int i = 0; i < frames.Length; i++)
         {
             skipRequested = false;
@@ -225,6 +232,13 @@ public class IntroManager : MonoBehaviour
     public void LoadNextScene()
     {
         if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
-        SceneManager.LoadScene(mainSceneName);
+        if (preloadOp != null)
+        {
+            preloadOp.allowSceneActivation = true;
+        }
+        else
+        {
+            SceneManager.LoadScene(mainSceneName);
+        }
     }
 }

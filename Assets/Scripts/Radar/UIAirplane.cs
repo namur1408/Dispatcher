@@ -419,7 +419,7 @@ public class UIAirplane : MonoBehaviour
             foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(false);
             foreach (var segment in lineSegments) if (segment != null) segment.SetActive(false);
             if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(false);
-            Debug.Log($"<color=green>[UIAirplane] Restored {realCallsign} in takeoff state: isTakingOff={isTakingOff}, takeoffStartPos={takeoffStartPos}, pos={logicalPosition}</color>");
+//Debug.Log($"<color=green>[UIAirplane] Restored {realCallsign} in takeoff state: isTakingOff={isTakingOff}, takeoffStartPos={takeoffStartPos}, pos={logicalPosition}</color>");
         }
 
         isLandingPhase = data.isLandingPhase;
@@ -433,7 +433,7 @@ public class UIAirplane : MonoBehaviour
 
             // Disable ALL colliders so it's a "ghost"
             SetCollidersActive(false);
-            Debug.Log($"<color=green>[UIAirplane] Restored {realCallsign} in landing state: isLandingPhase={isLandingPhase}, pos={logicalPosition}</color>");
+//Debug.Log($"<color=green>[UIAirplane] Restored {realCallsign} in landing state: isLandingPhase={isLandingPhase}, pos={logicalPosition}</color>");
         }
 
         UpdateHitboxColor();
@@ -561,7 +561,7 @@ public class UIAirplane : MonoBehaviour
                 Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
                 if (rw != null && rw.isOccupied)
                 {
-                    Debug.Log($"<color=orange>[UIAirplane] {realCallsign} aborting landing! Runway {assignedRunway} is physically occupied.</color>");
+//Debug.Log($"<color=orange>[UIAirplane] {realCallsign} aborting landing! Runway {assignedRunway} is physically occupied.</color>");
                     assignedRunway = "";
                     isAligningToLand = false;
                     
@@ -609,7 +609,7 @@ public class UIAirplane : MonoBehaviour
                         {
                             takeoffStartPos = new Vector2(0.001f, 0.001f);
                         }
-                        Debug.Log($"<color=yellow>[UIAirplane] Self-healed/restored takeoffStartPos to: {takeoffStartPos} for {realCallsign}</color>");
+//Debug.Log($"<color=yellow>[UIAirplane] Self-healed/restored takeoffStartPos to: {takeoffStartPos} for {realCallsign}</color>");
                     }
                 }
             }
@@ -631,7 +631,7 @@ public class UIAirplane : MonoBehaviour
                 if (FlightDataManager.Instance != null)
                     FlightDataManager.Instance.FreeBaseSlot(originalCallsign);
 
-                Debug.Log($"<color=cyan>[UIAirplane] {realCallsign} has taken off! Base slot freed.</color>");
+//Debug.Log($"<color=cyan>[UIAirplane] {realCallsign} has taken off! Base slot freed.</color>");
             }
         }
 
@@ -661,7 +661,7 @@ public class UIAirplane : MonoBehaviour
 
             if (emergencyTimer <= 0)
             {
-                Debug.Log($"<color=red>АВАРИЯ: {realCallsign} рухнул из-за нехватки топлива!</color>");
+//Debug.Log($"<color=red>АВАРИЯ: {realCallsign} рухнул из-за нехватки топлива!</color>");
 
                 if (FlightDataManager.Instance != null)
                 {
@@ -684,6 +684,30 @@ public class UIAirplane : MonoBehaviour
                 else
                     Destroy(gameObject);
                 return;
+            }
+        }
+
+        if (!isOutOfFuel && currentFuel <= 30f && currentFuel > 0f)
+        {
+            if (hitboxVisual != null)
+            {
+                Color baseColor = Color.white;
+                if (inStorm) baseColor = new Color(0.4f, 0.4f, 0.4f, 0.8f);
+                else if (isSelected) baseColor = new Color(1f, 0.9f, 0f, 1f);
+                else if (isInDanger) baseColor = new Color(1f, 0.5f, 0f);
+                else if (dispatchStatus == DispatchStatus.Approved) baseColor = Color.green;
+                else if (dispatchStatus == DispatchStatus.Denied) baseColor = Color.red;
+
+                float t = Mathf.PingPong(Time.time * 5f, 1f);
+                Color blinkColor = Color.Lerp(Color.red, baseColor, t);
+                
+                if (canvasGroup != null) blinkColor.a = canvasGroup.alpha;
+                hitboxVisual.color = blinkColor;
+
+                if (callsignText != null && callsignText.text != "NO SIGNAL")
+                {
+                    callsignText.color = blinkColor;
+                }
             }
         }
 
@@ -1158,7 +1182,7 @@ public class UIAirplane : MonoBehaviour
 
     private void TriggerCollision()
     {
-        Debug.Log($"<color=red>АВАРИЯ: {realCallsign} столкнулся!</color>");
+//Debug.Log($"<color=red>АВАРИЯ: {realCallsign} столкнулся!</color>");
 
         if (AirplaneSpawner.Instance != null && FlightDataManager.Instance != null)
         {

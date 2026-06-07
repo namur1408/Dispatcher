@@ -35,6 +35,8 @@ public class MainMenuController : MonoBehaviour
     private Vector3 baseScreenScale;
     private CanvasGroup screenCanvasGroup;
 
+    private System.Text.StringBuilder bootStringBuilder = new System.Text.StringBuilder(512);
+
     void Start()
     {
         // Изначально включена только главная панель
@@ -75,7 +77,9 @@ public class MainMenuController : MonoBehaviour
 
     private IEnumerator BootSequenceRoutine()
     {
-        bootText.text = "";
+        bootStringBuilder.Clear();
+        bootText.SetText(bootStringBuilder);
+        
         yield return new WaitForSeconds(1.0f);
         yield return StartCoroutine(TypeString("AEGIS OS [v1.4] - BOOT SEQUENCE\n"));
         yield return new WaitForSeconds(0.4f);
@@ -87,7 +91,7 @@ public class MainMenuController : MonoBehaviour
 
         yield return StartCoroutine(TypeString("> LOADING_MAP_DATA... ["));
 
-        string baseStr = bootText.text;
+        int baseLen = bootStringBuilder.Length;
         int percent = 0;
 
         while (percent < 98)
@@ -95,17 +99,25 @@ public class MainMenuController : MonoBehaviour
             percent += Random.Range(2, 9);
             if (percent > 98) percent = 98;
 
-            bootText.text = baseStr + percent + "%]";
+            bootStringBuilder.Length = baseLen;
+            bootStringBuilder.Append(percent).Append("%]");
+            bootText.SetText(bootStringBuilder);
+            
             yield return new WaitForSeconds(Random.Range(0.05f, 0.2f));
         }
 
         yield return new WaitForSeconds(2.0f);
 
-        bootText.text = baseStr + "100%]\n";
+        bootStringBuilder.Length = baseLen;
+        bootStringBuilder.Append("100%]\n");
+        bootText.SetText(bootStringBuilder);
+        
         yield return new WaitForSeconds(0.4f);
 
         yield return StartCoroutine(TypeString("> STATUS: "));
-        bootText.text += $"<color={okColorHex}>NOMINAL</color>";
+        
+        bootStringBuilder.Append($"<color={okColorHex}>NOMINAL</color>");
+        bootText.SetText(bootStringBuilder);
     }
 
     private IEnumerator LoadModule(string moduleName)
@@ -115,18 +127,21 @@ public class MainMenuController : MonoBehaviour
         for (int i = 0; i < 3; i++)
         {
             yield return new WaitForSeconds(Random.Range(0.2f, 0.4f));
-            bootText.text += ".";
+            bootStringBuilder.Append(".");
+            bootText.SetText(bootStringBuilder);
         }
 
         yield return new WaitForSeconds(Random.Range(0.4f, 1.0f));
-        bootText.text += $" <color={okColorHex}>OK</color>\n";
+        bootStringBuilder.Append($" <color={okColorHex}>OK</color>\n");
+        bootText.SetText(bootStringBuilder);
     }
 
     private IEnumerator TypeString(string textToType)
     {
         foreach (char c in textToType)
         {
-            bootText.text += c;
+            bootStringBuilder.Append(c);
+            bootText.SetText(bootStringBuilder);
             yield return new WaitForSeconds(typingSpeed);
         }
     }
@@ -231,7 +246,7 @@ public class MainMenuController : MonoBehaviour
     public void OnContinueClicked()
     {
         GameSaveManager.loadedData = GameSaveManager.LoadGame();
-        SceneManager.LoadScene(gameSceneName);
+        StartCoroutine(LoadSceneWithPreload());
     }
 
     public void OnNewGameClicked()
@@ -323,7 +338,7 @@ public class MainMenuController : MonoBehaviour
         ResetGlobalStatics(); 
         PlayerPrefs.SetInt("SkipTutorial", 0);
         PlayerPrefs.Save();
-        SceneManager.LoadScene(gameSceneName);
+        StartCoroutine(LoadSceneWithPreload());
     }
 
     public void OnStartSkipTutorialClicked()
@@ -333,7 +348,34 @@ public class MainMenuController : MonoBehaviour
         PlayerPrefs.Save();
         
         if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
-        SceneManager.LoadScene(gameSceneName);
+        StartCoroutine(LoadSceneWithPreload());
+    }
+
+    private IEnumerator LoadSceneWithPreload()
+    {
+        if (mainButtonsPanel) mainButtonsPanel.SetActive(false);
+        if (continueSelectPanel) continueSelectPanel.SetActive(false);
+        if (modeSelectPanel) modeSelectPanel.SetActive(false);
+        if (settingsPanel) settingsPanel.SetActive(false);
+
+        if (bootText != null)
+        {
+            bootText.text = "\n\n> LOADING_MAP_DATA...";
+            if (bootText.transform.parent != null)
+            {
+                bootText.transform.parent.gameObject.SetActive(true);
+            }
+        }
+
+        AsyncOperation op = SceneManager.LoadSceneAsync(gameSceneName);
+        op.allowSceneActivation = false;
+        
+        while (op.progress < 0.9f)
+        {
+            yield return null;
+        }
+
+        op.allowSceneActivation = true;
     }
 
     private void ResetGlobalStatics()

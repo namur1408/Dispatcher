@@ -71,7 +71,7 @@ public class RadarPanelsManager : MonoBehaviour
                 rect.offsetMin = new Vector2(0f, -currentHeight);
                 rect.offsetMax = new Vector2(0f, 0f);
                 
-                Debug.Log($"[UI] Programmatically set {window.name}'s Header to Top-Stretch with height {currentHeight}");
+//Debug.Log($"[UI] Programmatically set {window.name}'s Header to Top-Stretch with height {currentHeight}");
             }
         }
     }
@@ -90,7 +90,7 @@ public class RadarPanelsManager : MonoBehaviour
 
     private void SetupRunwayButtons()
     {
-        Debug.Log($"[Runway] SetupRunwayButtons: found {runwayButtons.Count} buttons");
+//Debug.Log($"[Runway] SetupRunwayButtons: found {runwayButtons.Count} buttons");
         foreach (var config in runwayButtons)
         {
             if (config.button != null && !string.IsNullOrEmpty(config.runwayId))
@@ -98,10 +98,10 @@ public class RadarPanelsManager : MonoBehaviour
                 string rId = config.runwayId;
                 config.button.onClick.AddListener(() =>
                 {
-                    Debug.Log($"[Runway] Button clicked for runway: {rId}");
+//Debug.Log($"[Runway] Button clicked for runway: {rId}");
                     AssignRunway(rId);
                 });
-                Debug.Log($"[Runway] Listener added to button for runway: {rId}");
+//Debug.Log($"[Runway] Listener added to button for runway: {rId}");
             }
             else
             {
@@ -315,7 +315,7 @@ public class RadarPanelsManager : MonoBehaviour
             selectedFlightForRunway = data;
             if (runwaySelectionPanel != null)
             {
-                Debug.Log($"[Runway] Showing panel for: {data.callsign}");
+//Debug.Log($"[Runway] Showing panel for: {data.callsign}");
                 runwaySelectionPanel.transform.SetParent(clickedEntry.transform.parent, false);
                 runwaySelectionPanel.transform.SetSiblingIndex(clickedEntry.transform.GetSiblingIndex() + 1);
                 runwaySelectionPanel.SetActive(true);
@@ -329,12 +329,7 @@ public class RadarPanelsManager : MonoBehaviour
                     HideDepartureDestination();
                 }
 
-                // Check button interactability
-                foreach (var cfg in runwayButtons)
-                {
-                    if (cfg.button != null)
-                        Debug.Log($"[Runway] Button {cfg.runwayId} interactable={cfg.button.interactable}, active={cfg.button.gameObject.activeInHierarchy}");
-                }
+
             }
         }
     }
@@ -427,7 +422,7 @@ public class RadarPanelsManager : MonoBehaviour
                 labelText.text = $"➔ {destinationName.ToUpper()}";
             }
 
-            Debug.Log($"[DepartureMarker] Created prefab marker for {destinationName} at {destPos}");
+//Debug.Log($"[DepartureMarker] Created prefab marker for {destinationName} at {destPos}");
         }
         else
         {
@@ -482,7 +477,7 @@ public class RadarPanelsManager : MonoBehaviour
             labelText.outlineColor = Color.black;
             labelText.outlineWidth = 0.2f;
 
-            Debug.Log($"[DepartureMarker] Created pulsing marker for {destinationName} at {destPos}");
+//Debug.Log($"[DepartureMarker] Created pulsing marker for {destinationName} at {destPos}");
         }
     }
 

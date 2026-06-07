@@ -311,6 +311,18 @@ public class StoryManager : MonoBehaviour
         GameSaveManager.SaveGame();
 
         ForceBlackScreen();
+
+        AsyncOperation preloadOp = null;
+        bool useSingleSceneMode = (gameCamera != null || gameScreenRoot != null);
+        if (!useSingleSceneMode && !string.IsNullOrEmpty(mainSceneName) && mainSceneName != SceneManager.GetActiveScene().name)
+        {
+            preloadOp = SceneManager.LoadSceneAsync(mainSceneName);
+            if (preloadOp != null)
+            {
+                preloadOp.allowSceneActivation = false;
+            }
+        }
+
         if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 0f;
         yield return StartCoroutine(Fade(0f, 1f, 1.5f));
 
@@ -501,7 +513,7 @@ public class StoryManager : MonoBehaviour
         PlayerPrefs.SetInt("StartDayNumber", currentDay);
         PlayerPrefs.Save();
 
-        if (gameCamera != null || gameScreenRoot != null)
+        if (useSingleSceneMode)
         {
             if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
             
@@ -514,6 +526,12 @@ public class StoryManager : MonoBehaviour
             if (currentStoryRoot != null) currentStoryRoot.SetActive(false);
             
             StartCoroutine(WaitAndStartDay(currentDay, true));
+        }
+        else if (preloadOp != null)
+        {
+            if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
+            preloadOp.allowSceneActivation = true;
+            while (!preloadOp.isDone) yield return null;
         }
         else if (!string.IsNullOrEmpty(mainSceneName) && mainSceneName != SceneManager.GetActiveScene().name)
         {
