@@ -66,30 +66,83 @@ Material:
     m_Ints: []
     m_Floats:
     - _BumpScale: 1
+    - _ColorMask: 15
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _Distortion: 0.0053
     - _DropScale: 6
     - _DstBlend: 0
     - _EdgeGlow: 0.167
+    - _FloodBeamLength: 0.58
+    - _FloodBeamWidth: 0.0327
+    - _FloodIntensity: 0.44
+    - _FloodLength: 0.8
+    - _FloodWidth: 0.05
+    - _FloodY: 0.4
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
+    - _L1_Angle: 0
+    - _L2_Angle: -2
+    - _L3_Angle: 0
+    - _L4_Angle: 180
+    - _LightCount: 2
+    - _LightIntensity: 0.5
+    - _LightPosOffset: 0
+    - _LightSpeed: 0.8
+    - _LightSpread: 0.8
+    - _LightSweepAngle: 0.3
+    - _LightTilt: 0
+    - _LightWidth: 0.015
+    - _LightYOrigin: -0.2
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _RainAmount: 0.386
     - _Refraction: 0
+    - _RunwayCount: 20
+    - _RunwayIntensity: 0.48
+    - _RunwaySpeed: 2
+    - _RunwayY: 0.55
+    - _SearchlightIntensity: 0.5
+    - _SearchlightSpeed: 1
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
+    - _Stencil: 0
+    - _StencilComp: 8
+    - _StencilOp: 0
+    - _StencilReadMask: 255
+    - _StencilWriteMask: 255
     - _UVSec: 0
     - _Wind: 0.275
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 0.30882353, g: 0.23615916, b: 0.23615916, a: 1}
+    - _Color: {r: 0.5943396, g: 0.5943396, b: 0.5943396, a: 1}
     - _DropTint: {r: 0.19108218, g: 0.24755728, b: 0.35849053, a: 0.0627451}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _Flood1Dir: {r: 0.5, g: -1, b: 0, a: 0}
+    - _Flood1Pos: {r: 0.15, g: 0.65, b: 0, a: 0}
+    - _Flood2Dir: {r: -0.5, g: -1, b: 0, a: 0}
+    - _Flood2Pos: {r: 0.85, g: 0.5, b: 0, a: 0}
+    - _FloodColor: {r: 0.8, g: 0.9, b: 1, a: 1}
+    - _L1_Color: {r: 1, g: 0.9, b: 0.7, a: 1}
+    - _L1_Params: {r: 0.02, g: 0.4, b: 0.8, a: 0.8}
+    - _L1_Pos: {r: 0.2, g: 0.8, b: 0, a: 0}
+    - _L2_Color: {r: 1, g: 0.9, b: 0.7, a: 1}
+    - _L2_Params: {r: -1.97, g: 0.4, b: 0.8, a: 0.8}
+    - _L2_Pos: {r: 0.5, g: 0.8, b: 0, a: 0}
+    - _L3_Color: {r: 1, g: 0.9, b: 0.7, a: 1}
+    - _L3_Params: {r: 0.02, g: 0.4, b: 0.8, a: 0.8}
+    - _L3_Pos: {r: 0.8, g: 0.8, b: 0, a: 0}
+    - _L4_Color: {r: 1, g: 0.9, b: 0.7, a: 1}
+    - _L4_Params: {r: 0.02, g: 0.4, b: 0.8, a: 0.8}
+    - _L4_Pos: {r: 0.5, g: 0.5, b: 0, a: 0}
+    - _LightColor: {r: 0.5, g: 0.7, b: 1, a: 1}
+    - _RunwayColor: {r: 1, g: 0.19999996, b: 0.09999997, a: 1}
+    - _RunwayEnd: {r: 4.92, g: 0.1, b: 0, a: 0}
+    - _RunwayStart: {r: 3.14, g: 7.91, b: 0, a: 0}
+    - _SearchlightColor: {r: 0.6, g: 0.8, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

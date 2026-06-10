@@ -379,7 +379,8 @@ public class CommsManager : MonoBehaviour
             if (key == "speed" && askedSpeed) alreadyAsked = true;
             if (alreadyAsked) return;
 
-            scanner.HighlightLink(linkIndex, new Color32(0, 150, 255, 255));
+            // Реалистичный синий цвет шариковой ручки
+            scanner.HighlightLink(linkIndex, new Color32(20, 70, 180, 210));
             StartCoroutine(ResetColorRoutine(scanner, linkIndex, 0.5f));
             pendingQuestionTopic = key;
             askButtonText.text = $"ASK ABOUT {key.ToUpper()}";
@@ -394,7 +395,8 @@ public class CommsManager : MonoBehaviour
             firstFactID = factID;
             firstFactScanner = scanner;
             firstFactIndex = linkIndex;
-            scanner.HighlightLink(linkIndex, new Color32(255, 200, 0, 255));
+            // Реалистичный оранжево-желтый (горчичный) карандаш/ручка
+            scanner.HighlightLink(linkIndex, new Color32(200, 140, 15, 210));
         }
         else
         {
@@ -551,7 +553,8 @@ public class CommsManager : MonoBehaviour
             }
         }
 
-        Color32 resColor = !isValid ? new Color32(255, 140, 0, 255) : (isLie ? new Color32(255, 0, 0, 255) : new Color32(0, 255, 0, 255));
+        // Реалистичные цвета: темно-оранжевый (ошибка/вопрос), темно-красный (ложь), темно-зеленый (правда)
+        Color32 resColor = !isValid ? new Color32(180, 80, 15, 210) : (isLie ? new Color32(180, 25, 30, 210) : new Color32(20, 140, 50, 210));
         firstFactScanner.HighlightLink(firstFactIndex, resColor);
         secondScanner.HighlightLink(secondIndex, resColor);
 

@@ -10,7 +10,9 @@ Shader "Custom/Raindrop" {
 		_Wind("Wind (Tilt)", Range(-0.5, 0.5)) = 0.1
 	}
 	SubShader {
-		Tags { "RenderType"="Opaque" }
+		Tags { "Queue"="Transparent" "RenderType"="Transparent" "IgnoreProjector"="True" }
+		ZWrite Off
+		Blend SrcAlpha OneMinusSrcAlpha
 		LOD 200
 		Pass {
 			CGPROGRAM
@@ -126,7 +128,10 @@ Shader "Custom/Raindrop" {
 				col *= 1. - dot(UV -= .5, UV) * 0.5;
 				col *= fade;
 
-				return fixed4(col, 1);
+				// Создаем маску прозрачности (1 там где вода, 0 где пусто)
+				float waterMask = saturate(drops * 10.0 + edges * 10.0 + trail * 5.0);
+
+				return fixed4(col, waterMask);
 			}
 			ENDCG
 		}

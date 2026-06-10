@@ -47,6 +47,8 @@ public class ShiftIntroBuilder : MonoBehaviour
         vlg.childControlHeight = true;
         vlg.childControlWidth = true;
 
+        bool isMarauderAttack = (dayNumber == 2 && PlayerPrefs.GetInt("Trigger_Engineer", 0) == 0);
+
         string statusString;
         if (dayNumber == 1) statusString = $"<color=#{ColorUtility.ToHtmlStringRGB(warningColor)}>FUEL CRITICAL</color>";
         else 
@@ -55,9 +57,19 @@ public class ShiftIntroBuilder : MonoBehaviour
             statusString = econ == 1 ? $"<color=#{ColorUtility.ToHtmlStringRGB(warningColor)}>FUEL CRITICAL</color>" : $"<color=#{ColorUtility.ToHtmlStringRGB(hackerGreen)}>NOMINAL</color>";
         }
 
-        TextMeshProUGUI s1 = CreateText(statusCont.transform, "BASTION-7 // SECTOR GRID ONLINE", fontToUse, statusFontSize, hackerGreenDim);
-        TextMeshProUGUI s2 = CreateText(statusCont.transform, "WEATHER: HEAVY STORM — VIS: LOW", fontToUse, statusFontSize, hackerGreenDim);
-        TextMeshProUGUI s3 = CreateText(statusCont.transform, $"BASE STATUS: {statusString}", fontToUse, statusFontSize, hackerGreenDim);
+        TextMeshProUGUI s1, s2, s3;
+        if (isMarauderAttack)
+        {
+            s1 = CreateText(statusCont.transform, "> ALERT // BASE PERIMETER", fontToUse, statusFontSize, hackerGreenDim);
+            s2 = CreateText(statusCont.transform, "> UNIDENTIFIED MOVEMENT DETECTED", fontToUse, statusFontSize, hackerGreenDim);
+            s3 = CreateText(statusCont.transform, "> CLASSIFICATION: <color=#FF3030>HOSTILE</color>", fontToUse, statusFontSize, hackerGreenDim);
+        }
+        else
+        {
+            s1 = CreateText(statusCont.transform, "BASTION-7 // SECTOR GRID ONLINE", fontToUse, statusFontSize, hackerGreenDim);
+            s2 = CreateText(statusCont.transform, "WEATHER: HEAVY STORM — VIS: LOW", fontToUse, statusFontSize, hackerGreenDim);
+            s3 = CreateText(statusCont.transform, $"BASE STATUS: {statusString}", fontToUse, statusFontSize, hackerGreenDim);
+        }
 
         s1.characterSpacing = 2; s2.characterSpacing = 2; s3.characterSpacing = 2;
         s1.alpha = 0; s2.alpha = 0; s3.alpha = 0;
@@ -93,11 +105,24 @@ public class ShiftIntroBuilder : MonoBehaviour
         // === АНИМАЦИЯ ===
         yield return new WaitForSecondsRealtime(0.4f);
 
-        yield return FadeTMP(s1, 1f, 0.2f);
-        yield return new WaitForSecondsRealtime(0.1f);
-        yield return FadeTMP(s2, 1f, 0.2f);
-        yield return new WaitForSecondsRealtime(0.1f);
-        yield return FadeTMP(s3, 1f, 0.4f);
+        if (isMarauderAttack)
+        {
+            yield return FadeTMP(s1, 1f, 0.2f);
+            yield return new WaitForSecondsRealtime(0.1f);
+            yield return FadeTMP(s2, 1f, 0.2f);
+            
+            yield return new WaitForSecondsRealtime(1.2f); // Пауза
+            
+            yield return FadeTMP(s3, 1f, 0.4f);
+        }
+        else
+        {
+            yield return FadeTMP(s1, 1f, 0.2f);
+            yield return new WaitForSecondsRealtime(0.1f);
+            yield return FadeTMP(s2, 1f, 0.2f);
+            yield return new WaitForSecondsRealtime(0.1f);
+            yield return FadeTMP(s3, 1f, 0.4f);
+        }
 
         // Расширение линии
         float t = 0;

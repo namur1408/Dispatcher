@@ -17,51 +17,67 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler, 
 
     private RectTransform rectTransform;
     private Canvas canvas;
-    private AudioSource paperAudioSource;
+    
+    private AudioSource dragAudioSource;
+    private AudioSource dropAudioSource;
 
     private Vector2 lastDragDirection;
     private float lastDragTime;
     private float lastSoundPlayTime;
     private bool wasDragged;
+    private bool isDragging;
+    private float targetDragVolume = 0f;
 
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
         canvas = GetComponentInParent<Canvas>();
+
+        dragAudioSource = gameObject.AddComponent<AudioSource>();
+        dragAudioSource.playOnAwake = false;
+
+        dropAudioSource = gameObject.AddComponent<AudioSource>();
+        dropAudioSource.playOnAwake = false;
     }
 
-    private void PlayPaperSound(AudioClip[] clips, float volume)
+    private void PlayDragSound(AudioClip[] clips, float volume)
     {
         if (clips == null || clips.Length == 0) return;
         AudioClip clip = clips[Random.Range(0, clips.Length)];
         if (clip == null) return;
 
-        if (paperAudioSource == null)
-        {
-            paperAudioSource = gameObject.AddComponent<AudioSource>();
-            paperAudioSource.playOnAwake = false;
-        }
-
-        paperAudioSource.pitch = Random.Range(minPitch, maxPitch);
-        paperAudioSource.volume = volume;
-        paperAudioSource.clip = clip;
-        paperAudioSource.Play();
+        dragAudioSource.pitch = Random.Range(minPitch, maxPitch);
+        
+        // Мгновенно возвращаем громкость, если она успела затухнуть
+        dragAudioSource.volume = volume;
+        targetDragVolume = volume;
+        
+        dragAudioSource.PlayOneShot(clip, 1f); // 1f потому что общая громкость уже volume
     }
 
-    private void PlayPaperSound(AudioClip clip, float volume)
+    private void PlayDropSound(AudioClip clip, float volume)
     {
         if (clip == null) return;
         
-        if (paperAudioSource == null)
+        dropAudioSource.pitch = Random.Range(minPitch, maxPitch);
+        dropAudioSource.volume = 1f;
+        dropAudioSource.PlayOneShot(clip, volume);
+    }
+
+    private void Update()
+    {
+        // Если движение остановилось на 0.1 сек или бумагу отпустили
+        if (!isDragging || (isDragging && Time.time - lastDragTime > 0.1f))
         {
-            paperAudioSource = gameObject.AddComponent<AudioSource>();
-            paperAudioSource.playOnAwake = false;
+            targetDragVolume = 0f; // Начинаем плавное затухание
         }
 
-        paperAudioSource.pitch = Random.Range(minPitch, maxPitch);
-        paperAudioSource.volume = volume;
-        paperAudioSource.clip = clip;
-        paperAudioSource.Play();
+        // Плавное изменение громкости шуршания
+        if (dragAudioSource.volume != targetDragVolume)
+        {
+            // Скорость затухания (Fade Out) - 5 единиц в секунду (затухнет за 0.2с)
+            dragAudioSource.volume = Mathf.MoveTowards(dragAudioSource.volume, targetDragVolume, Time.deltaTime * 5f);
+        }
     }
 
     public void OnPointerDown(PointerEventData eventData)
@@ -70,8 +86,10 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler, 
         
         lastDragDirection = Vector2.zero;
         lastDragTime = Time.time;
-        lastSoundPlayTime = Time.time;
+        lastSoundPlayTime = 0f; // Обнуляем, чтобы первый звук проигрался сразу же при микросдвиге
         wasDragged = false;
+        isDragging = true;
+        targetDragVolume = soundVolume;
 
         if (RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted)
         {
@@ -84,28 +102,28 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler, 
         if (canvas == null) return;
         rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
 
-        // Логика звуков: играем звук только при смене направления или после паузы
-        if (eventData.delta.sqrMagnitude > 1f)
+        // Понижен порог реагирования, чтобы звук играл с самого начала микродвижения
+        if (eventData.delta.sqrMagnitude > 0.1f)
         {
             wasDragged = true;
             Vector2 currentDir = eventData.delta.normalized;
             
             bool isFirstMove = lastDragDirection == Vector2.zero;
             bool directionChanged = !isFirstMove && Vector2.Angle(lastDragDirection, currentDir) > 45f;
-            bool pausedAndResumed = (Time.time - lastDragTime) > 0.2f;
+            bool pausedAndResumed = (Time.time - lastDragTime) > 0.1f;
 
             if (isFirstMove || directionChanged || pausedAndResumed)
             {
-                // Защита от "пулемета" (слишком частого старта)
-                if (Time.time - lastSoundPlayTime > 0.1f)
+                if (Time.time - lastSoundPlayTime > 0.05f)
                 {
-                    PlayPaperSound(pickupSounds, soundVolume);
+                    PlayDragSound(pickupSounds, soundVolume);
                     lastSoundPlayTime = Time.time;
                 }
                 lastDragDirection = currentDir;
             }
 
             lastDragTime = Time.time;
+            targetDragVolume = soundVolume; // Поддерживаем громкость во время движения
         }
 
         if (constrainToScreen)
@@ -126,9 +144,13 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler, 
 
     public void OnPointerUp(PointerEventData eventData)
     {
+        isDragging = false;
+        
+        // Звук шуршания сам плавно затухнет в Update()
+        
         if (wasDragged)
         {
-            PlayPaperSound(dropSound, dropSoundVolume);
+            PlayDropSound(dropSound, dropSoundVolume);
         }
     }
 }

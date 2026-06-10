@@ -1,11 +1,13 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using TMPro;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(TextMeshProUGUI))]
 public class FactScanner : MonoBehaviour, IPointerClickHandler
 {
     private TextMeshProUGUI textMesh;
+    private Dictionary<int, GameObject> activeCircles = new Dictionary<int, GameObject>();
 
     void Awake()
     {
@@ -14,41 +16,80 @@ public class FactScanner : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        // Ищем, кликнули ли мы по тегу <link>
         int linkIndex = TMP_TextUtilities.FindIntersectingLink(textMesh, eventData.position, eventData.pressEventCamera);
 
         if (linkIndex != -1)
         {
             TMP_LinkInfo linkInfo = textMesh.textInfo.linkInfo[linkIndex];
-            string factID = linkInfo.GetLinkID(); // Получаем ID улики (например, "manifest_cargo")
-            string factText = linkInfo.GetLinkText(); // Получаем само слово (например, "FUEL")
+            string factID = linkInfo.GetLinkID();
+            string factText = linkInfo.GetLinkText();
 
-            // Отправляем клик в Менеджер
             CommsManager.Instance.SelectFact(factID, factText, this, linkIndex);
         }
     }
 
-    // Метод для перекраски слова (подсветка)
     public void HighlightLink(int linkIndex, Color32 color)
     {
+        // If color is close to the original text color, we clear the circle
+        if (Mathf.Abs(color.r - (textMesh.color.r * 255)) < 5 && Mathf.Abs(color.g - (textMesh.color.g * 255)) < 5 && Mathf.Abs(color.b - (textMesh.color.b * 255)) < 5)
+        {
+            if (activeCircles.ContainsKey(linkIndex))
+            {
+                Destroy(activeCircles[linkIndex]);
+                activeCircles.Remove(linkIndex);
+            }
+            return;
+        }
+
         TMP_TextInfo textInfo = textMesh.textInfo;
         TMP_LinkInfo linkInfo = textInfo.linkInfo[linkIndex];
+
+        Vector2 min = new Vector2(float.MaxValue, float.MaxValue);
+        Vector2 max = new Vector2(float.MinValue, float.MinValue);
+        bool foundVisible = false;
 
         for (int i = 0; i < linkInfo.linkTextLength; i++)
         {
             int charIndex = linkInfo.linkTextfirstCharacterIndex + i;
-            int meshIndex = textInfo.characterInfo[charIndex].materialReferenceIndex;
-            int vertexIndex = textInfo.characterInfo[charIndex].vertexIndex;
+            TMP_CharacterInfo charInfo = textInfo.characterInfo[charIndex];
 
-            Color32[] vertexColors = textInfo.meshInfo[meshIndex].colors32;
-            if (textInfo.characterInfo[charIndex].isVisible)
+            if (charInfo.isVisible)
             {
-                vertexColors[vertexIndex + 0] = color;
-                vertexColors[vertexIndex + 1] = color;
-                vertexColors[vertexIndex + 2] = color;
-                vertexColors[vertexIndex + 3] = color;
+                foundVisible = true;
+                Vector3 bottomLeft = charInfo.bottomLeft;
+                Vector3 topRight = charInfo.topRight;
+
+                min.x = Mathf.Min(min.x, bottomLeft.x);
+                min.y = Mathf.Min(min.y, bottomLeft.y);
+                max.x = Mathf.Max(max.x, topRight.x);
+                max.y = Mathf.Max(max.y, topRight.y);
             }
         }
-        textMesh.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
+
+        if (!foundVisible) return;
+
+        GameObject circleObj;
+        PenCircle penCircle;
+
+        if (activeCircles.ContainsKey(linkIndex))
+        {
+            circleObj = activeCircles[linkIndex];
+            penCircle = circleObj.GetComponent<PenCircle>();
+        }
+        else
+        {
+            circleObj = new GameObject("PenCircle_" + linkIndex);
+            circleObj.transform.SetParent(transform, false);
+            penCircle = circleObj.AddComponent<PenCircle>();
+            penCircle.raycastTarget = false;
+            activeCircles[linkIndex] = circleObj;
+        }
+
+        RectTransform rt = circleObj.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(max.x - min.x, max.y - min.y);
+        rt.localPosition = new Vector2((min.x + max.x) / 2f, (min.y + max.y) / 2f);
+
+        penCircle.color = color;
+        penCircle.SetVerticesDirty();
     }
 }
