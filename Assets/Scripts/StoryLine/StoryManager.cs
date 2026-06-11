@@ -393,14 +393,32 @@ public class StoryManager : MonoBehaviour
             Debug.Log("[EndOfDay] Found uiAsset, creating UIDocument.");
             uiObj = new GameObject("EndOfDayUI");
             uiDoc = uiObj.AddComponent<UnityEngine.UIElements.UIDocument>();
-            uiDoc.panelSettings = Resources.Load<UnityEngine.UIElements.PanelSettings>("PanelSettings");
-            if (uiDoc.panelSettings == null)
+
+            // Create a dedicated runtime PanelSettings for EndOfDay
+            // match = 1.0 → scale purely by height (best for landscape phones)
+            // This avoids the "huge on wide screen" problem from width-only scaling
+            var endOfDayPanel = ScriptableObject.CreateInstance<UnityEngine.UIElements.PanelSettings>();
+            
+            // Try to copy theme from the existing PanelSettings
+            var basePanelSettings = Resources.Load<UnityEngine.UIElements.PanelSettings>("PanelSettings");
+            if (basePanelSettings == null)
             {
-                var settings = Resources.FindObjectsOfTypeAll<UnityEngine.UIElements.PanelSettings>();
-                if (settings != null && settings.Length > 0)
-                    uiDoc.panelSettings = settings[0];
+                var allSettings = Resources.FindObjectsOfTypeAll<UnityEngine.UIElements.PanelSettings>();
+                if (allSettings != null && allSettings.Length > 0) basePanelSettings = allSettings[0];
             }
-            Debug.Log("[EndOfDay] PanelSettings assigned: " + (uiDoc.panelSettings != null));
+            if (basePanelSettings != null)
+            {
+                endOfDayPanel.themeStyleSheet = basePanelSettings.themeStyleSheet;
+            }
+            
+            endOfDayPanel.scaleMode = UnityEngine.UIElements.PanelScaleMode.ScaleWithScreenSize;
+            endOfDayPanel.referenceResolution = new Vector2Int(1200, 675);
+            endOfDayPanel.screenMatchMode = UnityEngine.UIElements.PanelScreenMatchMode.MatchWidthOrHeight;
+            endOfDayPanel.match = 1f; // 1 = height-based scaling → correct on landscape phones
+            endOfDayPanel.sortingOrder = 32001;
+
+            uiDoc.panelSettings = endOfDayPanel;
+            Debug.Log("[EndOfDay] Custom PanelSettings created (height-based scaling).");
             
             uiDoc.visualTreeAsset = uiAsset;
             uiDoc.sortingOrder = 32001; 
@@ -429,7 +447,7 @@ public class StoryManager : MonoBehaviour
 
             var mainPanel = root.Q<UnityEngine.UIElements.VisualElement>("mainPanel");
             Debug.Log("[EndOfDay] All labels mapped.");
-            
+
             yield return null;
             if (mainPanel != null) mainPanel.AddToClassList("visible");
 

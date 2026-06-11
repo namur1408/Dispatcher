@@ -1,7 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
     <ui:Style src="EndOfDay.uss" />
     <ui:VisualElement class="container">
-        <!-- Panel -->
         <ui:VisualElement class="panel" name="mainPanel">
             <!-- Corners -->
             <ui:VisualElement class="corner top-left" />
@@ -9,113 +8,115 @@
             <ui:VisualElement class="corner bottom-left" />
             <ui:VisualElement class="corner bottom-right" />
 
-            <!-- Reputation -->
-            <ui:VisualElement class="section-center" style="margin-bottom: 22px;">
-                <ui:Label text="DISPATCHER REPUTATION" class="rep-label" />
-                <ui:VisualElement style="flex-direction: row; justify-content: center; align-items: center; margin-bottom: 7px;">
-                    <ui:Label text="0" name="repVal" class="rep-val" />
-                    <ui:Label text=" / 350" class="rep-val-max" />
-                </ui:VisualElement>
-                <ui:VisualElement class="rep-bar-container">
-                    <ui:VisualElement class="rep-bar-fill" name="repBarFill" />
-                </ui:VisualElement>
-                <ui:VisualElement style="align-items: center; margin-top: 8px;">
-                    <ui:Label text="▶ LEVEL 1 ◀" class="level-badge" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-
-            <!-- Title -->
-            <ui:VisualElement class="section-center" style="margin-bottom: 26px;">
-                <ui:VisualElement class="title-row">
-                    <ui:VisualElement class="title-line left" />
+            <!-- TOP BAR: Title + Reputation in one row -->
+            <ui:VisualElement class="top-bar">
+                <!-- Left: Title block -->
+                <ui:VisualElement class="title-block">
                     <ui:Label text="END OF DAY 1" name="dayTitle" class="title-text" />
-                    <ui:VisualElement class="title-line right" />
+                    <ui:Label text="// SHIFT REPORT · SECTOR ALPHA //" class="sub-title" />
                 </ui:VisualElement>
-                <ui:Label text="// SHIFT REPORT · SECTOR ALPHA //" class="sub-title" />
-            </ui:VisualElement>
-
-            <!-- Section: Aviation -->
-            <ui:VisualElement style="margin-bottom: 4px;">
-                <ui:Label text="▸ AVIATION" class="section-header" />
-                <ui:VisualElement class="stat-row">
-                    <ui:Label text="PLANES RECEIVED" class="stat-name" />
-                    <ui:VisualElement class="stat-bar-bg">
-                        <ui:VisualElement name="planesBar" class="stat-bar-fill" style="background-color: #00ff55;" />
+                <!-- Right: Reputation block -->
+                <ui:VisualElement class="rep-block">
+                    <ui:Label text="REPUTATION" class="rep-label" />
+                    <ui:VisualElement class="rep-row">
+                        <ui:Label text="0" name="repVal" class="rep-val" />
+                        <ui:Label text="/ 350" class="rep-val-max" />
+                        <ui:Label text="LVL 1" class="level-badge" />
                     </ui:VisualElement>
-                    <ui:Label text="+0" name="planesVal" class="stat-val" style="color: #00ff55;" />
-                </ui:VisualElement>
-                <ui:VisualElement class="stat-row">
-                    <ui:Label text="PEOPLE ARRIVED" class="stat-name" />
-                    <ui:VisualElement class="stat-bar-bg">
-                        <ui:VisualElement name="peopleBar" class="stat-bar-fill" style="background-color: #00ff55;" />
+                    <ui:VisualElement class="rep-bar-container">
+                        <ui:VisualElement class="rep-bar-fill" name="repBarFill" />
                     </ui:VisualElement>
-                    <ui:Label text="+0" name="peopleVal" class="stat-val" style="color: #00ff55;" />
                 </ui:VisualElement>
             </ui:VisualElement>
 
-            <!-- Section: Resources -->
-            <ui:VisualElement style="margin-bottom: 4px; margin-top: 14px;">
-                <ui:Label text="▸ RESOURCES" class="section-header" />
-                <ui:VisualElement class="stat-row">
-                    <ui:Label text="FUEL (NET)" class="stat-name" />
-                    <ui:VisualElement class="stat-bar-bg">
-                        <ui:VisualElement name="fuelBar" class="stat-bar-fill" style="background-color: #4488ff;" />
-                    </ui:VisualElement>
-                    <ui:Label text="+0" name="fuelVal" class="stat-val" style="color: #4488ff;" />
-                </ui:VisualElement>
-                <ui:VisualElement class="stat-row">
-                    <ui:Label text="MEDS (NET)" class="stat-name" />
-                    <ui:VisualElement class="stat-bar-bg">
-                        <ui:VisualElement name="medsBar" class="stat-bar-fill" style="background-color: #ff6688;" />
-                    </ui:VisualElement>
-                    <ui:Label text="+0" name="medsVal" class="stat-val" style="color: #ff6688;" />
-                </ui:VisualElement>
-                <ui:VisualElement class="stat-row">
-                    <ui:Label text="FOOD FOUND" class="stat-name" />
-                    <ui:VisualElement class="stat-bar-bg">
-                        <ui:VisualElement name="foodAddedBar" class="stat-bar-fill" style="background-color: #ffaa00;" />
-                    </ui:VisualElement>
-                    <ui:Label text="+0" name="foodAddedVal" class="stat-val" style="color: #ffaa00;" />
-                </ui:VisualElement>
-                <ui:VisualElement class="stat-row">
-                    <ui:VisualElement style="flex-direction: row; align-items: center; flex-grow: 1;">
-                        <ui:Label text="FOOD CONSUMED" class="stat-name" style="flex-grow: 0;" />
-                        <ui:Label text="EXPENSE" class="tag-red" />
-                    </ui:VisualElement>
-                    <ui:VisualElement class="stat-bar-bg">
-                        <ui:VisualElement name="foodEatenBar" class="stat-bar-fill" style="background-color: #ff4444;" />
-                    </ui:VisualElement>
-                    <ui:Label text="-62" name="foodEatenVal" class="stat-val" style="color: #ff4444;" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-
-            <!-- Divider -->
+            <!-- DIVIDER -->
             <ui:VisualElement class="dashed-divider" />
 
-            <!-- Total food -->
-            <ui:VisualElement class="total-food-row">
-                <ui:Label text="FOOD REMAINING" class="total-food-label" />
-                <ui:Label text="120" name="foodRemVal" class="total-food-val" />
-            </ui:VisualElement>
-
-            <!-- XP block -->
-            <ui:VisualElement class="xp-block">
-                <ui:VisualElement class="xp-left-border" />
-                <ui:VisualElement>
-                    <ui:Label text="SHIFT REPUTATION" class="xp-title" />
-                    <ui:Label text="DISPATCHER REPUTATION" class="xp-subtitle" />
-                </ui:VisualElement>
-                <ui:VisualElement style="align-items: flex-end;">
-                    <ui:VisualElement style="flex-direction: row; align-items: flex-end;">
-                        <ui:Label text="+0" name="xpGainVal" class="xp-gain-val" />
-                        <ui:Label text="XP" class="xp-gain-unit" />
+            <!-- STATS: Two columns -->
+            <ui:VisualElement class="stats-grid">
+                <!-- Left column: Aviation -->
+                <ui:VisualElement class="stats-col">
+                    <ui:Label text="▸ AVIATION" class="section-header" />
+                    <ui:VisualElement class="stat-row">
+                        <ui:Label text="PLANES" class="stat-name" />
+                        <ui:VisualElement class="stat-bar-bg">
+                            <ui:VisualElement name="planesBar" class="stat-bar-fill" style="background-color: #00ff55;" />
+                        </ui:VisualElement>
+                        <ui:Label text="+0" name="planesVal" class="stat-val" style="color: #00ff55;" />
                     </ui:VisualElement>
-                    <ui:Label text="" name="xpPenaltyLabel" class="xp-penalty-val" />
+                    <ui:VisualElement class="stat-row">
+                        <ui:Label text="PEOPLE" class="stat-name" />
+                        <ui:VisualElement class="stat-bar-bg">
+                            <ui:VisualElement name="peopleBar" class="stat-bar-fill" style="background-color: #00ff55;" />
+                        </ui:VisualElement>
+                        <ui:Label text="+0" name="peopleVal" class="stat-val" style="color: #00ff55;" />
+                    </ui:VisualElement>
+
+                    <!-- Food remaining big display -->
+                    <ui:VisualElement class="food-big-block">
+                        <ui:Label text="FOOD LEFT" class="food-big-label" />
+                        <ui:Label text="120" name="foodRemVal" class="food-big-val" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- Vertical divider -->
+                <ui:VisualElement class="col-divider" />
+
+                <!-- Right column: Resources -->
+                <ui:VisualElement class="stats-col">
+                    <ui:Label text="▸ RESOURCES" class="section-header" />
+                    <ui:VisualElement class="stat-row">
+                        <ui:Label text="FUEL" class="stat-name" />
+                        <ui:VisualElement class="stat-bar-bg">
+                            <ui:VisualElement name="fuelBar" class="stat-bar-fill" style="background-color: #4488ff;" />
+                        </ui:VisualElement>
+                        <ui:Label text="+0" name="fuelVal" class="stat-val" style="color: #4488ff;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="stat-row">
+                        <ui:Label text="MEDS" class="stat-name" />
+                        <ui:VisualElement class="stat-bar-bg">
+                            <ui:VisualElement name="medsBar" class="stat-bar-fill" style="background-color: #ff6688;" />
+                        </ui:VisualElement>
+                        <ui:Label text="+0" name="medsVal" class="stat-val" style="color: #ff6688;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="stat-row">
+                        <ui:Label text="FOOD+" class="stat-name" />
+                        <ui:VisualElement class="stat-bar-bg">
+                            <ui:VisualElement name="foodAddedBar" class="stat-bar-fill" style="background-color: #ffaa00;" />
+                        </ui:VisualElement>
+                        <ui:Label text="+0" name="foodAddedVal" class="stat-val" style="color: #ffaa00;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="stat-row">
+                        <ui:Label text="EATEN" class="stat-name" />
+                        <ui:VisualElement class="stat-bar-bg">
+                            <ui:VisualElement name="foodEatenBar" class="stat-bar-fill" style="background-color: #ff4444;" />
+                        </ui:VisualElement>
+                        <ui:Label text="-62" name="foodEatenVal" class="stat-val" style="color: #ff4444;" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
 
-            <!-- Sleep button -->
-            <ui:Button text="▶  PRESS TO SLEEP  ◀" name="sleepBtn" class="sleep-btn" />
+            <!-- DIVIDER -->
+            <ui:VisualElement class="dashed-divider" />
+
+            <!-- BOTTOM BAR: XP + Sleep button -->
+            <ui:VisualElement class="bottom-bar">
+                <ui:VisualElement class="xp-block">
+                    <ui:VisualElement class="xp-left-border" />
+                    <ui:VisualElement>
+                        <ui:Label text="SHIFT REPUTATION" class="xp-title" />
+                        <ui:Label text="DISPATCHER XP" class="xp-subtitle" />
+                    </ui:VisualElement>
+                    <ui:VisualElement style="align-items: flex-end; margin-left: 10px;">
+                        <ui:VisualElement style="flex-direction: row; align-items: flex-end;">
+                            <ui:Label text="+0" name="xpGainVal" class="xp-gain-val" />
+                            <ui:Label text="XP" class="xp-gain-unit" />
+                        </ui:VisualElement>
+                        <ui:Label text="" name="xpPenaltyLabel" class="xp-penalty-val" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Button text="▶  SLEEP  ◀" name="sleepBtn" class="sleep-btn" />
+            </ui:VisualElement>
 
             <!-- Footer -->
             <ui:Label text="23:59 · DAY 01" name="footerLeft" class="footer footer-left" />
