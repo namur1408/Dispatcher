@@ -69,35 +69,24 @@ public class RadarScreenClicker : MonoBehaviour, IPointerDownHandler, IPointerUp
             worldClickPos.z = 0f; // Убеждаемся, что мы в 2D плоскости
             Debug.Log($"[RadarClicker] ScreenPos: {eventData.position}, WorldClickPos: {worldClickPos}");
 
-            // Визуализация клика
-            if (RadarClickVisualizer.Instance != null)
-            {
-                Transform clickParent = zoneRect;
-                if (AirplaneSpawner.Instance != null)
-                {
-                    Transform activeContent = AirplaneSpawner.Instance.radarContent;
-                    if (activeContent != null) clickParent = activeContent;
-                }
-                RadarClickVisualizer.Instance.ShowClick(worldClickPos, clickParent);
-            }
-
             Vector2 finalPosInsideContent = Vector2.zero;
             if (selectedPlane != null)
             {
                 finalPosInsideContent = selectedPlane.transform.parent.InverseTransformPoint(worldClickPos);
             }
 
+            bool clickedWaypoint = false;
             if (selectedPlane != null)
             {
                 int clickedIndex = selectedPlane.GetWaypointIndexAt(finalPosInsideContent, 40f);
                 if (clickedIndex != -1)
                 {
                     selectedPlane.RemoveWaypoint(clickedIndex);
-                    return; 
+                    clickedWaypoint = true;
                 }
             }
 
-            // Проверяем клик по самолету через UI Raycast
+            // Поиск самолёта через UI Raycast
             UIAirplane clickedPlane = null;
             foreach (var result in results)
             {
@@ -108,6 +97,21 @@ public class RadarScreenClicker : MonoBehaviour, IPointerDownHandler, IPointerUp
                     break;
                 }
             }
+
+            // Эффект клика
+            if (RadarClickVisualizer.Instance != null)
+            {
+                Transform clickParent = zoneRect;
+                if (AirplaneSpawner.Instance != null)
+                {
+                    Transform activeContent = AirplaneSpawner.Instance.radarContent;
+                    if (activeContent != null) clickParent = activeContent;
+                }
+                bool playBgSound = (clickedPlane == null && !clickedWaypoint);
+                RadarClickVisualizer.Instance.ShowClick(worldClickPos, clickParent, playBgSound);
+            }
+
+            if (clickedWaypoint) return;
 
             if (clickedPlane != null)
             {

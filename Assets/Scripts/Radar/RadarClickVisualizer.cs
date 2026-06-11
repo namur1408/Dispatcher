@@ -10,13 +10,23 @@ public class RadarClickVisualizer : MonoBehaviour
     public float duration = 0.5f;
     public Color clickColor = Color.white;
 
+    [Header("Audio")]
+    public AudioClip radarClickSound;
+    [Range(0f, 1f)]
+    public float soundVolume = 1f;
+
     void Awake()
     {
         Instance = this;
     }
 
-    public void ShowClick(Vector3 worldPos, Transform parent)
+    public void ShowClick(Vector3 worldPos, Transform parent, bool playSound = true)
     {
+        if (playSound)
+        {
+            PlayClickSound();
+        }
+
         if (crossPrefab == null)
         {
             CreateDefaultCrossPrefab();
@@ -48,6 +58,21 @@ public class RadarClickVisualizer : MonoBehaviour
         {
             img.color = clickColor;
             StartCoroutine(FadeOut(img));
+        }
+    }
+
+    private void PlayClickSound()
+    {
+        if (ButtonSoundManager.instance != null)
+        {
+            if (radarClickSound != null)
+            {
+                ButtonSoundManager.instance.PlaySpecialSound(radarClickSound, ButtonSoundManager.instance.volume * soundVolume);
+            }
+            else
+            {
+                ButtonSoundManager.instance.PlayDefaultClick();
+            }
         }
     }
 
