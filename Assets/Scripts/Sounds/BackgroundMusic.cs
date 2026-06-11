@@ -1,39 +1,78 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using System.Collections.Generic;
 
 public class BackgroundMusic : MonoBehaviour
 {
     private static BackgroundMusic instance;
     private AudioSource audioSource;
 
-    [Header("Аудио Треки")]
+    [Header("Трек Главного Меню")]
     public AudioClip menuMusic;
     [Range(0f, 1f)] public float menuVolume = 1f;
 
-    public AudioClip tvMusic;
-    [Range(0f, 1f)] public float tvVolume = 0.5f;
-
-    public AudioClip gameMusic;
+    [Header("Треки Игры (Плейлист)")]
+    public List<AudioClip> gameMusicTracks = new List<AudioClip>();
     [Range(0f, 1f)] public float gameVolume = 0.5f;
 
-    [Header("Настройки сцен")]
+    [Header("Настройки сцен и затухания")]
     public string menuSceneName = "MainMenu";
-    public string tvSceneName = "TVInfoScene";
+    public float fadeDuration = 3f; // Время затухания в секундах
+
+    private int currentGameTrackIndex = 0;
+    private float currentTargetVolume = 1f;
+    private bool isFadingOut = false;
+    private bool isFadingIn = false;
+
+    private enum MusicState { Menu, Game }
+    private MusicState currentState = MusicState.Menu;
+
+    public static BackgroundMusic Instance
+    {
+        get { return instance; }
+    }
 
     void Awake()
     {
         if (instance == null)
         {
             instance = this;
+            // DontDestroyOnLoad работает ТОЛЬКО если объект лежит в самом корне сцены (без родителей).
+            // Отвязываем его от всех родителей на всякий случай, чтобы он точно перенёсся:
+            transform.SetParent(null); 
             DontDestroyOnLoad(gameObject);
+            
             audioSource = GetComponent<AudioSource>();
+            audioSource.loop = false; // Теперь мы сами контролируем повтор через затухание
         }
         else
         {
             Destroy(gameObject);
             return;
         }
+    }
+
+    // Вызывать перед загрузкой сцены
+    public void FadeOutToZero(float duration)
+    {
+        StopAllCoroutines();
+        isFadingOut = true;
+        isFadingIn = false;
+        StartCoroutine(FadeOutCoroutine(duration));
+    }
+
+    private IEnumerator FadeOutCoroutine(float duration)
+    {
+        float startVol = audioSource.volume;
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.unscaledDeltaTime;
+            audioSource.volume = Mathf.Lerp(startVol, 0f, t / duration);
+            yield return null;
+        }
+        audioSource.volume = 0f;
     }
 
     void OnEnable()
@@ -48,40 +87,106 @@ public class BackgroundMusic : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        AudioClip targetClip;
-        float targetVolume;
+        MusicState newState = (scene.name == menuSceneName) ? MusicState.Menu : MusicState.Game;
 
-        // Если это главное меню - играем первый трек
-        if (scene.name == menuSceneName)
+        if (newState != currentState || !audioSource.isPlaying)
         {
-            targetClip = menuMusic;
-            targetVolume = menuVolume;
-        }
-        // Если это сцена телевизора - играем звук телевизора
-        else if (scene.name == tvSceneName)
-        {
-            targetClip = tvMusic;
-            targetVolume = tvVolume;
-        }
-        // Во всех остальных сценах - играем трек игры
-        else 
-        {
-            targetClip = gameMusic;
-            targetVolume = gameVolume;
-        }
-
-        // Мгновенное переключение трека и громкости
-        if (audioSource.clip != targetClip)
-        {
-            audioSource.clip = targetClip;
-            audioSource.volume = targetVolume;
-            audioSource.Play();
-        }
-        else
-        {
-            // Если трек тот же, просто мгновенно меняем громкость
-            audioSource.volume = targetVolume;
-            if (!audioSource.isPlaying) audioSource.Play();
+            currentState = newState;
+            PlayCurrentStateMusic();
         }
     }
+
+    void PlayCurrentStateMusic()
+    {
+        StopAllCoroutines();
+        isFadingOut = false;
+        
+        AudioClip targetClip = null;
+        
+        if (currentState == MusicState.Menu)
+        {
+            targetClip = menuMusic;
+            currentTargetVolume = menuVolume;
+        }
+        else if (currentState == MusicState.Game)
+        {
+            if (gameMusicTracks.Count > 0)
+            {
+                if (currentGameTrackIndex >= gameMusicTracks.Count) currentGameTrackIndex = 0;
+                targetClip = gameMusicTracks[currentGameTrackIndex];
+            }
+            currentTargetVolume = gameVolume;
+        }
+
+        if (targetClip != null)
+        {
+            audioSource.clip = targetClip;
+            audioSource.volume = 0f; // Начинаем с нуля для плавного появления
+            audioSource.Play();
+            StartCoroutine(FadeIn());
+        }
+    }
+
+    void Update()
+    {
+        if (!audioSource.isPlaying || audioSource.clip == null) return;
+        if (isFadingOut || isFadingIn) return; 
+
+        float remainingTime = audioSource.clip.length - audioSource.time;
+
+        // Если до конца трека осталось меньше времени, чем длительность затухания
+        if (remainingTime <= fadeDuration)
+        {
+            StartCoroutine(FadeOutAndNext());
+        }
+    }
+
+    private IEnumerator FadeIn()
+    {
+        isFadingIn = true;
+        float timer = 0f;
+        while (timer < fadeDuration)
+        {
+            timer += Time.unscaledDeltaTime;
+            audioSource.volume = Mathf.Lerp(0f, currentTargetVolume, timer / fadeDuration);
+            yield return null;
+        }
+        audioSource.volume = currentTargetVolume;
+        isFadingIn = false;
+    }
+
+    private IEnumerator FadeOutAndNext()
+    {
+        isFadingOut = true;
+        float startVolume = audioSource.volume;
+        float timer = 0f;
+        
+        while (timer < fadeDuration)
+        {
+            timer += Time.unscaledDeltaTime;
+            audioSource.volume = Mathf.Lerp(startVolume, 0f, timer / fadeDuration);
+            yield return null;
+        }
+        
+        audioSource.volume = 0f;
+        audioSource.Stop();
+        isFadingOut = false;
+
+        // Выбираем следующий трек
+        if (currentState == MusicState.Game)
+        {
+            if (gameMusicTracks.Count > 0)
+            {
+                currentGameTrackIndex++;
+                if (currentGameTrackIndex >= gameMusicTracks.Count)
+                {
+                    currentGameTrackIndex = 0; // Плейлист пошел по кругу
+                }
+            }
+        }
+        // Для Menu трек не меняется, он просто начнётся заново
+
+        PlayCurrentStateMusic();
+    }
 }
+

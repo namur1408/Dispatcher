@@ -370,8 +370,15 @@ public class MainMenuController : MonoBehaviour
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
 
-        // Плавное затухание (увеличиваем альфу до 1)
         float fadeDuration = 1.0f;
+
+        // Плавное затухание музыки
+        if (BackgroundMusic.Instance != null)
+        {
+            BackgroundMusic.Instance.FadeOutToZero(fadeDuration);
+        }
+
+        // Плавное затухание (увеличиваем альфу до 1)
         float timer = 0f;
         while (timer < fadeDuration)
         {
