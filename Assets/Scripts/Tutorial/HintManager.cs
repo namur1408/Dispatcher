@@ -78,6 +78,9 @@ public class HintManager : MonoBehaviour
         dismissButton = bgObj.AddComponent<Button>();
         dismissButton.onClick.AddListener(OnHintClicked);
 
+        ButtonSoundTrigger bst = bgObj.AddComponent<ButtonSoundTrigger>();
+        bst.isSilent = true;
+
         RectTransform bgRT = bgObj.GetComponent<RectTransform>();
         bgRT.anchorMin = new Vector2(0.5f, 0f);
         bgRT.anchorMax = new Vector2(0.5f, 0f);

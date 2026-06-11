@@ -38,6 +38,8 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
     private void Awake()
     {
         canClick = true; // Force unlock since tutorials are removed
+        AudioSource src = GetComponent<AudioSource>();
+        if (src != null) src.playOnAwake = false;
     }
 
     public void OnPointerClick(PointerEventData eventData)
@@ -67,6 +69,7 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         AudioSource localSource = GetComponent<AudioSource>();
         if (localSource == null) localSource = gameObject.AddComponent<AudioSource>();
         localSource.ignoreListenerVolume = true;
+        localSource.playOnAwake = false;
 
         float totalWaitTime = zoomDuration;
 
@@ -76,8 +79,8 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
             localSource.volume = soundVolume;
             localSource.Play();
 
-            // Анимация больше не ждет длину звука
-            totalWaitTime = zoomDuration;
+            // Если задан customSoundDuration, ждем его (иначе ждем только зум)
+            totalWaitTime = customSoundDuration > 0f ? customSoundDuration : zoomDuration;
         }
         else if (ButtonSoundManager.instance != null)
         {
@@ -148,10 +151,13 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
             yield return new WaitForSecondsRealtime(totalWaitTime - zoomDuration);
         }
 
-        // Останавливаем звук ровно в момент окончания ожидания
-        if (transitionSound != null && localSource.isPlaying)
+        // Останавливаем звук ровно в момент окончания ожидания ТОЛЬКО при загрузке новой сцены (чтобы избежать треска)
+        if (asyncLoad != null)
         {
-            localSource.Stop();
+            if (transitionSound != null && localSource.isPlaying)
+            {
+                localSource.Stop();
+            }
         }
 
         if (asyncLoad != null)

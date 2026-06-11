@@ -112,6 +112,8 @@ MonoBehaviour:
   emergencyTimer: 20
   pingSound: {fileID: 8300000, guid: 80224ad81bf442940aaf96a67e1db165, type: 3}
   pingVolume: 0.305
+  airplaneClickSound: {fileID: 8300000, guid: 32e5ce841eda6b04685f01bd399c353e, type: 3}
+  airplaneClickVolume: 0.414
   originalCallsign: 
   hasBeenPinged: 0
   cargo: 

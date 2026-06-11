@@ -898,7 +898,7 @@ public class CommsManager : MonoBehaviour
 
     string GetPlaneClass() => currentData.callsign.StartsWith("TR") ? "Passenger" : (currentData.callsign.StartsWith("GE") ? "Cargo" : "Courier");
 
-    void OnDestroy()
+    void OnDisable()
     {
         if (ButtonSoundManager.instance != null)
         {

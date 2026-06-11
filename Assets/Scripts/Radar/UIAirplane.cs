@@ -43,7 +43,10 @@ public class UIAirplane : MonoBehaviour
 
     [Header("Audio")]
     public AudioClip pingSound;
-    [Range(0f, 1f)] public float pingVolume = 0.6f; // <-- НОВОЕ: Ползунок громкости
+    [Range(0f, 1f)] public float pingVolume = 0.6f;
+    [Tooltip("Звук при клике на самолет")]
+    public AudioClip airplaneClickSound;
+    [Range(0f, 1f)] public float airplaneClickVolume = 1f;
     private AudioSource audioSource;
     private float lastPingTime = 0f;
 
@@ -535,6 +538,7 @@ public class UIAirplane : MonoBehaviour
 
         if (index >= 0 && index < waypoints.Count - 1)
         {
+            PlayAirplaneClickSound();
             waypoints.RemoveAt(index);
             RebuildRouteLayer();
             UpdateVisualRotation();
@@ -1121,9 +1125,26 @@ public class UIAirplane : MonoBehaviour
         UpdateHitboxColor();
     }
 
+    private void PlayAirplaneClickSound()
+    {
+        if (ButtonSoundManager.instance != null && airplaneClickSound != null)
+        {
+            ButtonSoundManager.instance.PlaySpecialSound(airplaneClickSound, ButtonSoundManager.instance.volume * airplaneClickVolume);
+        }
+        else if (airplaneClickSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(airplaneClickSound, airplaneClickVolume);
+        }
+        else if (ButtonSoundManager.instance != null)
+        {
+            ButtonSoundManager.instance.PlayDefaultClick();
+        }
+    }
+
     public void TriggerSelection()
     {
         if (inStorm) return;
+        PlayAirplaneClickSound();
 
         if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.SelectPlane(this);
         UIAirplane[] planes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
