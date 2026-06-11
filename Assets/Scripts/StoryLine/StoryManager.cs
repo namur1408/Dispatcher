@@ -3,6 +3,7 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
 
 public class StoryManager : MonoBehaviour
 {
@@ -366,6 +367,7 @@ public class StoryManager : MonoBehaviour
             int econ = PlayerPrefs.GetInt("BaseEmergencyEconomy", 0);
             if (eng == 0 && econ == 0) shiftXpGained = 150; 
             else if (eng == 1) shiftXpGained = 50; 
+            else shiftXpGained = 50; 
         }
         else if (currentDay == 2)
         {
@@ -380,113 +382,122 @@ public class StoryManager : MonoBehaviour
         if (finalXp < 0) finalXp = 0;
         PlayerPrefs.SetInt("ReputationXP", finalXp);
 
-        string Col(int val) => val >= 0 ? "<color=#4AF626>" : "<color=#FF3030>";
-        string Sign(int val) => val > 0 ? "+" : "";
+        UnityEngine.UIElements.VisualTreeAsset uiAsset = Resources.Load<UnityEngine.UIElements.VisualTreeAsset>("UI/EndOfDay");
+        GameObject uiObj = null;
+        UnityEngine.UIElements.UIDocument uiDoc = null;
+        UnityEngine.UIElements.Button sleepBtn = null;
+        bool isSleeping = false;
 
-        string summary = $"<align=center><size=280%>END OF DAY {currentDay}</size>\n\n<size=230%><align=left>";
-        summary += $"<pos=20%>PLANES APPROVED<pos=70%><color=#FFFFFF>{planesAccepted}</color>\n";
-        summary += $"<pos=20%>PEOPLE GAINED<pos=70%>{Col(peopleChange)}{Sign(peopleChange)}{peopleChange}</color>\n";
-        summary += $"<pos=20%>NET FUEL<pos=70%>{Col(fuelChange)}{Sign(fuelChange)}{fuelChange}</color>\n";
-        summary += $"<pos=20%>NET MEDICINE<pos=70%>{Col(medsChange)}{Sign(medsChange)}{medsChange}</color>\n";
-        summary += $"<pos=20%>FOOD SALVAGED<pos=70%>{Col(foodAdded)}{Sign(foodAdded)}{foodAdded}</color>\n";
-        summary += $"<pos=20%>FOOD CONSUMED<pos=70%><color=#FF3030>-{foodEaten}</color>\n";
-        
-        if (starvedToDeath > 0)
+        if (uiAsset != null)
         {
-            summary += $"<pos=20%>STARVATION DEATHS<pos=70%><color=#FF3030>{starvedToDeath}</color>\n";
-        }
-        if (diseaseDeathsThisShift > 0)
-        {
-            summary += $"<pos=20%>DISEASE DEATHS<pos=70%><color=#FF3030>{diseaseDeathsThisShift}</color>\n";
-        }
-        
-        summary += $"<pos=20%>------------------------------------------------------\n";
-        summary += $"<pos=20%>REMAINING FOOD<pos=70%>{Col(fdmTotalFood)}{fdmTotalFood}</color>\n\n";
+            Debug.Log("[EndOfDay] Found uiAsset, creating UIDocument.");
+            uiObj = new GameObject("EndOfDayUI");
+            uiDoc = uiObj.AddComponent<UnityEngine.UIElements.UIDocument>();
+            uiDoc.panelSettings = Resources.Load<UnityEngine.UIElements.PanelSettings>("PanelSettings");
+            if (uiDoc.panelSettings == null)
+            {
+                var settings = Resources.FindObjectsOfTypeAll<UnityEngine.UIElements.PanelSettings>();
+                if (settings != null && settings.Length > 0)
+                    uiDoc.panelSettings = settings[0];
+            }
+            Debug.Log("[EndOfDay] PanelSettings assigned: " + (uiDoc.panelSettings != null));
+            
+            uiDoc.visualTreeAsset = uiAsset;
+            uiDoc.sortingOrder = 32001; 
 
-        summary += $"<pos=20%>SHIFT REPUTATION GAIN<pos=70%>{Col(shiftXpGained)}{Sign(shiftXpGained)}{shiftXpGained} XP</color>\n";
-        if (xpPenalty > 0)
-        {
-            summary += $"<pos=20%>CASUALTY PENALTY<pos=70%><color=#FF3030>-{xpPenalty} XP</color>\n";
-        }
+            if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 0f;
+            if (dayText != null) dayText.text = "";
 
-        summary += $"</align></size>\n\n\n\n";
-        summary += $"<align=center><color=#888888><size=140%>[ CLICK TO SLEEP ]</size></color>";
+            var root = uiDoc.rootVisualElement;
+            Debug.Log("[EndOfDay] Root element acquired.");
 
-        // Build XP Bar UI BEFORE text typing
-        GameObject barBgObj = new GameObject("XP_Bar_Bg");
-        barBgObj.transform.SetParent(dayText.transform, false);
-        RectTransform bgRt = barBgObj.AddComponent<RectTransform>();
-        bgRt.anchorMin = new Vector2(0.5f, 1f); // Absolute top edge
-        bgRt.anchorMax = new Vector2(0.5f, 1f);
-        bgRt.pivot = new Vector2(0.5f, 1f);     // Top pivot
-        bgRt.sizeDelta = new Vector2(700, 40); 
-        bgRt.anchoredPosition = new Vector2(0, 150); // 30px from top edge 
-        UnityEngine.UI.Image bgImg = barBgObj.AddComponent<UnityEngine.UI.Image>();
-        bgImg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
+            root.Q<UnityEngine.UIElements.Label>("repVal").text = startXp.ToString();
+            root.Q<UnityEngine.UIElements.Label>("dayTitle").text = $"END OF DAY {currentDay}";
+            root.Q<UnityEngine.UIElements.Label>("planesVal").text = planesAccepted == 0 ? "0" : (planesAccepted > 0 ? $"+{planesAccepted}" : planesAccepted.ToString());
+            root.Q<UnityEngine.UIElements.Label>("peopleVal").text = peopleChange == 0 ? "0" : (peopleChange > 0 ? $"+{peopleChange}" : peopleChange.ToString());
+            root.Q<UnityEngine.UIElements.Label>("fuelVal").text = fuelChange == 0 ? "0" : (fuelChange > 0 ? $"+{fuelChange}" : fuelChange.ToString());
+            root.Q<UnityEngine.UIElements.Label>("medsVal").text = medsChange == 0 ? "0" : (medsChange > 0 ? $"+{medsChange}" : medsChange.ToString());
+            root.Q<UnityEngine.UIElements.Label>("foodAddedVal").text = foodAdded == 0 ? "0" : (foodAdded > 0 ? $"+{foodAdded}" : foodAdded.ToString());
+            root.Q<UnityEngine.UIElements.Label>("foodEatenVal").text = $"-{foodEaten}";
+            root.Q<UnityEngine.UIElements.Label>("foodRemVal").text = fdmTotalFood.ToString();
+            
+            root.Q<UnityEngine.UIElements.Label>("xpGainVal").text = totalXpGained == 0 ? "0" : (totalXpGained > 0 ? $"+{totalXpGained}" : totalXpGained.ToString());
+            if (xpPenalty > 0)
+                root.Q<UnityEngine.UIElements.Label>("xpPenaltyLabel").text = $"-{xpPenalty} XP (CASUALTIES)";
+            
+            root.Q<UnityEngine.UIElements.Label>("footerLeft").text = $"23:59 · DAY {currentDay:D2}";
 
-        GameObject barFillObj = new GameObject("XP_Bar_Fill");
-        barFillObj.transform.SetParent(barBgObj.transform, false);
-        RectTransform fillRt = barFillObj.AddComponent<RectTransform>();
-        fillRt.anchorMin = new Vector2(0, 0);
-        fillRt.anchorMax = new Vector2(Mathf.Clamp01(startXp / 350f), 1);
-        fillRt.pivot = new Vector2(0, 0.5f);
-        fillRt.sizeDelta = Vector2.zero;
-        fillRt.anchoredPosition = Vector2.zero;
-        UnityEngine.UI.Image fillImg = barFillObj.AddComponent<UnityEngine.UI.Image>();
-        fillImg.color = new Color(0.29f, 0.96f, 0.15f, 1f);
-
-        GameObject textObj = new GameObject("XP_Text");
-        textObj.transform.SetParent(barBgObj.transform, false);
-        RectTransform txtRt = textObj.AddComponent<RectTransform>();
-        txtRt.anchorMin = Vector2.zero; txtRt.anchorMax = Vector2.one;
-        txtRt.sizeDelta = Vector2.zero;
-        txtRt.anchoredPosition = new Vector2(0, 40); // Above the bar
-        TextMeshProUGUI xpTxt = textObj.AddComponent<TextMeshProUGUI>();
-        xpTxt.font = dayText.font;
-        xpTxt.fontSize = 32;
-        xpTxt.alignment = TextAlignmentOptions.Center;
-        xpTxt.color = Color.white;
-        xpTxt.text = $"REPUTATION: {startXp} / 350";
-
-        // Add Next Level text to the right
-        GameObject lvlObj = new GameObject("Level_Text");
-        lvlObj.transform.SetParent(barBgObj.transform, false);
-        RectTransform lvlRt = lvlObj.AddComponent<RectTransform>();
-        lvlRt.anchorMin = new Vector2(1, 0.5f); 
-        lvlRt.anchorMax = new Vector2(1, 0.5f);
-        lvlRt.pivot = new Vector2(0, 0.5f); 
-        lvlRt.sizeDelta = new Vector2(200, 40);
-        lvlRt.anchoredPosition = new Vector2(20, 0); // Offset 20px to the right of the bar
-        TextMeshProUGUI lvlTxt = lvlObj.AddComponent<TextMeshProUGUI>();
-        lvlTxt.font = dayText.font;
-        lvlTxt.fontSize = 32;
-        lvlTxt.alignment = TextAlignmentOptions.Left;
-        lvlTxt.color = new Color(0.29f, 0.96f, 0.15f, 1f); // Green color
-        lvlTxt.text = "LEVEL 1";
-
-        yield return StartCoroutine(TypeText(summary));
-        
-        // Animate XP Bar AFTER typing is done
-        float animTime = 1.5f;
-        float elapsed = 0f;
-        while (elapsed < animTime)
-        {
-            elapsed += Time.deltaTime;
-            float t = elapsed / animTime;
-            int curXp = Mathf.RoundToInt(Mathf.Lerp(startXp, finalXp, t));
-            fillRt.anchorMax = new Vector2(Mathf.Clamp01(curXp / 350f), 1);
-            xpTxt.text = $"REPUTATION: {curXp} / 350";
+            var mainPanel = root.Q<UnityEngine.UIElements.VisualElement>("mainPanel");
+            Debug.Log("[EndOfDay] All labels mapped.");
+            
             yield return null;
+            if (mainPanel != null) mainPanel.AddToClassList("visible");
+
+            var repBarFill = root.Q<UnityEngine.UIElements.VisualElement>("repBarFill");
+            if (repBarFill != null) repBarFill.style.width = new UnityEngine.UIElements.Length(Mathf.Clamp01(startXp / 350f) * 100, UnityEngine.UIElements.LengthUnit.Percent);
+
+            float GetPct(int val, int max) => Mathf.Clamp01(Mathf.Abs(val) / (float)max) * 100;
+            root.Q<UnityEngine.UIElements.VisualElement>("planesBar").style.width = new UnityEngine.UIElements.Length(GetPct(planesAccepted, 5), UnityEngine.UIElements.LengthUnit.Percent);
+            root.Q<UnityEngine.UIElements.VisualElement>("peopleBar").style.width = new UnityEngine.UIElements.Length(GetPct(peopleChange, 100), UnityEngine.UIElements.LengthUnit.Percent);
+            root.Q<UnityEngine.UIElements.VisualElement>("fuelBar").style.width = new UnityEngine.UIElements.Length(GetPct(fuelChange, 500), UnityEngine.UIElements.LengthUnit.Percent);
+            root.Q<UnityEngine.UIElements.VisualElement>("medsBar").style.width = new UnityEngine.UIElements.Length(GetPct(medsChange, 20), UnityEngine.UIElements.LengthUnit.Percent);
+            root.Q<UnityEngine.UIElements.VisualElement>("foodAddedBar").style.width = new UnityEngine.UIElements.Length(GetPct(foodAdded, 100), UnityEngine.UIElements.LengthUnit.Percent);
+            root.Q<UnityEngine.UIElements.VisualElement>("foodEatenBar").style.width = new UnityEngine.UIElements.Length(GetPct(foodEaten, 100), UnityEngine.UIElements.LengthUnit.Percent);
+
+            var repValLabel = root.Q<UnityEngine.UIElements.Label>("repVal");
+            float animTime = 1.5f;
+            float elapsed = 0f;
+            Debug.Log("[EndOfDay] Starting UI animation.");
+            while (elapsed < animTime)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / animTime;
+                int curXp = Mathf.RoundToInt(Mathf.Lerp(startXp, finalXp, t));
+                if (repValLabel != null) repValLabel.text = curXp.ToString();
+                if (repBarFill != null) repBarFill.style.width = new UnityEngine.UIElements.Length(Mathf.Clamp01(curXp / 350f) * 100, UnityEngine.UIElements.LengthUnit.Percent);
+                yield return null;
+            }
+            if (repValLabel != null) repValLabel.text = finalXp.ToString();
+            if (repBarFill != null) repBarFill.style.width = new UnityEngine.UIElements.Length(Mathf.Clamp01(finalXp / 350f) * 100, UnityEngine.UIElements.LengthUnit.Percent);
+
+            sleepBtn = root.Q<UnityEngine.UIElements.Button>("sleepBtn");
+            if (sleepBtn != null)
+            {
+                System.Action sleepAction = () => {
+                    if (!isSleeping) {
+                        isSleeping = true;
+                        sleepBtn.text = "▶  ZZZ... SLEEPING...  ◀";
+                        sleepBtn.AddToClassList("sleeping");
+                    }
+                };
+
+                sleepBtn.clicked += sleepAction;
+                sleepBtn.RegisterCallback<UnityEngine.UIElements.PointerDownEvent>(evt => sleepAction());
+            }
+            Debug.Log("[EndOfDay] UI Setup complete, waiting for sleep.");
+        }
+        else
+        {
+            Debug.Log("[EndOfDay] uiAsset is NULL. Running fallback text.");
+            yield return StartCoroutine(TypeText("END OF DAY\n\nCLICK TO CONTINUE"));
         }
 
-        // Wait for user to click
-        yield return new WaitUntil(() => 
-            (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame) ||
-            (UnityEngine.InputSystem.Touchscreen.current != null && UnityEngine.InputSystem.Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
-        );
+        if (uiAsset != null)
+        {
+            yield return new WaitUntil(() => isSleeping);
+        }
+        else
+        {
+            yield return new WaitUntil(() => 
+                (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame) ||
+                (UnityEngine.InputSystem.Touchscreen.current != null && UnityEngine.InputSystem.Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
+            );
+        }
 
-        if (barBgObj != null) Destroy(barBgObj);
+        if (uiObj != null) Destroy(uiObj);
         if (dayText != null) dayText.text = "";
+        
+        if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 1f;
 
         if (currentDay2Outcome == Day2Outcome.Lost_NoSF)
         {
