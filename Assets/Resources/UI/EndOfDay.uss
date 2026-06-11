@@ -48,22 +48,24 @@
 .section-center { align-items: center; }
 
 .rep-label {
-    font-size: 12px;
+    font-size: 18px;
     color: #2a6a2a;
     letter-spacing: 3px;
     margin-bottom: 6px;
 }
 
 .rep-val {
-    font-size: 14px;
+    font-size: 21px;
     color: #00ff55;
     letter-spacing: 2px;
+    margin-bottom: 12px;
 }
 
 .rep-val-max {
-    font-size: 14px;
+    font-size: 21px;
     color: #1a4a1a;
     letter-spacing: 2px;
+    margin-bottom: 12px;
 }
 
 .rep-bar-container {
@@ -85,7 +87,7 @@
 }
 
 .level-badge {
-    font-size: 11px;
+    font-size: 16px;
     -unity-font-style: bold;
     background-color: #00ff55;
     color: #000;
@@ -102,7 +104,8 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    margin-bottom: 3px;
+    margin-bottom: 20px;
+    height: 50px;
     width: 100%;
 }
 
@@ -113,24 +116,26 @@
 }
 
 .title-text {
-    font-size: 24px;
+    font-size: 36px;
     -unity-font-style: bold;
     color: #00ff55;
     letter-spacing: 6px;
     text-shadow: 0 0 10px #00ff55;
     margin-left: 16px;
     margin-right: 16px;
+    -unity-text-align: middle-center;
 }
 
 .sub-title {
-    font-size: 10px;
+    font-size: 15px;
     color: #1a4a1a;
     letter-spacing: 4px;
+    margin-top: 5px;
 }
 
 /* Sections */
 .section-header {
-    font-size: 11px;
+    font-size: 16px;
     color: #2a5a2a;
     letter-spacing: 4px;
     border-bottom-width: 1px;
@@ -151,30 +156,33 @@
 .stat-icon {
     width: 26px;
     -unity-text-align: middle-center;
-    font-size: 16px;
+    font-size: 24px;
     margin-right: 10px;
 }
 
 .stat-name {
     flex-grow: 1;
-    font-size: 13px;
+    font-size: 19px;
     color: #00a030;
     letter-spacing: 1px;
 }
 
 .tag-red {
     margin-left: 10px;
-    font-size: 10px;
-    padding-top: 1px; padding-bottom: 1px; padding-left: 6px; padding-right: 6px;
+    margin-top: 6px;
+    font-size: 15px;
+    -unity-text-align: middle-center;
+    padding-left: 8px; padding-right: 8px;
     background-color: rgba(255, 50, 50, 0.1);
     border-color: rgba(255, 50, 50, 0.3);
     border-width: 1px;
     color: #ff5555;
     letter-spacing: 2px;
+    height: 22px;
 }
 
 .stat-bar-bg {
-    width: 70px;
+    width: 105px;
     height: 3px;
     background-color: #050f05;
     border-radius: 2px;
@@ -192,9 +200,9 @@
 }
 
 .stat-val {
-    width: 66px;
+    width: 100px;
     -unity-text-align: middle-right;
-    font-size: 16px;
+    font-size: 24px;
     -unity-font-style: bold;
     letter-spacing: 1px;
 }
@@ -216,19 +224,19 @@
 }
 
 .total-food-icon {
-    font-size: 20px;
+    font-size: 30px;
     margin-right: 12px;
 }
 
 .total-food-label {
     flex-grow: 1;
-    font-size: 14px;
+    font-size: 21px;
     color: #00ff55;
     letter-spacing: 2px;
 }
 
 .total-food-val {
-    font-size: 26px;
+    font-size: 39px;
     -unity-font-style: bold;
     color: #00ff55;
     text-shadow: 0 0 14px rgba(0, 255, 85, 0.6);
@@ -258,34 +266,40 @@
 }
 
 .xp-title {
-    font-size: 12px;
+    font-size: 18px;
     color: #4a8a4a;
     letter-spacing: 3px;
 }
 
 .xp-subtitle {
-    font-size: 10px;
+    font-size: 15px;
     color: #1a4a1a;
     letter-spacing: 2px;
     margin-top: 3px;
 }
 
 .xp-gain-val {
-    font-size: 32px;
+    font-size: 48px;
     -unity-font-style: bold;
     color: #00ff55;
     text-shadow: 0 0 20px rgba(0, 255, 85, 0.7);
     letter-spacing: 2px;
+    -unity-text-align: middle-left;
+    height: 55px;
+    margin-top: 14px;
 }
 
 .xp-gain-unit {
-    font-size: 16px;
+    font-size: 24px;
     color: #2a6a2a;
     margin-left: 4px;
+    -unity-text-align: middle-left;
+    height: 40px;
+    margin-top: 14px;
 }
 
 .xp-penalty-val {
-    font-size: 10px;
+    font-size: 15px;
     color: #ff4444;
     letter-spacing: 1px;
     margin-top: 3px;
@@ -298,7 +312,7 @@
     border-color: #1a4a1a;
     border-width: 1px;
     color: #4a8a4a;
-    font-size: 14px;
+    font-size: 21px;
     letter-spacing: 4px;
     padding-top: 15px;
     padding-bottom: 15px;
@@ -321,7 +335,7 @@
 .footer {
     position: absolute;
     bottom: 16px;
-    font-size: 11px;
+    font-size: 16px;
     color: #1a3a1a;
     letter-spacing: 2px;
 }

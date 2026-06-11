@@ -106,7 +106,7 @@
                     <ui:Label text="DISPATCHER REPUTATION" class="xp-subtitle" />
                 </ui:VisualElement>
                 <ui:VisualElement style="align-items: flex-end;">
-                    <ui:VisualElement style="flex-direction: row; align-items: baseline;">
+                    <ui:VisualElement style="flex-direction: row; align-items: flex-end;">
                         <ui:Label text="+0" name="xpGainVal" class="xp-gain-val" />
                         <ui:Label text="XP" class="xp-gain-unit" />
                     </ui:VisualElement>
