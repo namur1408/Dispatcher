@@ -3110,11 +3110,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e30cf6710667fa40a54a09abd7331a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BackgroundMusic
-  menuMusic: {fileID: 8300000, guid: 35a7115d01ae0f245820053fc179d372, type: 3}
-  menuVolume: 1
+  menuMusic: {fileID: 8300000, guid: c5f3b28a87676654f83d41e5112cc2e5, type: 3}
+  menuVolume: 0.16
   tvMusic: {fileID: 0}
   tvVolume: 0.5
-  gameMusic: {fileID: 8300000, guid: 1934665247550454187eeb35245ca018, type: 3}
+  gameMusic: {fileID: 8300000, guid: a7d2424f2c83c834894fef18ea7cceae, type: 3}
   gameVolume: 0.5
   menuSceneName: MainMenu
   tvSceneName: TVInfoScene

@@ -36,6 +36,12 @@ public class ButtonSoundManager : MonoBehaviour
     void OnEnable() { SceneManager.sceneLoaded += OnSceneLoaded; }
     void OnDisable() { SceneManager.sceneLoaded -= OnSceneLoaded; }
 
+    void Start()
+    {
+        // Periodically check for dynamically instantiated buttons (e.g. TV flight lists)
+        InvokeRepeating(nameof(AssignSoundsToAllButtons), 1f, 1.5f);
+    }
+
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         AssignSoundsToAllButtons();
