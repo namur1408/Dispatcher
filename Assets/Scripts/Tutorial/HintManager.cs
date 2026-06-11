@@ -36,6 +36,7 @@ public class HintManager : MonoBehaviour
     {
         public string text;
         public float duration;
+        public float delay;
     }
     
     private Queue<HintRequest> hintQueue = new Queue<HintRequest>();
@@ -150,11 +151,11 @@ public class HintManager : MonoBehaviour
         }
     }
 
-    public void ShowHint(string text, float duration = 5f)
+    public void ShowHint(string text, float duration = 5f, float delay = 0f)
     {
         if (StoryManager.currentDay != 1) return; // Only show on Day 1
         
-        hintQueue.Enqueue(new HintRequest { text = text, duration = duration });
+        hintQueue.Enqueue(new HintRequest { text = text, duration = duration, delay = delay });
         
         if (!isShowingHint)
         {
@@ -172,6 +173,12 @@ public class HintManager : MonoBehaviour
             HintRequest request = hintQueue.Dequeue();
             hintText.text = request.text;
             skipCurrentHint = false;
+
+            if (request.delay > 0)
+            {
+                yield return new WaitForSeconds(request.delay);
+            }
+            
             
             // Fade in
             float t = 0;
@@ -214,7 +221,7 @@ public class HintManager : MonoBehaviour
     {
         if (!hintShown_Email)
         {
-            ShowHint("HINT: Before starting the shift, check your Email on the Terminal to read the daily directives.", 8f);
+            ShowHint("HINT: Before starting the shift, check your Email on the Terminal to read the daily directives.", 8f, 4f);
             hintShown_Email = true;
         }
     }
