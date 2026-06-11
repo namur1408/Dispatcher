@@ -65,6 +65,14 @@ public class HintManager : MonoBehaviour
         Canvas canvas = hintUI.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 30000;
+
+        // Добавляем скейлер, чтобы интерфейс масштабировался на разных экранах
+        CanvasScaler scaler = hintUI.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f; // Среднее между шириной и высотой
+
         hintUI.AddComponent<UnityEngine.UI.GraphicRaycaster>();
 
         hintCanvasGroup = hintUI.AddComponent<CanvasGroup>();
