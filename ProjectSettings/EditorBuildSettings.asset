@@ -17,7 +17,7 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/TVInfoScene.unity
     guid: b9b8dafce87b7a243ad40316ceba74b1
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/ManualScene.unity
     guid: bf7f0a08c23f9be4097e4cbaa661a61b
   - enabled: 0

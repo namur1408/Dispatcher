@@ -349,15 +349,16 @@ public class FlightDataManager : MonoBehaviour
             scriptedFlightsQueue.Enqueue(ge102);
             scriptedDelaysQueue.Enqueue(15f);
 
-            FlightData qy884 = new FlightData("QY-884", new Vector2(437, -357), Vector2.zero, new List<Vector2>(), 95f, "Food", 200, "Food", 200, CalculateStoryFuel(new Vector2(437, -357), Vector2.zero), "Bastion-5");
+            FlightData qy884 = new FlightData("QY-884", new Vector2(437, -357), Vector2.zero, new List<Vector2>(), 95f, "Food", 45, "Food", 200, CalculateStoryFuel(new Vector2(437, -357), Vector2.zero), "Bastion-5");
             qy884.personality = PilotPersonality.Nervous;
+            qy884.explanationCargo = "200 units?! No way, this is a light courier plane! We only have 45 units on board. There must be a typo in the manifest.";
             scriptedFlightsQueue.Enqueue(qy884);
             scriptedDelaysQueue.Enqueue(20f);
 
             // TR-404 intentionally has LOW fuel (100f) — this is a core story moment, do NOT change
-            FlightData tr404 = new FlightData("TR-404", new Vector2(0, 535), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Food", 50, 100f, "Sector-Z");
+            FlightData tr404 = new FlightData("TR-404", new Vector2(0, 535), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Fuel", 50, 100f, "Sector-Z");
             tr404.personality = PilotPersonality.Desperate;
-            tr404.spokenCargo = "Food";
+            tr404.spokenCargo = "Fuel";
             tr404.spokenOrigin = "Bastion-4";
             tr404.explanationOrigin = "Sector Z has been destroyed, Control. We barely managed to escape! We probably made a mistake in the rush.";
             tr404.explanationCargo = "Listen, we've had to reclassify the cargo just to stay safe, we're completely out of fuel, and we're about to crash! We have refugees on board. Please let us through — there are children on board!";

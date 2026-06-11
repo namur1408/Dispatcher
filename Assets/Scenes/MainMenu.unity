@@ -3115,7 +3115,7 @@ MonoBehaviour:
   gameMusicTracks:
   - {fileID: 8300000, guid: 96be57168df1f3d4b9d8a57bef39fbf9, type: 3}
   - {fileID: 8300000, guid: 6b06305c4e3c87a45b3d60a1ffed269d, type: 3}
-  gameVolume: 0.5
+  gameVolume: 1
   menuSceneName: MainMenu
   fadeDuration: 3
 --- !u!4 &1002441513
