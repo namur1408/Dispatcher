@@ -34,6 +34,8 @@ public class BigRadarLoader : MonoBehaviour
     {
         // Full rebuild when screen opens
         RebuildAll();
+        
+        if (HintManager.Instance != null) HintManager.Instance.TriggerContactPlaneHint();
     }
 
     void OnDisable()

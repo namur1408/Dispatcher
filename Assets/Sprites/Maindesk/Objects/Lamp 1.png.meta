@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 0bb26494f5a5047408417cf8a60bf024
+guid: d080ec4c54694c14cab7b21dec60ada4
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 906388131340123023
-    second: Plant_0
+      213: -4762966716289121521
+    second: Lamp 1_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -97,6 +97,19 @@ TextureImporter:
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
     buildTarget: iOS
     maxTextureSize: 2048
     resizeAlgorithm: 0
@@ -113,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Plant_0
+      name: Lamp 1_0
       rect:
         serializedVersion: 2
-        x: 59
-        y: 15
-        width: 360
-        height: 427
+        x: 80
+        y: 150
+        width: 2308
+        height: 2109
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f8b78250433249c00800000000000000
-      internalID: 906388131340123023
+      spriteID: f03049eb10b86edb0800000000000000
+      internalID: -4762966716289121521
       vertices: []
       indices: 
       edges: []
@@ -148,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Plant_0: 906388131340123023
+      Lamp 1_0: -4762966716289121521
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

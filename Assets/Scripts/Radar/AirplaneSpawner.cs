@@ -156,7 +156,6 @@ public class AirplaneSpawner : MonoBehaviour
         float speed = 80f;
         string cargo = "None";
         int amount = 10;
-        float fuel = 200f;
 
         string[] goods = { "Food", "Fuel", "Medicines" };
 
@@ -165,22 +164,46 @@ public class AirplaneSpawner : MonoBehaviour
             speed = Random.Range(60, 84);
             cargo = goods[Random.Range(0, goods.Length)];
             amount = Random.Range(51, 500);
-            fuel = Random.Range(180f, 250f);
         }
         else if (prefix == "TR")
         {
             speed = Random.Range(70, 78);
             cargo = "People";
             amount = Random.Range(20, 250);
-            fuel = Random.Range(150f, 220f);
         }
         else if (prefix == "QY")
         {
             speed = Random.Range(81, 105);
             cargo = goods[Random.Range(0, goods.Length)];
             amount = Random.Range(1, 50);
-            fuel = Random.Range(160f, 240f);
         }
+
+
+        // UIAirplane burns 1 fuel per distancePerFuelUnit (6f) units of distance.
+        // We calculate the minimum fuel required for the actual route and add a large safety buffer.
+        const float FUEL_PER_DISTANCE_UNIT = 6f; // must match UIAirplane.distancePerFuelUnit
+        const float SAFETY_MULTIPLIER_MIN  = 1.8f;
+        const float SAFETY_MULTIPLIER_MAX  = 2.4f;
+
+        float routeDistance;
+        if (targetPos == Vector2.zero)
+        {
+            // Landing: start → center (0,0)
+            routeDistance = startPos.magnitude;
+        }
+        else
+        {
+            // Transit: start → targetPos (flies through)
+            routeDistance = Vector2.Distance(startPos, targetPos);
+        }
+
+        float minFuelRequired = routeDistance / FUEL_PER_DISTANCE_UNIT;
+        float safetyMultiplier = Random.Range(SAFETY_MULTIPLIER_MIN, SAFETY_MULTIPLIER_MAX);
+        float fuel = minFuelRequired * safetyMultiplier;
+
+        // Clamp to reasonable bounds so UI fuel bar looks sensible
+        fuel = Mathf.Clamp(fuel, 120f, 600f);
+
 
         FlightData randomData = new FlightData(callsign, startPos, targetPos, new List<Vector2>(), speed, cargo, amount);
         randomData.currentFuel = fuel;

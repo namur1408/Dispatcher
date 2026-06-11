@@ -29,6 +29,8 @@ public class ZoomReturnManager : MonoBehaviour
 
     private IEnumerator PrepareAndZoomOut()
     {
+        var evSys = Object.FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>();
+        if (evSys != null) evSys.enabled = false;
         // 0. Создаём полностью черный оверлей ДО ожидания кадра, чтобы скрыть "прыжок"
         GameObject fadeObj = new GameObject("ReturnFadeOverlay");
         Canvas fadeCanvas = fadeObj.AddComponent<Canvas>();
@@ -54,7 +56,7 @@ public class ZoomReturnManager : MonoBehaviour
         {
             Debug.Log($"<color=green>[ZoomReturn]</color> Найден объект для возврата: {targetObj.name}");
             // Передаем fadeImage и fadeObj в функцию анимации
-            yield return StartCoroutine(ZoomOutAnimation(targetObj.transform, canvasGroup, fadeImage, fadeObj));
+            yield return StartCoroutine(ZoomOutAnimation(targetObj.transform, canvasGroup, fadeImage, fadeObj, evSys));
         }
         else
         {
@@ -67,7 +69,7 @@ public class ZoomReturnManager : MonoBehaviour
         pendingReturnTargetName = "";
     }
 
-    private IEnumerator ZoomOutAnimation(Transform zoomTarget, CanvasGroup canvasGroup, UnityEngine.UI.Image fadeImage, GameObject fadeObj)
+    private IEnumerator ZoomOutAnimation(Transform zoomTarget, CanvasGroup canvasGroup, UnityEngine.UI.Image fadeImage, GameObject fadeObj, UnityEngine.EventSystems.EventSystem evSys)
     {
         bool wasAdditive = (rootContainer.localScale.x > 1.5f);
 
@@ -141,6 +143,7 @@ public class ZoomReturnManager : MonoBehaviour
         rootContainer.anchoredPosition = normalPos;
         canvasGroup.alpha = 1f;
 
+        if (evSys != null) evSys.enabled = true;
         Destroy(fadeObj);
     }
 }

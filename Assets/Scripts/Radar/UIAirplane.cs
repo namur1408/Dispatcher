@@ -1195,10 +1195,7 @@ public class UIAirplane : MonoBehaviour
             FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
         }
 
-        if (RadarTutorialManager.Instance != null && !RadarTutorialManager.isRadarTutorialCompleted)
-        {
-            RadarTutorialManager.Instance.NotifyEmergencyCollision();
-        }
+        // Note: Emergency collision logic removed from tutorial.
         UpdateHitboxColor();
         Invoke("DestroyPlane", 0.05f);
     }

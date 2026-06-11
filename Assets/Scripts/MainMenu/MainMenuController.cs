@@ -353,20 +353,35 @@ public class MainMenuController : MonoBehaviour
 
     private IEnumerator LoadSceneWithPreload()
     {
-        if (mainButtonsPanel) mainButtonsPanel.SetActive(false);
-        if (continueSelectPanel) continueSelectPanel.SetActive(false);
-        if (modeSelectPanel) modeSelectPanel.SetActive(false);
-        if (settingsPanel) settingsPanel.SetActive(false);
+        // Создаем черный экран для плавного затемнения поверх всего
+        GameObject fadeObj = new GameObject("MainMenuFade");
+        Canvas fadeCanvas = fadeObj.AddComponent<Canvas>();
+        fadeCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        fadeCanvas.sortingOrder = 32000; // Поверх всего
+        fadeObj.AddComponent<UnityEngine.UI.GraphicRaycaster>(); // Блокируем клики
+        
+        UnityEngine.UI.Image fadeImg = fadeObj.AddComponent<UnityEngine.UI.Image>();
+        fadeImg.color = new Color(0, 0, 0, 0);
+        fadeImg.raycastTarget = true;
+        
+        RectTransform rt = fadeObj.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
 
-        if (bootText != null)
+        // Плавное затухание (увеличиваем альфу до 1)
+        float fadeDuration = 1.0f;
+        float timer = 0f;
+        while (timer < fadeDuration)
         {
-            bootText.text = "\n\n> LOADING_MAP_DATA...";
-            if (bootText.transform.parent != null)
-            {
-                bootText.transform.parent.gameObject.SetActive(true);
-            }
+            timer += Time.deltaTime;
+            fadeImg.color = new Color(0, 0, 0, Mathf.Clamp01(timer / fadeDuration));
+            yield return null;
         }
+        fadeImg.color = Color.black;
 
+        // После затухания начинаем загрузку сцены
         AsyncOperation op = SceneManager.LoadSceneAsync(gameSceneName);
         op.allowSceneActivation = false;
         
@@ -382,9 +397,6 @@ public class MainMenuController : MonoBehaviour
     {
         StoryManager.isFirstGameLoad = true;
         StoryManager.currentDay = 1;
-        DeskTutorialManager.tutorialWasSkipped = false;
-        DeskTutorialManager.tutorialStep = 0;
-        TutorialManager.isTutorialActive = true;
         AegisMailApp.ClearInbox();
     }
 

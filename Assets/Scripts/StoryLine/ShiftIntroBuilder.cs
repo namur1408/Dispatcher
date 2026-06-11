@@ -172,7 +172,10 @@ public class ShiftIntroBuilder : MonoBehaviour
             if (Random.value > 0.95f) titleTxt.alpha = Random.Range(0.6f, 1f);
             else titleTxt.alpha = 1f;
 
-            if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
+            bool mouseClicked = UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame;
+            bool touched = UnityEngine.InputSystem.Touchscreen.current != null && UnityEngine.InputSystem.Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
+
+            if (mouseClicked || touched)
             {
                 clicked = true;
             }

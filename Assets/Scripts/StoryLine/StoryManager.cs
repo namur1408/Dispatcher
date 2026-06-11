@@ -155,31 +155,8 @@ public class StoryManager : MonoBehaviour
         {
             isFirstGameLoad = false;
             currentDay = 1;
-
-            if (TutorialManager.isTutorialActive)
-            {
-                StartCoroutine(TutorialTransitionSequence());
-            }
-            else
-            {
-                StartCoroutine(WaitAndStartDay(1, true));
-            }
+            StartCoroutine(WaitAndStartDay(1, true));
         }
-    }
-
-    private IEnumerator TutorialTransitionSequence()
-    {
-        LockPlayerInput(true);
-        ForceBlackScreen();
-
-        yield return new WaitForSecondsRealtime(0.5f);
-
-        yield return StartCoroutine(Fade(1f, 0f, 1.0f));
-
-        if (transitionScreen != null) transitionScreen.SetActive(false);
-        if (transitionCanvasGroup != null) transitionCanvasGroup.blocksRaycasts = false;
-
-        LockPlayerInput(false);
     }
 
     private IEnumerator ResumeMidShiftRoutine()
@@ -225,8 +202,11 @@ public class StoryManager : MonoBehaviour
         }
     }
 
+    public static bool isInputLocked = false;
     private void LockPlayerInput(bool isLocked)
     {
+        isInputLocked = isLocked;
+        if (cachedEventSystem == null) cachedEventSystem = Object.FindFirstObjectByType<EventSystem>();
         if (cachedEventSystem != null) cachedEventSystem.enabled = !isLocked;
     }
 
@@ -277,17 +257,24 @@ public class StoryManager : MonoBehaviour
         if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 0f;
         yield return StartCoroutine(Fade(0f, 1f, 1.5f));
 
-        string text = "<align=center><size=150%><color=#4AF626>YOU SUCCESSFULLY SAVED THE BASE</color></size>\n\n<size=100%>COMING SOON...</size>\n\n<color=#888888><size=70%>ENDLESS MODE</size></color></align>";
+        string text = "<align=center><size=150%><color=#4AF626>YOU SUCCESSFULLY SAVED THE BASE</color></size>\n\n<size=100%>END OF DEMO VERSION</size>\n\n<color=#888888><size=70%>IN DEVELOPMENT...</size></color></align>";
         yield return StartCoroutine(TypeText(text));
-        
-        yield return new WaitForSecondsRealtime(4f);
-        
-        currentDay++;
-        PlayerPrefs.SetInt("StartDayNumber", currentDay);
-        PlayerPrefs.Save();
-        
-        // Start day 3
-        StartCoroutine(WaitAndStartDay(currentDay, true));
+    }
+
+    public void TriggerDemoEndTransition()
+    {
+        StartCoroutine(DemoEndTransitionRoutine());
+    }
+
+    private IEnumerator DemoEndTransitionRoutine()
+    {
+        LockPlayerInput(true);
+        ForceBlackScreen();
+        if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 0f;
+        yield return StartCoroutine(Fade(0f, 1f, 1.5f));
+
+        string text = "<align=center><size=150%><color=#4AF626>SHIFT COMPLETED</color></size>\n\n<size=100%>END OF DEMO VERSION</size>\n\n<color=#888888><size=70%>IN DEVELOPMENT...</size></color></align>";
+        yield return StartCoroutine(TypeText(text));
     }
 
     public void EndCurrentShift()
@@ -493,7 +480,10 @@ public class StoryManager : MonoBehaviour
         }
 
         // Wait for user to click
-        yield return new WaitUntil(() => UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame);
+        yield return new WaitUntil(() => 
+            (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame) ||
+            (UnityEngine.InputSystem.Touchscreen.current != null && UnityEngine.InputSystem.Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
+        );
 
         if (barBgObj != null) Destroy(barBgObj);
         if (dayText != null) dayText.text = "";
@@ -506,6 +496,12 @@ public class StoryManager : MonoBehaviour
         else if (currentDay2Outcome == Day2Outcome.Won)
         {
             TriggerGameWonTransition();
+            yield break;
+        }
+
+        if (currentDay == 2)
+        {
+            TriggerDemoEndTransition();
             yield break;
         }
 
@@ -735,10 +731,7 @@ public class StoryManager : MonoBehaviour
 
     private IEnumerator DayTransitionSequence(int dayNumber, bool isScreenAlreadyBlack)
     {
-        if (TutorialManager.Instance != null)
-        {
-            TutorialManager.Instance.StopTutorial();
-        }
+
 
         LockPlayerInput(true);
         ForceBlackScreen(); 
@@ -812,10 +805,16 @@ public class StoryManager : MonoBehaviour
             // Убедимся, что очистили очередь, если вдруг был перезапуск или накладка
             FlightDataManager.Instance.scriptedFlightsQueue.Clear();
             FlightDataManager.Instance.scriptedDelaysQueue.Clear();
+
+            // Убираем все самолёты прошлого дня с радара (маркеры и маршруты исчезнут вместе с ними)
+            ClearAllRadarPlanes();
+
             FlightDataManager.Instance.StartDaySpawning(dayNumber);
         }
 
+
         isTransitioning = false;
+        HintManager.Instance.TriggerEmailHint();
 
         if (dayNumber == 2 && PlayerPrefs.GetInt("BaseEmergencyEconomy", 0) == 1)
         {
@@ -863,6 +862,27 @@ public class StoryManager : MonoBehaviour
             }
 
             yield return new WaitForSecondsRealtime(typingSpeed);
+        }
+    }
+
+    private void ClearAllRadarPlanes()
+    {
+        // Return all live UIAirplane objects back to the pool (this also destroys their waypoint markers and route segments)
+        UIAirplane[] activePlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
+        foreach (var plane in activePlanes)
+        {
+            if (plane == null) continue;
+            if (AirplaneSpawner.Instance != null)
+                AirplaneSpawner.Instance.ReturnPlaneToPool(plane);
+            else
+                plane.gameObject.SetActive(false);
+        }
+
+        // Clear saved flight data so the previous day's list doesn't bleed into the new one
+        if (FlightDataManager.Instance != null)
+        {
+            FlightDataManager.Instance.savedFlights.Clear();
+            FlightDataManager.Instance.landedPlanes = 0;
         }
     }
 

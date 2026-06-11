@@ -180,6 +180,8 @@ public class CommsManager : MonoBehaviour
             ButtonSoundManager.instance.SetVolume(0f);
         }
 
+        if (HintManager.Instance != null) HintManager.Instance.TriggerAskQuestionHint();
+
         ConfigureChatScrollView();
         
         Canvas.ForceUpdateCanvases();
@@ -273,8 +275,8 @@ public class CommsManager : MonoBehaviour
 
     void GenerateDocuments()
     {
-        string highlightStart = (TutorialManager.isTutorialActive && RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted) ? "<color=yellow>" : "";
-        string highlightEnd = (TutorialManager.isTutorialActive && RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted) ? "</color>" : "";
+        string highlightStart = "";
+        string highlightEnd = "";
 
         string manifestText = $"<align=center><b>FLIGHT MANIFEST</b></align>\n\n" +
                               $"<b>FLIGHT:</b> {currentData.callsign}\n" +
@@ -290,8 +292,7 @@ public class CommsManager : MonoBehaviour
                               $"{highlightStart}<b>SENSOR:</b>{highlightEnd} UNKNOWN\n";
         radarDocInstance = SpawnDocument(radarPrefab, radarLogText, currentData.radarPos, false);
 
-        if (!TutorialManager.isTutorialActive)
-        {
+
             string cheatSheetText = $"<size=80%><b>QUICK REF:</b>\n\n" +
                                     $"<b>[GE] Heavy Cargo</b>\n" +
                                     $"<link=\"rule_ge_speed\">Speed: < 425 KTS</link>\n" +
@@ -303,7 +304,6 @@ public class CommsManager : MonoBehaviour
                                     $"<link=\"rule_qy_speed\">Speed: > 400 KTS</link>\n" +
                                     $"<link=\"rule_qy_weight\">Max Wt: 50 UNITS</link>\n</size>";
             cheatSheetDocInstance = SpawnDocument(cheatSheetPrefab, cheatSheetText, currentData.cheatSheetPos, false);
-        }
 
         GameObject reportObj = Instantiate(pilotReportPrefab != null ? pilotReportPrefab : defaultDocPrefab, deskArea);
         reportObj.GetComponent<RectTransform>().anchoredPosition = currentData.pilotReportPos;
@@ -340,8 +340,8 @@ public class CommsManager : MonoBehaviour
 
     void UpdatePilotReport()
     {
-        string highlightStart = (TutorialManager.isTutorialActive && RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted) ? "<color=yellow>" : "";
-        string highlightEnd = (TutorialManager.isTutorialActive && RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted) ? "</color>" : "";
+        string highlightStart = "";
+        string highlightEnd = "";
 
         string reportText = $"<align=center><b>PILOT'S STATEMENT</b></align>\n\n";
 
@@ -364,10 +364,7 @@ public class CommsManager : MonoBehaviour
     {
         if (isTyping) return;
 
-        if (RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted)
-        {
-            RadioTutorialManager.Instance.NotifyDocumentClicked();
-        }
+
 
         if (factID.StartsWith("unlock_"))
         {
@@ -451,10 +448,7 @@ public class CommsManager : MonoBehaviour
         askButton.SetActive(false);
         pendingQuestionTopic = "";
 
-        if (RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted)
-        {
-            RadioTutorialManager.Instance.NotifyQuestionAsked();
-        }
+
 
         StartCoroutine(Routine_TypewriterChat(question, answer, topic));
     }
@@ -567,10 +561,7 @@ public class CommsManager : MonoBehaviour
 
             confrontButton.SetActive(true);
 
-            if (RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted)
-            {
-                RadioTutorialManager.Instance.NotifyContradictionFound();
-            }
+
         }
 
         if (isValid && !isLie && (firstFactID.Contains("cargo") || secondID.Contains("cargo")))
@@ -851,6 +842,7 @@ public class CommsManager : MonoBehaviour
     // Вызывается из OnFolderTorn (в самом начале анимации)
     public void ShowDocuments()
     {
+
         // Сначала поднимаем все документы, которые уже лежат на столе
         if (radarDocInstance != null) radarDocInstance.transform.SetAsLastSibling();
         if (cheatSheetDocInstance != null) cheatSheetDocInstance.transform.SetAsLastSibling();

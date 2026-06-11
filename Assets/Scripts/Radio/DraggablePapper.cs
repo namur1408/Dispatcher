@@ -91,10 +91,7 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler, 
         isDragging = true;
         targetDragVolume = soundVolume;
 
-        if (RadioTutorialManager.Instance != null && !RadioTutorialManager.isRadioTutorialCompleted)
-        {
-            RadioTutorialManager.Instance.NotifyDocumentClicked();
-        }
+
     }
 
     public void OnDrag(PointerEventData eventData)

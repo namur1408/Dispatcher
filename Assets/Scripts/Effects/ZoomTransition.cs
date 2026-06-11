@@ -33,16 +33,25 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
     public UnityEvent onZoomStart;
 
     private bool isTransitioning = false;
-    public bool canClick = true;
+    [HideInInspector] public bool canClick = true;
+
+    private void Awake()
+    {
+        canClick = true; // Force unlock since tutorials are removed
+    }
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (StoryManager.isInputLocked) return;
         if (!canClick) return;
         TriggerTransition();
     }
 
     public void TriggerTransition()
     {
+        RadioManager radio = GetComponent<RadioManager>();
+        if (radio != null && string.IsNullOrEmpty(RadioManager.activeCallsign)) return;
+
         bool hasDestination = !string.IsNullOrEmpty(sceneToLoad) || targetCamera != null || targetScreenRoot != null;
         if (isTransitioning || !hasDestination) return;
         StartCoroutine(ZoomAndLoadAsync());
@@ -51,6 +60,8 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
     private IEnumerator ZoomAndLoadAsync()
     {
         isTransitioning = true;
+        var evSys = Object.FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>();
+        if (evSys != null) evSys.enabled = false;
 
         // 1. Запускаем звук
         AudioSource localSource = GetComponent<AudioSource>();
@@ -166,6 +177,7 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
             }
 
             // Активируем новую сцену
+            if (evSys != null) evSys.enabled = true;
             asyncLoad.allowSceneActivation = true;
         }
         else
@@ -211,6 +223,7 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
                 lights[i].pointLightOuterRadius = initialOuter[i];
                 lights[i].pointLightInnerRadius = initialInner[i];
             }
+            if (evSys != null) evSys.enabled = true;
             isTransitioning = false;
         }
     }

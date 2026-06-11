@@ -14,7 +14,6 @@ public class RadarZoomManager : MonoBehaviour
     public float maxZoom = 2.0f;
 
     public float panSpeed = 1f;
-    public float maxPanRadius = 4000f;
 
     void OnEnable()
     {
@@ -192,14 +191,26 @@ public class RadarZoomManager : MonoBehaviour
 
     void ClampPosition()
     {
-        float zoomRatio = Mathf.InverseLerp(minZoom, maxZoom, radarContent.localScale.x);
-        float currentLimit = Mathf.Lerp(0f, maxPanRadius, zoomRatio);
-        Vector2 currentPos = radarContent.anchoredPosition;
-        if (currentPos.magnitude > currentLimit)
-        {
-            radarContent.anchoredPosition = currentPos.normalized * currentLimit;
-        }
+        float scale = radarContent.localScale.x;
+
+        // Actual pixel size of the radar content at current zoom
+        Vector2 contentSize = radarContent.rect.size * scale;
+
+        // The visible "window" (parent RectTransform = the mask / viewport)
+        RectTransform viewport = radarContent.parent as RectTransform;
+        Vector2 viewportSize = viewport != null ? viewport.rect.size : Vector2.zero;
+
+        // Maximum allowed offset in each axis so content edge never enters viewport
+        // If content is smaller than viewport, lock to center (no pan allowed)
+        float maxX = Mathf.Max(0f, (contentSize.x - viewportSize.x) * 0.5f);
+        float maxY = Mathf.Max(0f, (contentSize.y - viewportSize.y) * 0.5f);
+
+        Vector2 pos = radarContent.anchoredPosition;
+        pos.x = Mathf.Clamp(pos.x, -maxX, maxX);
+        pos.y = Mathf.Clamp(pos.y, -maxY, maxY);
+        radarContent.anchoredPosition = pos;
     }
+
 
     void HandleResetView()
     {

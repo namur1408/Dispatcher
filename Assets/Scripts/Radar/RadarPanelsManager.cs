@@ -189,11 +189,15 @@ public class RadarPanelsManager : MonoBehaviour
             }
             else if (flight.targetPosition != Vector2.zero && string.IsNullOrEmpty(flight.assignedRunway))
             {
+                // Transit: has a through-target and no runway assigned — goes to Transits only
                 newEntry = CreateEntry(flight, transitsContent);
             }
             else
             {
-                if (!flight.hasLanded)
+                // Arrivals: only planes heading to base (targetPosition == zero) that haven't landed yet
+                // Exclude any plane that still has a non-zero target (transit with assigned runway edge case)
+                bool isTransit = flight.targetPosition != Vector2.zero;
+                if (!flight.hasLanded && !isTransit)
                 {
                     newEntry = CreateEntry(flight, arrivalsContent);
                 }

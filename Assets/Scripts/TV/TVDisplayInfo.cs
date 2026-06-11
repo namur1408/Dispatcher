@@ -166,10 +166,22 @@ public class TVDisplayInfo : MonoBehaviour
 
     private void HandleTextClicks()
     {
+        bool clicked = false;
+        Vector2 inputPos = Vector2.zero;
+
         if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
         {
-            Vector2 mousePos = Mouse.current.position.ReadValue();
+            clicked = true;
+            inputPos = Mouse.current.position.ReadValue();
+        }
+        else if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
+        {
+            clicked = true;
+            inputPos = Touchscreen.current.primaryTouch.position.ReadValue();
+        }
 
+        if (clicked)
+        {
             Camera cam = null;
             if (detailedResourcesText.canvas.renderMode == RenderMode.ScreenSpaceCamera ||
                 detailedResourcesText.canvas.renderMode == RenderMode.WorldSpace)
@@ -177,7 +189,7 @@ public class TVDisplayInfo : MonoBehaviour
                 cam = detailedResourcesText.canvas.worldCamera;
             }
 
-            int linkIndex = TMP_TextUtilities.FindIntersectingLink(detailedResourcesText, mousePos, cam);
+            int linkIndex = TMP_TextUtilities.FindIntersectingLink(detailedResourcesText, inputPos, cam);
             if (linkIndex != -1)
             {
                 TMP_LinkInfo linkInfo = detailedResourcesText.textInfo.linkInfo[linkIndex];
@@ -206,7 +218,7 @@ public class TVDisplayInfo : MonoBehaviour
 
             if (warehouseResourcesText != null)
             {
-                int linkIndexRight = TMP_TextUtilities.FindIntersectingLink(warehouseResourcesText, mousePos, cam);
+                int linkIndexRight = TMP_TextUtilities.FindIntersectingLink(warehouseResourcesText, inputPos, cam);
                 if (linkIndexRight != -1)
                 {
                     // Food link expansion removed per user request
@@ -751,21 +763,7 @@ public class TVDisplayInfo : MonoBehaviour
         bool canApprove = canDecide && hasSpace && !isTransit && !isInStorm;
         bool canDeny = canDecide && !isTransit && !isInStorm;
 
-        if (canDecide && TVTutorialManager.Instance != null && !TVTutorialManager.isTvTutorialCompleted)
-        {
-            string currentCallsign = FlightDataManager.Instance.savedFlights[index].callsign;
 
-            if (!currentCallsign.StartsWith("KO"))
-            {
-                canApprove = false;
-                canDeny = false;
-
-                if (selectedLabel != null && !selectedLabel.text.Contains("LOCKED"))
-                {
-                    selectedLabel.text += "  <color=#FF3030>[ LOCKED: FIND 'KO' FLIGHT ]</color>";
-                }
-            }
-        }
 
         if (selectionPanelContainer != null) selectionPanelContainer.SetActive(canDecide);
 
@@ -815,7 +813,7 @@ public class TVDisplayInfo : MonoBehaviour
         if (selectedLabel != null)
             selectedLabel.text = $"<color={COL_APPROVED}><b>[V] {callsign} - LANDING APPROVED</b></color>";
 
-        if (TVTutorialManager.Instance != null) TVTutorialManager.Instance.NotifyFlightAllowed(callsign);
+        if (HintManager.Instance != null) HintManager.Instance.TriggerSelectRunwayHint();
 
         selectedCallsign = "";
         RefreshButtons();
@@ -839,7 +837,7 @@ public class TVDisplayInfo : MonoBehaviour
         if (selectedLabel != null)
             selectedLabel.text = $"<color={COL_DENIED}><b>[X] {callsign} - LANDING DENIED</b></color>";
 
-        if (TVTutorialManager.Instance != null) TVTutorialManager.Instance.NotifyFlightDenied(callsign);
+
 
         selectedCallsign = "";
         RefreshButtons();
