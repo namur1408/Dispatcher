@@ -182,8 +182,8 @@ public class AirplaneSpawner : MonoBehaviour
         // UIAirplane burns 1 fuel per distancePerFuelUnit (6f) units of distance.
         // We calculate the minimum fuel required for the actual route and add a large safety buffer.
         const float FUEL_PER_DISTANCE_UNIT = 6f; // must match UIAirplane.distancePerFuelUnit
-        const float SAFETY_MULTIPLIER_MIN  = 1.8f;
-        const float SAFETY_MULTIPLIER_MAX  = 2.4f;
+        const float SAFETY_MULTIPLIER_MIN  = 2.5f;
+        const float SAFETY_MULTIPLIER_MAX  = 3.5f;
 
         float routeDistance;
         if (targetPos == Vector2.zero)

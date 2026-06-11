@@ -471,8 +471,8 @@ public class FlightDataManager : MonoBehaviour
             ? startPos.magnitude
             : Vector2.Distance(startPos, targetPos);
         float minFuel = routeDistance / FUEL_PER_DISTANCE_UNIT;
-        // Story planes get a fixed generous buffer (×2.0) — consistent, no randomness
-        float fuel = minFuel * 2.0f;
+        // Story planes get a fixed generous buffer (×3.0) — consistent, no randomness
+        float fuel = minFuel * 3.0f;
         return Mathf.Clamp(fuel, 150f, 600f);
     }
 

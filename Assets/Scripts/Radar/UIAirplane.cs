@@ -37,7 +37,7 @@ public class UIAirplane : MonoBehaviour
     public float currentFuel = 100f;
     public float distancePerFuelUnit = 6f;
     public float emergencyTimer = 20f;
-    private float fuelAtLastPing;
+    private float visualFuel; // Fuel snapshot for green/red route visualization, only updated on route rebuild
     private bool isOutOfFuel = false;
     private Vector2 lastPosition;
 
@@ -333,7 +333,7 @@ public class UIAirplane : MonoBehaviour
         if (string.IsNullOrEmpty(originalCallsign)) originalCallsign = realCallsign;
 
         lastPosition = logicalPosition;
-        fuelAtLastPing = currentFuel;
+        visualFuel = currentFuel;
 
         UpdateInternalSpeed();
         // Регистрируем только если не зарегистрировали раньше вручную (например, SpawnDepartingNow)
@@ -375,7 +375,7 @@ public class UIAirplane : MonoBehaviour
         departureDestination = data.departureDestination;
 
         currentFuel = data.currentFuel;
-        fuelAtLastPing = currentFuel;
+        visualFuel = currentFuel;
         isOutOfFuel = (currentFuel <= 0);
 
         isHolding = false;
@@ -901,7 +901,6 @@ public class UIAirplane : MonoBehaviour
         if (Mathf.Abs(Mathf.DeltaAngle(sweepAngle, planeAngle)) < 3f)
         {
             rectTransform.anchoredPosition = logicalPosition;
-            fuelAtLastPing = currentFuel;
             UpdateVisualRotation();
             UpdateHitboxColor();
             // Во время взлёта альфу не сбрасываем в 1 — самолет должен оставаться тусклым
@@ -990,6 +989,9 @@ public class UIAirplane : MonoBehaviour
 
     private void RebuildRouteLayer()
     {
+        // Пересчитываем визуальное топливо при каждой перестройке маршрута
+        visualFuel = currentFuel;
+
         if (isLandingPhase || waypoints.Count == 0)
         {
             foreach (var seg in lineSegments) if (seg != null) seg.SetActive(false);
@@ -1297,7 +1299,7 @@ public class UIAirplane : MonoBehaviour
         Color fuelColor = isSelected ? new Color(1f, 0.9f, 0f, iconColor.a) : new Color(0f, 1f, 0f, iconColor.a);
         Color emptyColor = new Color(1f, 0f, 0f, iconColor.a * 0.4f);
 
-        float maxFlightDistance = fuelAtLastPing * distancePerFuelUnit;
+        float maxFlightDistance = visualFuel * distancePerFuelUnit;
         float accumulatedDistance = 0f;
 
         if (lineSegments != null && waypoints.Count > 0)
