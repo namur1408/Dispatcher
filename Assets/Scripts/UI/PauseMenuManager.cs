@@ -31,6 +31,7 @@ public class PauseMenuManager : MonoBehaviour
     private bool isPaused = false;
     private float noiseTimer = 0f;
     private GameObject vhsContainer;
+    private RectTransform vhsContainerRt;
     private RectTransform[] scanlineRects;
     private Image[] scanlineImages;
 
@@ -152,11 +153,11 @@ public class PauseMenuManager : MonoBehaviour
         vhsContainer.transform.SetParent(pauseCanvasObj.transform, false);
         vhsContainer.transform.SetAsLastSibling(); // Помехи всегда будут поверх кнопок!
 
-        RectTransform containerRt = vhsContainer.AddComponent<RectTransform>();
-        containerRt.anchorMin = Vector2.zero;
-        containerRt.anchorMax = Vector2.one;
-        containerRt.offsetMin = Vector2.zero;
-        containerRt.offsetMax = Vector2.zero;
+        vhsContainerRt = vhsContainer.AddComponent<RectTransform>();
+        vhsContainerRt.anchorMin = Vector2.zero;
+        vhsContainerRt.anchorMax = Vector2.one;
+        vhsContainerRt.offsetMin = Vector2.zero;
+        vhsContainerRt.offsetMax = Vector2.zero;
 
         scanlineRects = new RectTransform[scanlinesCount];
         scanlineImages = new Image[scanlinesCount];
@@ -183,13 +184,16 @@ public class PauseMenuManager : MonoBehaviour
 
     private void UpdateVHSEffect()
     {
-        if (scanlineRects == null) return;
+        if (scanlineRects == null || vhsContainerRt == null) return;
         
         // Используем unscaledDeltaTime, так как Time.timeScale = 0 на паузе
         noiseTimer += Time.unscaledDeltaTime;
         if (noiseTimer < noiseSpeed) return;
         
         noiseTimer = 0f; // Сбрасываем таймер
+        
+        float halfWidth = vhsContainerRt.rect.width * 0.5f;
+        float halfHeight = vhsContainerRt.rect.height * 0.5f;
         
         for (int i = 0; i < scanlinesCount; i++)
         {
@@ -202,9 +206,10 @@ public class PauseMenuManager : MonoBehaviour
                 if (UnityEngine.Random.value > 0.95f) // Появляется еще реже (шанс 5% за кадр анимации)
                 {
                     rt.gameObject.SetActive(true);
-                    float yPos = UnityEngine.Random.Range(-540f, 540f);
+                    float yPos = UnityEngine.Random.Range(-halfHeight, halfHeight);
                     rt.anchoredPosition = new Vector2(0, yPos);
-                    rt.sizeDelta = new Vector2(2500f, UnityEngine.Random.Range(20f, 80f)); // Толстая и на весь экран
+                    // Ширина контейнера плюс небольшой запас, чтобы точно перекрыть весь экран
+                    rt.sizeDelta = new Vector2(halfWidth * 2f + 200f, UnityEngine.Random.Range(20f, 80f)); 
                     img.color = new Color(1f, 1f, 1f, UnityEngine.Random.Range(0.1f, 0.3f));
                 }
                 else
@@ -219,8 +224,8 @@ public class PauseMenuManager : MonoBehaviour
             {
                 rt.gameObject.SetActive(true);
                 
-                float xPos = UnityEngine.Random.Range(-960f, 960f);
-                float yPos = UnityEngine.Random.Range(-540f, 540f);
+                float xPos = UnityEngine.Random.Range(-halfWidth, halfWidth);
+                float yPos = UnityEngine.Random.Range(-halfHeight, halfHeight);
                 
                 // Супер маленькие линии
                 float width = UnityEngine.Random.Range(5f, 40f);

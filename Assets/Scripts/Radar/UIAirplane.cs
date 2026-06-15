@@ -37,7 +37,8 @@ public class UIAirplane : MonoBehaviour
     public float currentFuel = 100f;
     public float distancePerFuelUnit = 6f;
     public float emergencyTimer = 20f;
-    private float visualFuel; // Fuel snapshot for green/red route visualization, only updated on route rebuild
+    private float fuelRangeFromRouteOrigin; // Absolute max distance from routeOriginPosition, set once per route
+    private Vector2 routeOriginPosition;    // Plane position when route fuel budget was calculated
     private bool isOutOfFuel = false;
     private Vector2 lastPosition;
 
@@ -240,11 +241,11 @@ public class UIAirplane : MonoBehaviour
                     RebuildRouteLayer();
                     UpdateVisualRotation();
                     
-                    // Occupy runway for takeoff
                     RunwayManager.Instance.OccupyRunway(rwId, 15f);
                 }
             }
         }
+        SyncRouteToGlobal();
     }
 
     private Vector2 GetDestinationCoordinate(string destination)
@@ -333,7 +334,7 @@ public class UIAirplane : MonoBehaviour
         if (string.IsNullOrEmpty(originalCallsign)) originalCallsign = realCallsign;
 
         lastPosition = logicalPosition;
-        visualFuel = currentFuel;
+        RecalcFuelRange();
 
         UpdateInternalSpeed();
         // Регистрируем только если не зарегистрировали раньше вручную (например, SpawnDepartingNow)
@@ -375,7 +376,7 @@ public class UIAirplane : MonoBehaviour
         departureDestination = data.departureDestination;
 
         currentFuel = data.currentFuel;
-        visualFuel = currentFuel;
+        RecalcFuelRange();
         isOutOfFuel = (currentFuel <= 0);
 
         isHolding = false;
@@ -518,6 +519,7 @@ public class UIAirplane : MonoBehaviour
 
         RebuildRouteLayer();
         UpdateVisualRotation();
+        SyncRouteToGlobal();
     }
 
     private float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
@@ -542,6 +544,7 @@ public class UIAirplane : MonoBehaviour
             waypoints.RemoveAt(index);
             RebuildRouteLayer();
             UpdateVisualRotation();
+            SyncRouteToGlobal();
         }
     }
 
@@ -987,10 +990,21 @@ public class UIAirplane : MonoBehaviour
         if (callsignText.gameObject.activeSelf != show) callsignText.gameObject.SetActive(show);
     }
 
+    /// <summary>
+    /// Фиксирует абсолютный бюджет дальности от текущей позиции самолёта.
+    /// Вызывается при спавне, загрузке из сейва и перестройке маршрута.
+    /// Маркер зелёной/красной зоны привязан к этому бюджету и НЕ двигается в полёте.
+    /// </summary>
+    private void RecalcFuelRange()
+    {
+        routeOriginPosition = logicalPosition;
+        fuelRangeFromRouteOrigin = currentFuel * distancePerFuelUnit;
+    }
+
     private void RebuildRouteLayer()
     {
-        // Пересчитываем визуальное топливо при каждой перестройке маршрута
-        visualFuel = currentFuel;
+        // Пересчитываем бюджет дальности от текущей позиции при перестройке маршрута
+        RecalcFuelRange();
 
         if (isLandingPhase || waypoints.Count == 0)
         {
@@ -1104,6 +1118,7 @@ public class UIAirplane : MonoBehaviour
         UpdateVisualRotation();
         RebuildRouteLayer();
         UpdateHitboxColor();
+        SyncRouteToGlobal();
     }
 
     public void Deny()
@@ -1119,6 +1134,7 @@ public class UIAirplane : MonoBehaviour
         UpdateVisualRotation();
         RebuildRouteLayer();
         UpdateHitboxColor();
+        SyncRouteToGlobal();
     }
 
     public void SetHighlight(bool h)
@@ -1299,7 +1315,10 @@ public class UIAirplane : MonoBehaviour
         Color fuelColor = isSelected ? new Color(1f, 0.9f, 0f, iconColor.a) : new Color(0f, 1f, 0f, iconColor.a);
         Color emptyColor = new Color(1f, 0f, 0f, iconColor.a * 0.4f);
 
-        float maxFlightDistance = visualFuel * distancePerFuelUnit;
+        // Вычисляем сколько расстояния самолет уже пролетел от routeOriginPosition
+        // и вычитаем из абсолютного бюджета — это оставшаяся зеленая дальность от текущей позиции
+        float distFromOriginToPlane = Vector2.Distance(routeOriginPosition, rectTransform.anchoredPosition);
+        float maxFlightDistance = Mathf.Max(0f, fuelRangeFromRouteOrigin - distFromOriginToPlane);
         float accumulatedDistance = 0f;
 
         if (lineSegments != null && waypoints.Count > 0)
@@ -1350,6 +1369,46 @@ public class UIAirplane : MonoBehaviour
                     Image mImg = activeMarkers[i].GetComponent<Image>();
                     mImg.color = (distToMarker > maxFlightDistance) ? new Color(1f, 0f, 0f, iconColor.a) : fuelColor;
                 }
+            }
+        }
+    }
+
+    public void SyncFromBigRadar(UIAirplane bigRadarPlane)
+    {
+        waypoints = new List<Vector2>(bigRadarPlane.waypoints);
+        dispatchStatus = bigRadarPlane.dispatchStatus;
+        isHolding = bigRadarPlane.isHolding;
+        assignedRunway = bigRadarPlane.assignedRunway;
+        isAligningToLand = bigRadarPlane.isAligningToLand;
+        RebuildRouteLayer();
+        UpdateVisualRotation();
+    }
+
+    private void SyncRouteToGlobal()
+    {
+        if (FlightDataManager.Instance != null)
+        {
+            var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
+            if (fd != null)
+            {
+                fd.savedWaypoints = new List<Vector2>(waypoints);
+                fd.assignedRunway = assignedRunway;
+                fd.isAligningToLand = isAligningToLand;
+                
+                if (dispatchStatus != DispatchStatus.Pending)
+                {
+                    fd.decisionMade = true;
+                    fd.approved = (dispatchStatus == DispatchStatus.Approved);
+                }
+            }
+        }
+
+        if (isBigRadarCopy && RadarManager.Instance != null)
+        {
+            var originalPlane = RadarManager.Instance.activeAirplanes.Find(p => p != null && p.originalCallsign == originalCallsign);
+            if (originalPlane != null)
+            {
+                originalPlane.SyncFromBigRadar(this);
             }
         }
     }

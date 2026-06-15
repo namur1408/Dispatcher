@@ -356,7 +356,7 @@ public class FlightDataManager : MonoBehaviour
             scriptedDelaysQueue.Enqueue(20f);
 
             // TR-404 intentionally has LOW fuel (100f) — this is a core story moment, do NOT change
-            FlightData tr404 = new FlightData("TR-404", new Vector2(0, 535), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Fuel", 50, 100f, "Sector-Z");
+            FlightData tr404 = new FlightData("TR-404", new Vector2(0, 535), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Fuel", 250, 100f, "Sector-Z");
             tr404.personality = PilotPersonality.Desperate;
             tr404.spokenCargo = "Fuel";
             tr404.spokenOrigin = "Bastion-4";
