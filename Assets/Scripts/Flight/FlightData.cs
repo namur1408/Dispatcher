@@ -77,7 +77,6 @@ public class FlightData
     public bool askedOrigin;
     public bool askedWeight;
     public bool askedSpeed;
-    public bool isInterrogationFinished;
 
     public bool isFolderTorn = false;
     public Vector2 manifestPos = new Vector2(-380, 80);
@@ -85,17 +84,31 @@ public class FlightData
     public Vector2 cheatSheetPos = new Vector2(210, 140);
     public Vector2 pilotReportPos = new Vector2(100, -120);
 
-    public bool isUnloading;
-    public bool isUnloaded;
-    public float unloadTimer;
+    public bool isUnloading = false;
+    public bool isUnloaded = false;
+    public float unloadTimer = 0f;
 
-    public bool isRefueling;
-    public bool isRefueled;
-    public float refuelTimer;
+    public void StartUnloading(float duration) { if (!isUnloaded) { isUnloading = true; unloadTimer = duration; } }
+    public void UpdateUnloadTimer(float dt) { unloadTimer -= dt; }
+    public void CompleteUnload() { isUnloading = false; isUnloaded = true; }
 
-    public bool isRepairing;
-    public bool isRepaired;
-    public float repairTimer;
+    public bool isRefueling = false;
+    public bool isRefueled = false;
+    public float refuelTimer = 0f;
+
+    public void StartRefueling(float duration) { if (!isRefueled) { isRefueling = true; refuelTimer = duration; } }
+    public void UpdateRefuelTimer(float dt) { refuelTimer -= dt; }
+    public void CompleteRefuel() { isRefueling = false; isRefueled = true; }
+    public void SkipRefuel() { isRefueled = true; isRefueling = false; }
+
+    public bool isRepairing = false;
+    public bool isRepaired = false;
+    public float repairTimer = 0f;
+
+    public void StartRepairing(float duration) { if (!isRepaired) { isRepairing = true; repairTimer = duration; } }
+    public void UpdateRepairTimer(float dt) { repairTimer -= dt; }
+    public void CompleteRepair() { isRepairing = false; isRepaired = true; }
+    public void SkipRepair() { isRepaired = true; isRepairing = false; }
 
     // Самолёт обслужен и ожидает назначения полосы вылета через панель Departures.
     // При isReadyToDepart=true самолёт отображается в Departures, но НЕ спавнится автоматически.

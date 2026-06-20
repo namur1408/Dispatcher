@@ -530,29 +530,7 @@ public class RadarPanelsManager : MonoBehaviour
     }
 
     private Vector2 GetDestinationCoordinate(string destination)
-    {
-        if (string.IsNullOrEmpty(destination)) return Vector2.zero;
-
-        switch (destination)
-        {
-            case "Bastion-1": return new Vector2(-416f, 476f);
-            case "Bastion-2": return new Vector2(400f, 400f);
-            case "Bastion-3": return new Vector2(-535f, 119f);
-            case "Bastion-4": return new Vector2(0f, 535f);
-            case "Bastion-5": return new Vector2(437f, -357f);
-            case "Bastion-6": return new Vector2(-450f, -400f);
-            case "Bastion-7": return new Vector2(500f, 100f);
-            case "Bastion-8": return new Vector2(150f, -500f);
-            case "Bastion-9": return new Vector2(-200f, 500f);
-            case "Sector-Z":  return new Vector2(0f, 535f);
-            default:
-                // Fallback: calculate a stable position based on the name's hash code
-                int hash = destination.GetHashCode();
-                float angle = Mathf.Abs(hash % 360) * Mathf.Deg2Rad;
-                float radius = 480f + Mathf.Abs(hash % 50);
-                return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
-        }
-    }
+        => DestinationHelper.GetCoordinate(destination);
 }
 
 public class DestinationPulseEffect : MonoBehaviour

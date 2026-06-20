@@ -5,9 +5,9 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
-public class StoryManager : MonoBehaviour
+public class StoryManager : SingletonMB<StoryManager>
 {
-    public static StoryManager Instance;
+    protected override bool ShouldPersist => true;
 
     [Header("Scene Management")]
     public string mainSceneName = "MainMenu";
@@ -49,18 +49,10 @@ public class StoryManager : MonoBehaviour
     public Day2Outcome currentDay2Outcome = Day2Outcome.None;
     public int diseaseDeathsThisShift = 0;
 
-    void Awake()
+    protected override void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else if (Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        base.Awake();
+        if (Instance != this) return;
 
 #if !UNITY_EDITOR
         skipTutorialAndStartDay1 = false;
@@ -68,7 +60,7 @@ public class StoryManager : MonoBehaviour
 
         cachedEventSystem = Object.FindFirstObjectByType<EventSystem>();
 
-        if (isFirstGameLoad || PlayerPrefs.HasKey("StartDayNumber") || skipTutorialAndStartDay1)
+        if (isFirstGameLoad || PlayerPrefs.HasKey(SaveKeys.StartDayNumber) || skipTutorialAndStartDay1)
         {
             LockPlayerInput(true);
             ForceBlackScreen();
@@ -118,11 +110,11 @@ public class StoryManager : MonoBehaviour
         }
 
         // --- ПЕРЕХОД МЕЖДУ ДНЯМИ ---
-        if (PlayerPrefs.HasKey("StartDayNumber"))
+        if (PlayerPrefs.HasKey(SaveKeys.StartDayNumber))
         {
             isFirstGameLoad = false;
-            currentDay = PlayerPrefs.GetInt("StartDayNumber");
-            PlayerPrefs.DeleteKey("StartDayNumber");
+            currentDay = PlayerPrefs.GetInt(SaveKeys.StartDayNumber);
+            PlayerPrefs.DeleteKey(SaveKeys.StartDayNumber);
 
             ForceBlackScreen();
             StartCoroutine(WaitAndStartDay(currentDay, true));
@@ -145,11 +137,11 @@ public class StoryManager : MonoBehaviour
             return;
         }
 
-        if (PlayerPrefs.HasKey("StartDayNumber"))
+        if (PlayerPrefs.HasKey(SaveKeys.StartDayNumber))
         {
             isFirstGameLoad = false;
-            currentDay = PlayerPrefs.GetInt("StartDayNumber");
-            PlayerPrefs.DeleteKey("StartDayNumber");
+            currentDay = PlayerPrefs.GetInt(SaveKeys.StartDayNumber);
+            PlayerPrefs.DeleteKey(SaveKeys.StartDayNumber);
             StartCoroutine(WaitAndStartDay(currentDay, true));
         }
         else if (isFirstGameLoad)
@@ -222,7 +214,7 @@ public class StoryManager : MonoBehaviour
         
         if (dayNumber == 1)
         {
-            PlayerPrefs.SetInt("ReputationXP", 0);
+            PlayerPrefs.SetInt(SaveKeys.ReputationXP, 0);
             PlayerPrefs.Save();
         }
 
@@ -363,8 +355,8 @@ public class StoryManager : MonoBehaviour
         int shiftXpGained = 0;
         if (currentDay == 1)
         {
-            int eng = PlayerPrefs.GetInt("Trigger_Engineer", 0);
-            int econ = PlayerPrefs.GetInt("BaseEmergencyEconomy", 0);
+            int eng = PlayerPrefs.GetInt(SaveKeys.TriggerEngineer, 0);
+            int econ = PlayerPrefs.GetInt(SaveKeys.BaseEmergencyEconomy, 0);
             if (eng == 0 && econ == 0) shiftXpGained = 150; 
             else if (eng == 1) shiftXpGained = 50; 
             else shiftXpGained = 50; 
@@ -377,10 +369,10 @@ public class StoryManager : MonoBehaviour
         int xpPenalty = starvedToDeath + diseaseDeathsThisShift;
         int totalXpGained = shiftXpGained - xpPenalty;
         
-        int startXp = PlayerPrefs.GetInt("ReputationXP", 0);
+        int startXp = PlayerPrefs.GetInt(SaveKeys.ReputationXP, 0);
         int finalXp = startXp + totalXpGained;
         if (finalXp < 0) finalXp = 0;
-        PlayerPrefs.SetInt("ReputationXP", finalXp);
+        PlayerPrefs.SetInt(SaveKeys.ReputationXP, finalXp);
 
         UnityEngine.UIElements.VisualTreeAsset uiAsset = Resources.Load<UnityEngine.UIElements.VisualTreeAsset>("UI/EndOfDay");
         GameObject uiObj = null;
@@ -535,7 +527,7 @@ public class StoryManager : MonoBehaviour
         }
 
         currentDay++;
-        PlayerPrefs.SetInt("StartDayNumber", currentDay);
+        PlayerPrefs.SetInt(SaveKeys.StartDayNumber, currentDay);
         PlayerPrefs.Save();
 
         if (useSingleSceneMode)
@@ -580,15 +572,15 @@ public class StoryManager : MonoBehaviour
 
             foreach (var flight in FlightDataManager.Instance.savedFlights)
             {
-                if (flight.callsign == "TR-404" && flight.approved) letRefugeesIn = true;
+                if (flight.callsign == Callsigns.TR_404 && flight.approved) letRefugeesIn = true;
             }
 
             int finalFuel = FlightDataManager.Instance.totalFuel;
             bool fuelTargetMet = (finalFuel >= 400);
 
             // Save variables for Day 2 in memory
-            PlayerPrefs.SetInt("BaseEmergencyEconomy", fuelTargetMet ? 0 : 1);
-            PlayerPrefs.SetInt("Trigger_Engineer", letRefugeesIn ? 1 : 0);
+            PlayerPrefs.SetInt(SaveKeys.BaseEmergencyEconomy, fuelTargetMet ? 0 : 1);
+            PlayerPrefs.SetInt(SaveKeys.TriggerEngineer, letRefugeesIn ? 1 : 0);
             PlayerPrefs.Save();
 
             if (letRefugeesIn)
@@ -622,14 +614,14 @@ public class StoryManager : MonoBehaviour
             {
                 if (flight.approved)
                 {
-                    if (flight.callsign == "GE-99") acceptedEQ = true;
-                    if (flight.callsign == "QY-01") acceptedMeds = true;
-                    if (flight.callsign == "GE-55") acceptedFuel = true;
+                    if (flight.callsign == Callsigns.GE_99) acceptedEQ = true;
+                    if (flight.callsign == Callsigns.QY_01) acceptedMeds = true;
+                    if (flight.callsign == Callsigns.GE_55) acceptedFuel = true;
                 }
             }
 
-            int engineerTrigger = PlayerPrefs.GetInt("Trigger_Engineer", 0);
-            int emergencyEcon = PlayerPrefs.GetInt("BaseEmergencyEconomy", 0);
+            int engineerTrigger = PlayerPrefs.GetInt(SaveKeys.TriggerEngineer, 0);
+            int emergencyEcon = PlayerPrefs.GetInt(SaveKeys.BaseEmergencyEconomy, 0);
             int day3Slots = 3;
 
             if (engineerTrigger == 1) // Branch B
@@ -662,7 +654,7 @@ public class StoryManager : MonoBehaviour
                     {
                         if (diseaseDeaths == 0)
                         {
-                            PlayerPrefs.SetInt("BaseEmergencyEconomy", 0);
+                            PlayerPrefs.SetInt(SaveKeys.BaseEmergencyEconomy, 0);
                             emailSubject = "Good job";
                             emailBody = "Good job, Dispatcher. You managed to secure both fuel and medical supplies. The pathogen is suppressed. We are entering open mode without interference since the power grid is stable. Keep up the good work.";
                         }
@@ -677,13 +669,13 @@ public class StoryManager : MonoBehaviour
                     {
                         if (diseaseDeaths == 0)
                         {
-                            PlayerPrefs.SetInt("BaseEmergencyEconomy", 1);
+                            PlayerPrefs.SetInt(SaveKeys.BaseEmergencyEconomy, 1);
                             emailSubject = "CRITICAL FUEL SHORTAGE";
                             emailBody = "You idiot! We had enough meds to save lives from the pathogen, but we have a critical fuel shortage! The generators are dying, the radar is going black, and the interference will only get worse. How are we supposed to survive in the dark?";
                         }
                         else
                         {
-                            PlayerPrefs.SetInt("BaseEmergencyEconomy", 1);
+                            PlayerPrefs.SetInt(SaveKeys.BaseEmergencyEconomy, 1);
                             emailSubject = "DISASTER";
                             emailBody = $"You are an absolute failure. You failed to bring enough fuel, and we didn't have enough medicines. We lost {diseaseDeaths} people to the pathogen, and the generators are completely dead. You are officially relieved of duty... though there is no one left to take your place.";
                         }
@@ -730,8 +722,8 @@ public class StoryManager : MonoBehaviour
                 {
                     if (flight.approved)
                     {
-                        if (flight.callsign == "TR-11") acceptedFriendSF = true;
-                        if (flight.callsign == "TR-88") acceptedEnemySF = true;
+                        if (flight.callsign == Callsigns.TR_11) acceptedFriendSF = true;
+                        if (flight.callsign == Callsigns.TR_88) acceptedEnemySF = true;
                     }
                 }
 
@@ -753,7 +745,7 @@ public class StoryManager : MonoBehaviour
                 }
             }
 
-            PlayerPrefs.SetInt("Day3Slots", day3Slots);
+            PlayerPrefs.SetInt(SaveKeys.Day3Slots, day3Slots);
             PlayerPrefs.Save();
         }
     }
@@ -801,7 +793,7 @@ public class StoryManager : MonoBehaviour
                     FlightDataManager.Instance.totalPeople,
                     FlightDataManager.Instance.totalMedicines
                 );
-                FlightDataManager.Instance.maxPlanes = PlayerPrefs.GetInt("Day3Slots", 3);
+                FlightDataManager.Instance.maxPlanes = PlayerPrefs.GetInt(SaveKeys.Day3Slots, 3);
 
                 if (marauderAmbienceRoot != null) marauderAmbienceRoot.SetActive(false);
                 if (crashedPlaneRadarIcon != null) crashedPlaneRadarIcon.SetActive(false);
@@ -841,20 +833,8 @@ public class StoryManager : MonoBehaviour
             FlightDataManager.Instance.StartDaySpawning(dayNumber);
         }
 
-
         isTransitioning = false;
-        HintManager.Instance.TriggerEmailHint();
-
-        if (dayNumber == 2 && PlayerPrefs.GetInt("BaseEmergencyEconomy", 0) == 1)
-        {
-            // Убрано автоматическое добавление эффекта шума на главный Canvas.
-            // Теперь вы можете вручную вешать скрипт CRTNoiseEffect на любые нужные панели.
-            // Canvas mainCanvas = Object.FindFirstObjectByType<Canvas>();
-            // if (mainCanvas != null && mainCanvas.GetComponent<CRTNoiseEffect>() == null)
-            // {
-            //     mainCanvas.gameObject.AddComponent<CRTNoiseEffect>();
-            // }
-        }
+        if (HintManager.Instance != null) HintManager.Instance.TriggerEmailHint();
     }
 
     private IEnumerator TypeText(string textToType)
@@ -907,12 +887,10 @@ public class StoryManager : MonoBehaviour
                 plane.gameObject.SetActive(false);
         }
 
-        // Clear saved flight data so the previous day's list doesn't bleed into the new one
-        if (FlightDataManager.Instance != null)
-        {
-            FlightDataManager.Instance.savedFlights.Clear();
-            FlightDataManager.Instance.landedPlanes = 0;
-        }
+        // NOTE: savedFlights is NOT cleared here.
+        // ResetForNewShift() already rebuilt savedFlights to contain only the preserved
+        // (landed + not yet departed) planes before this method is called.
+        // Clearing here would destroy all data about planes waiting to depart on the next day.
     }
 
     private void SendDay1Directives()
@@ -930,8 +908,8 @@ public class StoryManager : MonoBehaviour
 
     private void SendDay2Directives()
     {
-        bool letRefugeesIn = PlayerPrefs.GetInt("Trigger_Engineer", 0) == 1;
-        bool fuelTargetMet = PlayerPrefs.GetInt("BaseEmergencyEconomy", 0) == 0;
+        bool letRefugeesIn = PlayerPrefs.GetInt(SaveKeys.TriggerEngineer, 0) == 1;
+        bool fuelTargetMet = PlayerPrefs.GetInt(SaveKeys.BaseEmergencyEconomy, 0) == 0;
 
         EmailData day2Email = new EmailData();
         day2Email.date = "20.08.2038";

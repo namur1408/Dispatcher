@@ -6,9 +6,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.Events;
 
-public class CommsManager : MonoBehaviour
+public class CommsManager : SingletonMB<CommsManager>
 {
-    public static CommsManager Instance;
+
 
     [Header("Document Prefabs")]
     public GameObject manifestPrefab;
@@ -90,16 +90,10 @@ public class CommsManager : MonoBehaviour
     {
         if (typewriterSound == null) return;
         
-        if (dedicatedTypewriterSource == null)
-        {
-            dedicatedTypewriterSource = gameObject.AddComponent<AudioSource>();
-            dedicatedTypewriterSource.playOnAwake = false;
-        }
-        
         dedicatedTypewriterSource.clip = typewriterSound;
         dedicatedTypewriterSource.volume = effectsVolume;
         dedicatedTypewriterSource.loop = true;
-        dedicatedTypewriterSource.Play();
+        if (!dedicatedTypewriterSource.isPlaying) dedicatedTypewriterSource.Play();
     }
 
     private void StopTypewriterSound()
@@ -114,16 +108,10 @@ public class CommsManager : MonoBehaviour
     {
         if (printerSound == null) return;
         
-        if (dedicatedPrinterSource == null)
-        {
-            dedicatedPrinterSource = gameObject.AddComponent<AudioSource>();
-            dedicatedPrinterSource.playOnAwake = false;
-        }
-        
         dedicatedPrinterSource.clip = printerSound;
         dedicatedPrinterSource.volume = effectsVolume;
         dedicatedPrinterSource.loop = true;
-        dedicatedPrinterSource.Play();
+        if (!dedicatedPrinterSource.isPlaying) dedicatedPrinterSource.Play();
     }
 
     private void StopPrinterSound()
@@ -134,9 +122,17 @@ public class CommsManager : MonoBehaviour
         }
     }
 
-    void Awake()
+    protected override void Awake()
     {
-        Instance = this;
+        base.Awake();
+        if (Instance != this) return;
+
+        dedicatedTypewriterSource = gameObject.AddComponent<AudioSource>();
+        dedicatedTypewriterSource.playOnAwake = false;
+
+        dedicatedPrinterSource = gameObject.AddComponent<AudioSource>();
+        dedicatedPrinterSource.playOnAwake = false;
+
         if (confrontButton != null) confrontButton.SetActive(false);
         if (askButton != null) askButton.SetActive(false);
 
@@ -207,6 +203,8 @@ public class CommsManager : MonoBehaviour
         if (decryptionPaperInstance != null) { Destroy(decryptionPaperInstance); decryptionPaperInstance = null; }
 
         if (chatHistoryText != null) chatHistoryText.text = "";
+        StopPrinterSound();
+        StopTypewriterSound();
         StopAllCoroutines();
         isTyping = false;
         isAnimatingPaper = false;
@@ -232,28 +230,7 @@ public class CommsManager : MonoBehaviour
 
                 GenerateDocuments();
 
-                if (decryptionMachineObj != null)
-                {
-                    bool isSpecialForces = currentData.callsign == "TR-11" || currentData.callsign == "TR-88";
-                    bool isEquipment = currentData.callsign == "GE-99" || currentData.callsign == "GE-98";
-                    if (StoryManager.currentDay == 2 && (isSpecialForces || isEquipment) && askedCargo)
-                    {
-                        decryptionMachineObj.SetActive(true);
-                        DecryptionMachine dm = decryptionMachineObj.GetComponentInChildren<DecryptionMachine>(true);
-                        if (dm != null)
-                        {
-                            dm.ResetMachine();
-                            if (currentData.callsign == "TR-11") dm.SetEncryptedWord("MKPW");
-                            else if (currentData.callsign == "TR-88") dm.SetEncryptedWord("MKPU");
-                            else if (currentData.callsign == "GE-99") dm.SetEncryptedWord("AINM");
-                            else if (currentData.callsign == "GE-98") dm.SetEncryptedWord("AIOX");
-                        }
-                    }
-                    else
-                    {
-                        decryptionMachineObj.SetActive(false);
-                    }
-                }
+                SetupDecryptionMachine(askedCargo);
 
                 if (string.IsNullOrEmpty(currentData.chatHistory))
                 {
@@ -306,6 +283,9 @@ public class CommsManager : MonoBehaviour
             cheatSheetDocInstance = SpawnDocument(cheatSheetPrefab, cheatSheetText, currentData.cheatSheetPos, false);
 
         GameObject reportObj = Instantiate(pilotReportPrefab != null ? pilotReportPrefab : defaultDocPrefab, deskArea);
+        Vector3 reportLocPos = reportObj.transform.localPosition;
+        reportLocPos.z = 0f;
+        reportObj.transform.localPosition = reportLocPos;
         reportObj.GetComponent<RectTransform>().anchoredPosition = currentData.pilotReportPos;
 
         reportObj.transform.rotation = Quaternion.Euler(0, 0, Random.Range(-2f, 2f));
@@ -470,13 +450,13 @@ public class CommsManager : MonoBehaviour
                 if (rule == "rule_ge_speed" && (fact == "rad_speed" || fact == "rep_speed"))
                 {
                     isValid = true;
-                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : float.Parse(GetStatedSpeed());
+                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : (float.TryParse(GetStatedSpeed(), out float s) ? s : 0f);
                     if (speedToCheck >= 425f) isLie = true;
                 }
                 else if (rule == "rule_ge_weight" && (fact == "man_weight" || fact == "rep_weight"))
                 {
                     isValid = true;
-                    float weightToCheck = fact == "man_weight" ? currentData.manifestCargoAmount : float.Parse(GetStatedWeight());
+                    float weightToCheck = fact == "man_weight" ? currentData.manifestCargoAmount : (float.TryParse(GetStatedWeight(), out float w) ? w : 0f);
                     if (weightToCheck > 500) isLie = true;
                 }
             }
@@ -491,7 +471,7 @@ public class CommsManager : MonoBehaviour
                 else if (rule == "rule_tr_speed" && (fact == "rad_speed" || fact == "rep_speed"))
                 {
                     isValid = true;
-                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : float.Parse(GetStatedSpeed());
+                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : (float.TryParse(GetStatedSpeed(), out float s) ? s : 0f);
                     if (speedToCheck < 350f || speedToCheck > 390f) isLie = true;
                 }
             }
@@ -500,13 +480,13 @@ public class CommsManager : MonoBehaviour
                 if (rule == "rule_qy_speed" && (fact == "rad_speed" || fact == "rep_speed"))
                 {
                     isValid = true;
-                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : float.Parse(GetStatedSpeed());
+                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : (float.TryParse(GetStatedSpeed(), out float s) ? s : 0f);
                     if (speedToCheck <= 400f) isLie = true;
                 }
                 else if (rule == "rule_qy_weight" && (fact == "man_weight" || fact == "rep_weight"))
                 {
                     isValid = true;
-                    float weightToCheck = fact == "man_weight" ? currentData.manifestCargoAmount : float.Parse(GetStatedWeight());
+                    float weightToCheck = fact == "man_weight" ? currentData.manifestCargoAmount : (float.TryParse(GetStatedWeight(), out float w) ? w : 0f);
                     if (weightToCheck > 50) isLie = true;
                 }
             }
@@ -756,24 +736,7 @@ public class CommsManager : MonoBehaviour
             askedCargo = true; 
             currentData.askedCargo = true; 
 
-            if (decryptionMachineObj != null)
-            {
-                bool isSpecialForces = currentData.callsign == "TR-11" || currentData.callsign == "TR-88";
-                bool isEquipment = currentData.callsign == "GE-99" || currentData.callsign == "GE-98";
-                if (StoryManager.currentDay == 2 && (isSpecialForces || isEquipment))
-                {
-                    decryptionMachineObj.SetActive(true);
-                    DecryptionMachine dm = decryptionMachineObj.GetComponentInChildren<DecryptionMachine>(true);
-                    if (dm != null)
-                    {
-                        dm.ResetMachine();
-                        if (currentData.callsign == "TR-11") dm.SetEncryptedWord("MKPW");
-                        else if (currentData.callsign == "TR-88") dm.SetEncryptedWord("MKPU");
-                        else if (currentData.callsign == "GE-99") dm.SetEncryptedWord("AINM");
-                        else if (currentData.callsign == "GE-98") dm.SetEncryptedWord("AIOX");
-                    }
-                }
-            }
+            SetupDecryptionMachine(true);
         }
         else if (dataTopicToUpdate == "origin") { askedOrigin = true; currentData.askedOrigin = true; }
         else if (dataTopicToUpdate == "weight") { askedWeight = true; currentData.askedWeight = true; }
@@ -881,6 +844,10 @@ public class CommsManager : MonoBehaviour
     {
         GameObject doc = Instantiate(prefab != null ? prefab : defaultDocPrefab, deskArea);
         
+        Vector3 locPos = doc.transform.localPosition;
+        locPos.z = 0f;
+        doc.transform.localPosition = locPos;
+        
         if (hiddenInFolder && !currentData.isFolderTorn)
         {
             doc.SetActive(false); // Hide until torn
@@ -894,6 +861,36 @@ public class CommsManager : MonoBehaviour
         doc.GetComponent<DocumentUI>().SetContent(text);
         
         return doc;
+    }
+
+    /// <summary>
+    /// Настраивает шифровальную машину под текущий рейс (только день 2, сюжетные рейсы).
+    /// Вызывается при открытии папки и при запросе карго.
+    /// </summary>
+    private void SetupDecryptionMachine(bool isCargoAsked)
+    {
+        if (decryptionMachineObj == null) return;
+
+        bool isSpecialForces = currentData.callsign == "TR-11" || currentData.callsign == "TR-88";
+        bool isEquipment     = currentData.callsign == "GE-99" || currentData.callsign == "GE-98";
+
+        if (StoryManager.currentDay == 2 && (isSpecialForces || isEquipment) && isCargoAsked)
+        {
+            decryptionMachineObj.SetActive(true);
+            DecryptionMachine dm = decryptionMachineObj.GetComponentInChildren<DecryptionMachine>(true);
+            if (dm != null)
+            {
+                dm.ResetMachine();
+                if      (currentData.callsign == "TR-11") dm.SetEncryptedWord("MKPW");
+                else if (currentData.callsign == "TR-88") dm.SetEncryptedWord("MKPU");
+                else if (currentData.callsign == "GE-99") dm.SetEncryptedWord("AINM");
+                else if (currentData.callsign == "GE-98") dm.SetEncryptedWord("AIOX");
+            }
+        }
+        else
+        {
+            decryptionMachineObj.SetActive(false);
+        }
     }
 
     string GetPlaneClass() => currentData.callsign.StartsWith("TR") ? "Passenger" : (currentData.callsign.StartsWith("GE") ? "Cargo" : "Courier");

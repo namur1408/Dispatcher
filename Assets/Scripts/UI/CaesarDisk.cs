@@ -13,7 +13,7 @@ public class CaesarDisk : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoi
 
     [Header("Audio")]
     public AudioClip rotationSound;
-    [Range(0f, 5f)] public float soundVolume = 1f; // Можно больше 1 (1 = 100%, 3 = 300%)
+    [Range(0f, 5f)] public float soundVolume = 1f;
     public float minPitch = 0.9f;
     public float maxPitch = 1.1f;
 
@@ -37,7 +37,6 @@ public class CaesarDisk : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoi
     void Update()
     {
         bool moving = false;
-        // Всегда плавно доводим визуальный угол до целевого (эффект тяжелого механизма)
         if (Mathf.Abs(Mathf.DeltaAngle(visualAngle, targetSnapAngle)) > 0.01f)
         {
             visualAngle = Mathf.LerpAngle(visualAngle, targetSnapAngle, Time.deltaTime * snapSpeed);
@@ -66,7 +65,7 @@ public class CaesarDisk : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoi
         if (moving && !isMoving)
         {
             dedicatedAudioSource.clip = rotationSound;
-            dedicatedAudioSource.volume = Mathf.Min(soundVolume, 1f); // Устанавливаем макс базовую громкость
+            dedicatedAudioSource.volume = Mathf.Min(soundVolume, 1f); 
             dedicatedAudioSource.pitch = Random.Range(minPitch, maxPitch);
             dedicatedAudioSource.loop = true;
             dedicatedAudioSource.Play();
@@ -79,7 +78,6 @@ public class CaesarDisk : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoi
         }
     }
 
-    // Программное усиление звука (если громкость больше 100%)
     void OnAudioFilterRead(float[] data, int channels)
     {
         if (soundVolume > 1f && isMoving)
@@ -101,7 +99,6 @@ public class CaesarDisk : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoi
     public void OnPointerDown(PointerEventData eventData)
     {
         initialMouseAngle = GetMouseAngle(eventData);
-        // Берем за основу не текущий оборванный кадр анимации, а последнюю четкую позицию (цель)
         initialDiskAngle = targetSnapAngle; 
     }
 
@@ -117,18 +114,15 @@ public class CaesarDisk : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoi
         
         float newTarget = shift * step;
 
-        // Если мы перескочили на новое деление шестеренки
         if (!Mathf.Approximately(targetSnapAngle, newTarget))
         {
             targetSnapAngle = newTarget;
-            // Можно добавить сюда звук щелчка: AudioSource.PlayClipAtPoint(clickSound, ...);
-            CalculateShift(); // Обновляем сдвиг сразу при переходе на новое деление
+            CalculateShift();
         }
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
-        // При отпускании еще раз на всякий случай подтверждаем сдвиг
         CalculateShift();
     }
 

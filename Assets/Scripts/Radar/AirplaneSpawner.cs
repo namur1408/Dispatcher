@@ -51,6 +51,9 @@ public class AirplaneSpawner : MonoBehaviour
     {
         if (plane != null)
         {
+            // Очищаем маркеры маршрутов и сегменты ДО деактивации,
+            // чтобы они не оставались видимыми на радаре при смене дня.
+            plane.CleanupRouteVisuals();
             plane.gameObject.SetActive(false);
             if (RadarManager.Instance != null)
             {

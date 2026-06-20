@@ -8,7 +8,7 @@ public class DecryptionMachine : MonoBehaviour
     public CipherWheel[] wheels;
     
     [Header("Settings")]
-    public string encryptedWord = "FXXMBGZEHVT"; // Слово из скриншота
+    public string encryptedWord = "FXXMBGZEHVT";
     public int currentShift = -14;
 
     void Start()

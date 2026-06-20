@@ -1,9 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class FlightDataManager : MonoBehaviour
+public class FlightDataManager : SingletonMB<FlightDataManager>
 {
-    public static FlightDataManager Instance;
+    protected override bool ShouldPersist => true;
 
     public List<FlightData> savedFlights = new List<FlightData>();
 
@@ -88,17 +88,10 @@ public class FlightDataManager : MonoBehaviour
     public const float REFUEL_TIME = 15f;
     public const float REPAIR_TIME = 20f;
 
-    void Awake()
+    protected override void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        base.Awake();
+        if (Instance != this) return;
     }
 
     void Update()
@@ -109,19 +102,19 @@ public class FlightDataManager : MonoBehaviour
 
             if (flight.isUnloading)
             {
-                flight.unloadTimer -= Time.deltaTime;
+                flight.UpdateUnloadTimer(Time.deltaTime);
                 if (flight.unloadTimer <= 0) CompleteUnload(flight);
             }
 
             if (flight.isRefueling)
             {
-                flight.refuelTimer -= Time.deltaTime;
+                flight.UpdateRefuelTimer(Time.deltaTime);
                 if (flight.refuelTimer <= 0) CompleteRefuel(flight);
             }
 
             if (flight.isRepairing)
             {
-                flight.repairTimer -= Time.deltaTime;
+                flight.UpdateRepairTimer(Time.deltaTime);
                 if (flight.repairTimer <= 0) CompleteRepair(flight);
             }
         }
@@ -344,19 +337,19 @@ public class FlightDataManager : MonoBehaviour
         }
         else if (dayNumber == 1)
         {
-            FlightData ge102 = new FlightData("GE-102", new Vector2(-535, 119), Vector2.zero, new List<Vector2>(), 80f, "Fuel", 200, "Fuel", 200, CalculateStoryFuel(new Vector2(-535, 119), Vector2.zero), "Bastion-3");
+            FlightData ge102 = new FlightData(Callsigns.GE_102, new Vector2(-535, 119), Vector2.zero, new List<Vector2>(), 80f, "Fuel", 200, "Fuel", 200, CalculateStoryFuel(new Vector2(-535, 119), Vector2.zero), "Bastion-3");
             ge102.personality = PilotPersonality.Aggressive;
             scriptedFlightsQueue.Enqueue(ge102);
             scriptedDelaysQueue.Enqueue(15f);
 
-            FlightData qy884 = new FlightData("QY-884", new Vector2(437, -357), Vector2.zero, new List<Vector2>(), 95f, "Food", 45, "Food", 200, CalculateStoryFuel(new Vector2(437, -357), Vector2.zero), "Bastion-5");
+            FlightData qy884 = new FlightData(Callsigns.QY_884, new Vector2(437, -357), Vector2.zero, new List<Vector2>(), 95f, "Food", 45, "Food", 200, CalculateStoryFuel(new Vector2(437, -357), Vector2.zero), "Bastion-5");
             qy884.personality = PilotPersonality.Nervous;
             qy884.explanationCargo = "200 units?! No way, this is a light courier plane! We only have 45 units on board. There must be a typo in the manifest.";
             scriptedFlightsQueue.Enqueue(qy884);
             scriptedDelaysQueue.Enqueue(20f);
 
             // TR-404 intentionally has LOW fuel (100f) — this is a core story moment, do NOT change
-            FlightData tr404 = new FlightData("TR-404", new Vector2(0, 535), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Fuel", 250, 100f, "Sector-Z");
+            FlightData tr404 = new FlightData(Callsigns.TR_404, new Vector2(0, 535), Vector2.zero, new List<Vector2>(), 75f, "People", 65, "Fuel", 250, 100f, "Sector-Z");
             tr404.personality = PilotPersonality.Desperate;
             tr404.spokenCargo = "Fuel";
             tr404.spokenOrigin = "Bastion-4";
@@ -365,12 +358,12 @@ public class FlightDataManager : MonoBehaviour
             scriptedFlightsQueue.Enqueue(tr404);
             scriptedDelaysQueue.Enqueue(20f);
 
-            FlightData ge201 = new FlightData("GE-201", new Vector2(-416, 476), Vector2.zero, new List<Vector2>(), 84f, "Fuel", 150, "Fuel", 150, CalculateStoryFuel(new Vector2(-416, 476), Vector2.zero), "Bastion-1");
+            FlightData ge201 = new FlightData(Callsigns.GE_201, new Vector2(-416, 476), Vector2.zero, new List<Vector2>(), 84f, "Fuel", 150, "Fuel", 150, CalculateStoryFuel(new Vector2(-416, 476), Vector2.zero), "Bastion-1");
             ge201.personality = PilotPersonality.Standard;
             scriptedFlightsQueue.Enqueue(ge201);
             scriptedDelaysQueue.Enqueue(15f);
 
-            FlightData ge305 = new FlightData("GE-305", new Vector2(-200, -500), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 100, "Fuel", 100, CalculateStoryFuel(new Vector2(-200, -500), Vector2.zero), "Bastion-2");
+            FlightData ge305 = new FlightData(Callsigns.GE_305, new Vector2(-200, -500), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 100, "Fuel", 100, CalculateStoryFuel(new Vector2(-200, -500), Vector2.zero), "Bastion-2");
             ge305.personality = PilotPersonality.Cold;
             scriptedFlightsQueue.Enqueue(ge305);
             scriptedDelaysQueue.Enqueue(15f);
@@ -383,12 +376,12 @@ public class FlightDataManager : MonoBehaviour
             if (letRefugeesIn) // Branch B (Engineer saved)
             {
                 // 1. Fuel transport
-                FlightData fl55 = new FlightData("GE-55", new Vector2(-600, 0), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 250, "Fuel", 250, CalculateStoryFuel(new Vector2(-600, 0), Vector2.zero), "Bastion-3");
+                FlightData fl55 = new FlightData(Callsigns.GE_55, new Vector2(-600, 0), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 250, "Fuel", 250, CalculateStoryFuel(new Vector2(-600, 0), Vector2.zero), "Bastion-3");
                 fl55.personality = PilotPersonality.Standard;
                 scriptedFlightsQueue.Enqueue(fl55);
                 scriptedDelaysQueue.Enqueue(0.5f);
 
-                FlightData fakeMeds = new FlightData("TR-99", new Vector2(-500, 300), Vector2.zero, new List<Vector2>(), 85f, "Food", 200, "Food", 200, CalculateStoryFuel(new Vector2(-500, 300), Vector2.zero), "Sector-X");
+                FlightData fakeMeds = new FlightData(Callsigns.TR_99, new Vector2(-500, 300), Vector2.zero, new List<Vector2>(), 85f, "Food", 200, "Food", 200, CalculateStoryFuel(new Vector2(-500, 300), Vector2.zero), "Sector-X");
                 fakeMeds.personality = PilotPersonality.Nervous;
                 fakeMeds.spokenCargo = "Medicines";
                 fakeMeds.customAnswerCargo = "We are carrying critical Medicines! Please let us land immediately!";
@@ -396,12 +389,12 @@ public class FlightDataManager : MonoBehaviour
                 scriptedFlightsQueue.Enqueue(fakeMeds);
                 scriptedDelaysQueue.Enqueue(25f);
 
-                FlightData fd42 = new FlightData("GE-42", new Vector2(400, -200), Vector2.zero, new List<Vector2>(), 80f, "Food", 300, "Food", 300, CalculateStoryFuel(new Vector2(400, -200), Vector2.zero), "Agri-Center");
+                FlightData fd42 = new FlightData(Callsigns.GE_42, new Vector2(400, -200), Vector2.zero, new List<Vector2>(), 80f, "Food", 300, "Food", 300, CalculateStoryFuel(new Vector2(400, -200), Vector2.zero), "Agri-Center");
                 fd42.personality = PilotPersonality.Standard;
                 scriptedFlightsQueue.Enqueue(fd42);
                 scriptedDelaysQueue.Enqueue(20f);
 
-                FlightData fakeFuel = new FlightData("TR-33", new Vector2(300, 500), Vector2.zero, new List<Vector2>(), 75f, "People", 20, "People", 20, CalculateStoryFuel(new Vector2(300, 500), Vector2.zero), "Sector-B");
+                FlightData fakeFuel = new FlightData(Callsigns.TR_33, new Vector2(300, 500), Vector2.zero, new List<Vector2>(), 75f, "People", 20, "People", 20, CalculateStoryFuel(new Vector2(300, 500), Vector2.zero), "Sector-B");
                 fakeFuel.personality = PilotPersonality.Desperate;
                 fakeFuel.spokenCargo = "Fuel";
                 fakeFuel.spokenWeight = "1000";
@@ -411,19 +404,19 @@ public class FlightDataManager : MonoBehaviour
                 scriptedFlightsQueue.Enqueue(fakeFuel);
                 scriptedDelaysQueue.Enqueue(15f);
 
-                FlightData md01 = new FlightData("QY-01", new Vector2(-400, -400), Vector2.zero, new List<Vector2>(), 95f, "Medicines", 10, "Medicines", 10, CalculateStoryFuel(new Vector2(-400, -400), Vector2.zero), "Med-Base 4");
+                FlightData md01 = new FlightData(Callsigns.QY_01, new Vector2(-400, -400), Vector2.zero, new List<Vector2>(), 95f, "Medicines", 10, "Medicines", 10, CalculateStoryFuel(new Vector2(-400, -400), Vector2.zero), "Med-Base 4");
                 md01.personality = PilotPersonality.Standard;
                 scriptedFlightsQueue.Enqueue(md01);
                 scriptedDelaysQueue.Enqueue(25f);
 
-                FlightData eqFake = new FlightData("GE-98", new Vector2(-200, 600), Vector2.zero, new List<Vector2>(), 75f, "Equipment", 5, "Equipment", 5, CalculateStoryFuel(new Vector2(-200, 600), Vector2.zero), "Eng-Hub");
+                FlightData eqFake = new FlightData(Callsigns.GE_98, new Vector2(-200, 600), Vector2.zero, new List<Vector2>(), 75f, "Equipment", 5, "Equipment", 5, CalculateStoryFuel(new Vector2(-200, 600), Vector2.zero), "Eng-Hub");
                 eqFake.personality = PilotPersonality.Cold;
                 eqFake.spokenCargo = "Equipment";
                 eqFake.customAnswerCargo = "We are carrying the special equipment for Chief Engineer Mitchell. Authentication code: AIOX.";
                 scriptedFlightsQueue.Enqueue(eqFake);
                 scriptedDelaysQueue.Enqueue(10f);
 
-                FlightData eqReal = new FlightData("GE-99", new Vector2(200, 600), Vector2.zero, new List<Vector2>(), 80f, "Equipment", 5, "Equipment", 5, CalculateStoryFuel(new Vector2(200, 600), Vector2.zero), "Eng-Hub");
+                FlightData eqReal = new FlightData(Callsigns.GE_99, new Vector2(200, 600), Vector2.zero, new List<Vector2>(), 80f, "Equipment", 5, "Equipment", 5, CalculateStoryFuel(new Vector2(200, 600), Vector2.zero), "Eng-Hub");
                 eqReal.personality = PilotPersonality.Aggressive;
                 eqReal.spokenCargo = "Equipment";
                 eqReal.customAnswerCargo = "We are carrying the special equipment for Chief Engineer Mitchell. Authentication code: AINM.";
@@ -432,26 +425,26 @@ public class FlightDataManager : MonoBehaviour
             }
             else // Branch A (No Engineer)
             {
-                FlightData sfEnemy = new FlightData("TR-88", new Vector2(-500, 400), Vector2.zero, new List<Vector2>(), 78f, "People", 50, "People", 50, CalculateStoryFuel(new Vector2(-500, 400), Vector2.zero), "HQ-Alpha");
+                FlightData sfEnemy = new FlightData(Callsigns.TR_88, new Vector2(-500, 400), Vector2.zero, new List<Vector2>(), 78f, "People", 50, "People", 50, CalculateStoryFuel(new Vector2(-500, 400), Vector2.zero), "HQ-Alpha");
                 sfEnemy.personality = PilotPersonality.Cold;
                 sfEnemy.spokenCargo = "Reinforcements";
                 sfEnemy.customAnswerCargo = "We are the reinforcements requested by the Director. Authentication code: MKPU.";
                 scriptedFlightsQueue.Enqueue(sfEnemy);
                 scriptedDelaysQueue.Enqueue(10f);
 
-                FlightData sfFriend = new FlightData("TR-11", new Vector2(500, 300), Vector2.zero, new List<Vector2>(), 75f, "People", 50, "People", 50, CalculateStoryFuel(new Vector2(500, 300), Vector2.zero), "HQ-Alpha");
+                FlightData sfFriend = new FlightData(Callsigns.TR_11, new Vector2(500, 300), Vector2.zero, new List<Vector2>(), 75f, "People", 50, "People", 50, CalculateStoryFuel(new Vector2(500, 300), Vector2.zero), "HQ-Alpha");
                 sfFriend.personality = PilotPersonality.Aggressive;
                 sfFriend.spokenCargo = "Reinforcements";
                 sfFriend.customAnswerCargo = "We are the reinforcements requested by the Director. Authentication code: MKPW.";
                 scriptedFlightsQueue.Enqueue(sfFriend);
                 scriptedDelaysQueue.Enqueue(15f);
 
-                FlightData fl55 = new FlightData("GE-55", new Vector2(-600, 0), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 250, "Fuel", 250, CalculateStoryFuel(new Vector2(-600, 0), Vector2.zero), "Bastion-3");
+                FlightData fl55 = new FlightData(Callsigns.GE_55, new Vector2(-600, 0), Vector2.zero, new List<Vector2>(), 82f, "Fuel", 250, "Fuel", 250, CalculateStoryFuel(new Vector2(-600, 0), Vector2.zero), "Bastion-3");
                 fl55.personality = PilotPersonality.Standard;
                 scriptedFlightsQueue.Enqueue(fl55);
                 scriptedDelaysQueue.Enqueue(20f);
 
-                FlightData fd42 = new FlightData("GE-42", new Vector2(400, -200), Vector2.zero, new List<Vector2>(), 80f, "Food", 300, "Food", 300, CalculateStoryFuel(new Vector2(400, -200), Vector2.zero), "Agri-Center");
+                FlightData fd42 = new FlightData(Callsigns.GE_42, new Vector2(400, -200), Vector2.zero, new List<Vector2>(), 80f, "Food", 300, "Food", 300, CalculateStoryFuel(new Vector2(400, -200), Vector2.zero), "Agri-Center");
                 fd42.personality = PilotPersonality.Nervous;
                 scriptedFlightsQueue.Enqueue(fd42);
                 scriptedDelaysQueue.Enqueue(15f);
@@ -506,37 +499,24 @@ public class FlightDataManager : MonoBehaviour
     public void StartUnloading(string callsign)
     {
         var flight = savedFlights.Find(f => f.callsign == callsign);
-        if (flight != null && !flight.isUnloaded && !flight.isUnloading)
-        {
-            flight.isUnloading = true;
-            flight.unloadTimer = UNLOAD_TIME;
-        }
+        if (flight != null) flight.StartUnloading(UNLOAD_TIME);
     }
 
     public void StartRefueling(string callsign)
     {
         var flight = savedFlights.Find(f => f.callsign == callsign);
-        if (flight != null && !flight.isRefueled && !flight.isRefueling && flight.isUnloaded)
-        {
-            flight.isRefueling = true;
-            flight.refuelTimer = REFUEL_TIME;
-        }
+        if (flight != null && flight.isUnloaded) flight.StartRefueling(REFUEL_TIME);
     }
 
     public void StartRepairing(string callsign)
     {
         var flight = savedFlights.Find(f => f.callsign == callsign);
-        if (flight != null && !flight.isRepaired && !flight.isRepairing && flight.isUnloaded)
-        {
-            flight.isRepairing = true;
-            flight.repairTimer = REPAIR_TIME;
-        }
+        if (flight != null && flight.isUnloaded) flight.StartRepairing(REPAIR_TIME);
     }
 
     private void CompleteUnload(FlightData flight)
     {
-        flight.isUnloading = false;
-        flight.isUnloaded = true;
+        flight.CompleteUnload();
 
         string c = flight.cargo;
         if (c == "Medicines") totalMedicines = Mathf.Min(totalMedicines + flight.cargoAmount, maxMedicines);
@@ -549,8 +529,7 @@ public class FlightDataManager : MonoBehaviour
 
     private void CompleteRefuel(FlightData flight)
     {
-        flight.isRefueling = false;
-        flight.isRefueled = true;
+        flight.CompleteRefuel();
 
         int neededFuel = flight.planeMaxFuel - Mathf.RoundToInt(flight.currentFuel);
         int actualFuelTaken = Mathf.Min(neededFuel, totalFuel);
@@ -563,8 +542,7 @@ public class FlightDataManager : MonoBehaviour
 
     private void CompleteRepair(FlightData flight)
     {
-        flight.isRepairing = false;
-        flight.isRepaired = true;
+        flight.CompleteRepair();
         
         CheckDepartureReadiness(flight);
     }
@@ -599,16 +577,14 @@ public class FlightDataManager : MonoBehaviour
             float fuelPercentage = (flight.currentFuel / flight.planeMaxFuel) * 100f;
             if (fuelPercentage > 50f)
             {
-                flight.isRefueled = true;
-                flight.isRepaired = false;
+                flight.SkipRefuel();
             }
             else
             {
-                flight.isRefueled = false;
-                flight.isRepaired = true;
+                flight.SkipRepair();
             }
 
-            if (callsign == "TR-88" || callsign == "GE-98")
+            if (callsign == Callsigns.TR_88 || callsign == Callsigns.GE_98)
             {
                 StartCoroutine(EnemySFLandedRoutine());
             }
@@ -662,17 +638,12 @@ public class FlightDataManager : MonoBehaviour
 
     public void ResetForNewShift(int startFuel, int startFood, int startPeople, int startMeds)
     {
-        List<FlightData> servicedPlanes = new List<FlightData>();
         List<FlightData> preservedPlanes = new List<FlightData>();
-
-        Debug.Log($"<color=yellow>Checking {savedFlights.Count} flights for serviced planes...</color>");
 
         int preservedLandedCount = 0;
 
         foreach (var flight in savedFlights)
         {
-            Debug.Log($"<color=cyan>Flight {flight.callsign}: hasLanded={flight.hasLanded}, isUnloaded={flight.isUnloaded}, isRefueled={flight.isRefueled}, isRepaired={flight.isRepaired}, isReadyToDepart={flight.isReadyToDepart}, isDeparting={flight.isDeparting}</color>");
-
             // Сохраняем приземлившиеся самолеты, которые НЕ вылетели в эту смену:
             // - частично или полностью обслуженные (на следующий день появятся в Departures)
             // - NOT те, кто уже взлетел (isDeparting)
@@ -680,21 +651,12 @@ public class FlightDataManager : MonoBehaviour
             {
                 preservedPlanes.Add(flight);
                 preservedLandedCount++;
-                if (flight.isUnloaded && flight.isRefueled && flight.isRepaired)
-                {
-                    Debug.Log($"<color=green>Preserving FULLY SERVICED plane for next-day departure: {flight.callsign}</color>");
-                    // Сбрасываем isReadyToDepart — на следующий день CheckDepartureReadiness сам выставит его
-                    flight.isReadyToDepart = false;
-                }
-                else
-                {
-                    Debug.Log($"<color=orange>Preserving UNSERVICED landed plane on base for next day: {flight.callsign}</color>");
-                }
+
+                // Переоцениваем готовность к отправке с учётом наступления нового дня
+                flight.isReadyToDepart = false;
+                CheckDepartureReadiness(flight);
             }
         }
-
-        Debug.Log($"<color=yellow>Total serviced planes to depart: {servicedPlanes.Count}</color>");
-        Debug.Log($"<color=yellow>Total unserviced/departing planes preserved: {preservedPlanes.Count}</color>");
 
         savedFlights.Clear();
         savedFlights.AddRange(preservedPlanes);

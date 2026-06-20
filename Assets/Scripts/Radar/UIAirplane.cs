@@ -69,7 +69,6 @@ public class UIAirplane : MonoBehaviour
     public bool hasBeenPinged = false;
 
     private bool isHolding = false;
-    private float holdingTimer = 0f;
     private float currentHoldingAngle = 0f;
     private Vector2 holdingCenter;
 
@@ -87,11 +86,26 @@ public class UIAirplane : MonoBehaviour
 
     private Collider2D[] myColliders;
 
+
     public void SetCollidersActive(bool active)
     {
         if (myColliders == null) myColliders = GetComponentsInChildren<Collider2D>(true);
         foreach (var col in myColliders) col.enabled = active;
     }
+
+    /// <summary>
+    /// Устанавливает видимость визуальных элементов самолёта.
+    /// Используется при взлёте, посадке и восстановлении из сейва.
+    /// </summary>
+    private void SetVisualState(bool visible, float alpha = 1f)
+    {
+        if (canvasGroup != null) canvasGroup.alpha = alpha;
+        if (callsignText != null) callsignText.gameObject.SetActive(visible);
+        foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(visible);
+        foreach (var segment in lineSegments) if (segment != null) segment.SetActive(visible);
+        if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(visible);
+    }
+
 
     public void ResetPlane()
     {
@@ -139,14 +153,37 @@ public class UIAirplane : MonoBehaviour
                 Runway rw = RunwayManager.Instance.GetRunwayByID(rwId);
                 if (rw != null)
                 {
-                    // Clear all previous waypoints (including holding or transit points)
-                    waypoints.Clear();
-
                     RectTransform rwRect = rw.GetComponent<RectTransform>();
                     Vector2 rwPos = rwRect != null ? rwRect.anchoredPosition : Vector2.zero;
                     Vector2 approachPoint = rw.GetAlignmentPoint(rwId, rwPos);
                     Vector2 runwayDir = rw.GetDirection(rwId);
                     
+                    // ВАЖНО: Умная фильтрация старых маркеров.
+                    // Если последние маркеры маршрута уходят слишком глубоко в базу (0,0), 
+                    // либо находятся слишком близко к полосе, мы их удаляем, 
+                    // чтобы самолет не делал "крюк", а плавно переходил на глиссаду.
+                    while (waypoints.Count > 0)
+                    {
+                        Vector2 wp = waypoints[waypoints.Count - 1];
+                        
+                        bool nearCenter = wp.sqrMagnitude < (70f * 70f); 
+                        bool nearRunway = (wp - rwPos).sqrMagnitude < (120f * 120f);
+                        bool nearApproach = (wp - approachPoint).sqrMagnitude < (80f * 80f);
+                        
+                        Vector2 approachToWp = wp - approachPoint;
+                        bool isPastApproach = Vector2.Dot(approachToWp.normalized, runwayDir) > 0.2f && 
+                                              (wp - rwPos).sqrMagnitude < (200f * 200f);
+
+                        if (nearCenter || nearRunway || nearApproach || isPastApproach)
+                        {
+                            waypoints.RemoveAt(waypoints.Count - 1);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
                     // SMART APPROACH LOGIC
                     Vector2 lastPoint = waypoints.Count > 0 ? waypoints[waypoints.Count - 1] : logicalPosition;
                     
@@ -185,11 +222,7 @@ public class UIAirplane : MonoBehaviour
             UpdateInternalSpeed();
             
             // Визуальный эффект взлёта: тусклость + скрываем текст/маршрут (как при посадке)
-            if (canvasGroup != null) canvasGroup.alpha = 0.3f;
-            if (callsignText != null) callsignText.gameObject.SetActive(false);
-            foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(false);
-            foreach (var segment in lineSegments) if (segment != null) segment.SetActive(false);
-            if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(false);
+            SetVisualState(false, 0.3f);
             
             if (FlightDataManager.Instance != null)
             {
@@ -249,28 +282,7 @@ public class UIAirplane : MonoBehaviour
     }
 
     private Vector2 GetDestinationCoordinate(string destination)
-    {
-        if (string.IsNullOrEmpty(destination)) return Vector2.zero;
-
-        switch (destination)
-        {
-            case "Bastion-1": return new Vector2(-416f, 476f);
-            case "Bastion-2": return new Vector2(400f, 400f);
-            case "Bastion-3": return new Vector2(-535f, 119f);
-            case "Bastion-4": return new Vector2(0f, 535f);
-            case "Bastion-5": return new Vector2(437f, -357f);
-            case "Bastion-6": return new Vector2(-450f, -400f);
-            case "Bastion-7": return new Vector2(500f, 100f);
-            case "Bastion-8": return new Vector2(150f, -500f);
-            case "Bastion-9": return new Vector2(-200f, 500f);
-            case "Sector-Z":  return new Vector2(0f, 535f);
-            default:
-                int hash = destination.GetHashCode();
-                float angle = Mathf.Abs(hash % 360) * Mathf.Deg2Rad;
-                float radius = 480f + Mathf.Abs(hash % 50);
-                return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
-        }
-    }
+        => DestinationHelper.GetCoordinate(destination);
 
     public List<Vector2> GetWaypoints() => new List<Vector2>(waypoints);
 
@@ -418,26 +430,17 @@ public class UIAirplane : MonoBehaviour
         {
             SetCollidersActive(false);
             // Визуальное состояние взлёта при восстановлении
-            if (canvasGroup != null) canvasGroup.alpha = 0.3f;
-            if (callsignText != null) callsignText.gameObject.SetActive(false);
-            foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(false);
-            foreach (var segment in lineSegments) if (segment != null) segment.SetActive(false);
-            if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(false);
-//Debug.Log($"<color=green>[UIAirplane] Restored {realCallsign} in takeoff state: isTakingOff={isTakingOff}, takeoffStartPos={takeoffStartPos}, pos={logicalPosition}</color>");
+            SetVisualState(false, 0.3f);
         }
 
         isLandingPhase = data.isLandingPhase;
         if (isLandingPhase)
         {
             // HIDE UI - Make it look like it's landing
-            if (canvasGroup != null) canvasGroup.alpha = 0.2f;
-            if (callsignText != null) callsignText.gameObject.SetActive(false);
-            foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(false);
-            foreach (var segment in lineSegments) if (segment != null) segment.SetActive(false);
+            SetVisualState(false, 0.2f);
 
             // Disable ALL colliders so it's a "ghost"
             SetCollidersActive(false);
-//Debug.Log($"<color=green>[UIAirplane] Restored {realCallsign} in landing state: isLandingPhase={isLandingPhase}, pos={logicalPosition}</color>");
         }
 
         UpdateHitboxColor();
@@ -559,324 +562,323 @@ public class UIAirplane : MonoBehaviour
 
     void Update()
     {
+        HandleDangerTimer();
+        HandleRunwayOccupancyAbort();
+        HandleTakeoff();
+        HandleFuelConsumption();
+        HandleFuelEmergency();
+        HandleLowFuelWarning();
+        HandleStormDetection();
+        HandleMovement();
+        HandlePing();
+        FadeOut();
+        if (transform.parent != null) CheckZoomVisibility(transform.parent.localScale.x);
+        HandleDespawnCheck();
+    }
+
+    // ── Уменьшаем таймер опасности каждый кадр ──────────────────────────────
+    private void HandleDangerTimer()
+    {
         if (dangerTimer > 0f) dangerTimer -= Time.deltaTime;
+    }
 
-        if (!string.IsNullOrEmpty(assignedRunway) && !isDeparting)
+    // ── Прерываем посадку, если ВПП заняли другим бортом ────────────────────
+    private void HandleRunwayOccupancyAbort()
+    {
+        if (string.IsNullOrEmpty(assignedRunway) || isDeparting) return;
+        if (RunwayManager.Instance == null) return;
+
+        Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
+        if (rw == null || !rw.isOccupied) return;
+
+        assignedRunway = "";
+        isAligningToLand = false;
+
+        if (isLandingPhase)
         {
-            if (RunwayManager.Instance != null)
+            isLandingPhase = false;
+            SetCollidersActive(true);
+            if (canvasGroup != null) canvasGroup.alpha = 1f;
+            if (callsignText != null) callsignText.gameObject.SetActive(true);
+        }
+
+        waypoints.Clear();
+        waypoints.Add(Vector2.zero); // Fly to center
+        RebuildRouteLayer();
+        UpdateVisualRotation();
+
+        if (FlightDataManager.Instance != null)
+        {
+            var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == realCallsign);
+            if (fd != null)
             {
-                Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
-                if (rw != null && rw.isOccupied)
+                fd.assignedRunway = "";
+                fd.isAligningToLand = false;
+                fd.isLandingPhase = false;
+            }
+        }
+    }
+
+    // ── Проверяем, улетел ли борт достаточно далеко от ВПП взлёта ───────────
+    private void HandleTakeoff()
+    {
+        if (!isTakingOff) return;
+
+        // Восстанавливаем начальную позицию взлёта, если она была потеряна
+        if (takeoffStartPos == Vector2.zero && !string.IsNullOrEmpty(assignedRunway) && RunwayManager.Instance != null)
+        {
+            Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
+            if (rw != null)
+            {
+                RectTransform rwRect = rw.GetComponent<RectTransform>();
+                if (rwRect != null)
                 {
-//Debug.Log($"<color=orange>[UIAirplane] {realCallsign} aborting landing! Runway {assignedRunway} is physically occupied.</color>");
-                    assignedRunway = "";
-                    isAligningToLand = false;
-                    
-                    if (isLandingPhase)
-                    {
-                        isLandingPhase = false;
-                        SetCollidersActive(true);
-                        if (canvasGroup != null) canvasGroup.alpha = 1f;
-                        if (callsignText != null) callsignText.gameObject.SetActive(true);
-                    }
-                    
-                    waypoints.Clear();
-                    waypoints.Add(Vector2.zero); // Fly to center
-                    RebuildRouteLayer();
-                    UpdateVisualRotation();
-                    
-                    if (FlightDataManager.Instance != null)
-                    {
-                        var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == realCallsign);
-                        if (fd != null)
-                        {
-                            fd.assignedRunway = "";
-                            fd.isAligningToLand = false;
-                            fd.isLandingPhase = false;
-                        }
-                    }
+                    takeoffStartPos = rwRect.anchoredPosition;
+                    // Смещаем на микро-значение, чтобы не попасть в ноль повторно
+                    if (takeoffStartPos == Vector2.zero) takeoffStartPos = new Vector2(0.001f, 0.001f);
                 }
             }
         }
 
-        if (isTakingOff)
+        float dist = takeoffStartPos != Vector2.zero ? Vector2.Distance(logicalPosition, takeoffStartPos) : 0f;
+
+        // Борт считается взлетевшим, когда отлетел более чем на 150 единиц
+        if (takeoffStartPos != Vector2.zero && dist > 150f)
         {
-            // Если takeoffStartPos равен Vector2.zero, мы восстанавливаем его на основе assignedRunway
-            if (takeoffStartPos == Vector2.zero && !string.IsNullOrEmpty(assignedRunway) && RunwayManager.Instance != null)
-            {
-                Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
-                if (rw != null)
-                {
-                    RectTransform rwRect = rw.GetComponent<RectTransform>();
-                    if (rwRect != null)
-                    {
-                        takeoffStartPos = rwRect.anchoredPosition;
-                        // Смещение на микро-значение, если ВПП находится ровно в (0,0), чтобы избежать повторных поисков
-                        if (takeoffStartPos == Vector2.zero)
-                        {
-                            takeoffStartPos = new Vector2(0.001f, 0.001f);
-                        }
-//Debug.Log($"<color=yellow>[UIAirplane] Self-healed/restored takeoffStartPos to: {takeoffStartPos} for {realCallsign}</color>");
-                    }
-                }
-            }
+            isTakingOff = false;
+            SetCollidersActive(true);
+            if (callsignText != null) callsignText.gameObject.SetActive(true);
+            foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(true);
+            if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(true);
+            RebuildRouteLayer();
 
-            float dist = takeoffStartPos != Vector2.zero ? Vector2.Distance(logicalPosition, takeoffStartPos) : 0f;
-
-            // Если самолет отлетел от полосы более чем на 150 единиц, он "взлетел"
-            if (takeoffStartPos != Vector2.zero && dist > 150f)
-            {
-                isTakingOff = false;
-                SetCollidersActive(true);
-                // Восстанавливаем внешний вид — alpha вернётся к 1 на следующем пинге радара
-                if (callsignText != null) callsignText.gameObject.SetActive(true);
-                foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(true);
-                if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(true);
-                RebuildRouteLayer();
-
-                // Освобождаем место на базе — самолет вылетел, но с радара не удаляем
-                if (FlightDataManager.Instance != null)
-                    FlightDataManager.Instance.FreeBaseSlot(originalCallsign);
-
-//Debug.Log($"<color=cyan>[UIAirplane] {realCallsign} has taken off! Base slot freed.</color>");
-            }
+            if (FlightDataManager.Instance != null)
+                FlightDataManager.Instance.FreeBaseSlot(originalCallsign);
         }
+    }
 
+    // ── Расходуем топливо пропорционально пройденному расстоянию ────────────
+    private void HandleFuelConsumption()
+    {
         float distanceMoved = Vector2.Distance(logicalPosition, lastPosition);
         lastPosition = logicalPosition;
 
-        if (!isOutOfFuel && distanceMoved > 0)
-        {
-            float fuelConsumed = distanceMoved / distancePerFuelUnit;
-            currentFuel -= fuelConsumed;
+        if (isOutOfFuel || distanceMoved <= 0) return;
 
-            if (currentFuel <= 0)
-            {
-                currentFuel = 0;
-                isOutOfFuel = true;
-                _actualSpeed *= 0.3f;
-                UpdateHitboxColor();
-            }
+        float fuelConsumed = distanceMoved / distancePerFuelUnit;
+        currentFuel -= fuelConsumed;
+
+        if (currentFuel <= 0)
+        {
+            currentFuel = 0;
+            isOutOfFuel = true;
+            _actualSpeed *= 0.3f;
+            UpdateHitboxColor();
+        }
+    }
+
+    // ── Отсчёт катастрофы при полном израсходовании топлива ─────────────────
+    private void HandleFuelEmergency()
+    {
+        if (!isOutOfFuel) return;
+
+        emergencyTimer -= Time.deltaTime;
+
+        // Мигающий MAYDAY
+        string targetText = (Mathf.FloorToInt(Time.time * 3) % 2 == 0) ? "MAYDAY" : "";
+        if (callsignText.text != targetText) callsignText.text = targetText;
+
+        if (emergencyTimer > 0) return;
+
+        // Время вышло — борт потерян
+        if (FlightDataManager.Instance != null)
+        {
+            var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
+            if (fd != null && AirplaneSpawner.Instance != null)
+                AirplaneSpawner.Instance.NotifyPlaneCrashed(fd);
+            FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
         }
 
-        if (isOutOfFuel)
+        if (RadarScreenClicker.selectedPlane == this)
+            if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.ClearSelection();
+
+        if (AirplaneSpawner.Instance != null)
+            AirplaneSpawner.Instance.ReturnPlaneToPool(this);
+        else
+            Destroy(gameObject);
+    }
+
+    // ── Моргаем красным при критически низком топливе ───────────────────────
+    private void HandleLowFuelWarning()
+    {
+        if (isOutOfFuel || currentFuel > 30f || currentFuel <= 0f) return;
+        if (hitboxVisual == null) return;
+
+        Color baseColor = Color.white;
+        if (inStorm)                                     baseColor = new Color(0.4f, 0.4f, 0.4f, 0.8f);
+        else if (isSelected)                             baseColor = new Color(1f, 0.9f, 0f, 1f);
+        else if (isInDanger)                             baseColor = new Color(1f, 0.5f, 0f);
+        else if (dispatchStatus == DispatchStatus.Approved) baseColor = Color.green;
+        else if (dispatchStatus == DispatchStatus.Denied)   baseColor = Color.red;
+
+        float t = Mathf.PingPong(Time.time * 5f, 1f);
+        Color blinkColor = Color.Lerp(Color.red, baseColor, t);
+        if (canvasGroup != null) blinkColor.a = canvasGroup.alpha;
+
+        hitboxVisual.color = blinkColor;
+        if (callsignText != null && callsignText.text != "NO SIGNAL")
+            callsignText.color = blinkColor;
+    }
+
+    // ── Определяем, попал ли борт в шторм, и реагируем ──────────────────────
+    private void HandleStormDetection()
+    {
+        if (DynamicStorm.Instance == null) return;
+
+        bool currentlyInStorm = DynamicStorm.Instance.IsInStorm(rectTransform.position);
+
+        if (currentlyInStorm && !inStorm)
         {
-            emergencyTimer -= Time.deltaTime;
-
-            string targetText = (Mathf.FloorToInt(Time.time * 3) % 2 == 0) ? "MAYDAY" : "";
-            if (callsignText.text != targetText) callsignText.text = targetText;
-
-            if (emergencyTimer <= 0)
+            inStorm = true;
+            if (!isOutOfFuel) callsignText.text = "NO SIGNAL";
+            if (isSelected)
             {
-//Debug.Log($"<color=red>АВАРИЯ: {realCallsign} рухнул из-за нехватки топлива!</color>");
-
-                if (FlightDataManager.Instance != null)
-                {
-                    var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
-                    if (fd != null)
-                    {
-                        if (AirplaneSpawner.Instance != null)
-                            AirplaneSpawner.Instance.NotifyPlaneCrashed(fd);
-                    }
-                    FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
-                }
-
-                if (RadarScreenClicker.selectedPlane == this)
-                {
-                    if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.ClearSelection();
-                }
-
-                if (AirplaneSpawner.Instance != null)
-                    AirplaneSpawner.Instance.ReturnPlaneToPool(this);
-                else
-                    Destroy(gameObject);
-                return;
+                SetHighlight(false);
+                if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.ClearSelection();
             }
+            UpdateHitboxColor();
         }
-
-        if (!isOutOfFuel && currentFuel <= 30f && currentFuel > 0f)
+        else if (!currentlyInStorm && inStorm)
         {
-            if (hitboxVisual != null)
-            {
-                Color baseColor = Color.white;
-                if (inStorm) baseColor = new Color(0.4f, 0.4f, 0.4f, 0.8f);
-                else if (isSelected) baseColor = new Color(1f, 0.9f, 0f, 1f);
-                else if (isInDanger) baseColor = new Color(1f, 0.5f, 0f);
-                else if (dispatchStatus == DispatchStatus.Approved) baseColor = Color.green;
-                else if (dispatchStatus == DispatchStatus.Denied) baseColor = Color.red;
-
-                float t = Mathf.PingPong(Time.time * 5f, 1f);
-                Color blinkColor = Color.Lerp(Color.red, baseColor, t);
-                
-                if (canvasGroup != null) blinkColor.a = canvasGroup.alpha;
-                hitboxVisual.color = blinkColor;
-
-                if (callsignText != null && callsignText.text != "NO SIGNAL")
-                {
-                    callsignText.color = blinkColor;
-                }
-            }
+            inStorm = false;
+            if (!isOutOfFuel) callsignText.text = realCallsign;
+            UpdateHitboxColor();
         }
+    }
 
-        if (DynamicStorm.Instance != null)
-        {
-            bool currentlyInStorm = DynamicStorm.Instance.IsInStorm(rectTransform.position);
-
-            if (currentlyInStorm && !inStorm)
-            {
-                inStorm = true;
-                if (!isOutOfFuel) callsignText.text = "NO SIGNAL";
-                if (isSelected)
-                {
-                    SetHighlight(false);
-                    if (BigRadarTerminal.Instance != null) BigRadarTerminal.Instance.ClearSelection();
-                }
-                UpdateHitboxColor();
-            }
-            else if (!currentlyInStorm && inStorm)
-            {
-                inStorm = false;
-                if (!isOutOfFuel) callsignText.text = realCallsign;
-                UpdateHitboxColor();
-            }
-        }
-
+    // ── Двигаем борт: holding pattern или по waypoints ───────────────────────
+    private void HandleMovement()
+    {
         float currentSpeed = inStorm ? (_actualSpeed * 0.5f) : _actualSpeed;
 
         if (isHolding)
         {
-            // All planes in the holding pattern circle indefinitely (no timer countdown)
             float angularSpeed = (currentSpeed / holdingRadius) * Mathf.Rad2Deg;
             currentHoldingAngle += angularSpeed * Time.deltaTime;
-            Vector2 circleTarget = holdingCenter + new Vector2(Mathf.Cos(currentHoldingAngle * Mathf.Deg2Rad), Mathf.Sin(currentHoldingAngle * Mathf.Deg2Rad)) * holdingRadius;
+            Vector2 circleTarget = holdingCenter + new Vector2(
+                Mathf.Cos(currentHoldingAngle * Mathf.Deg2Rad),
+                Mathf.Sin(currentHoldingAngle * Mathf.Deg2Rad)) * holdingRadius;
             logicalPosition = Vector2.MoveTowards(logicalPosition, circleTarget, currentSpeed * Time.deltaTime);
+            return;
         }
-        else if (waypoints.Count > 0)
+
+        if (waypoints.Count == 0) return;
+
+        Vector2 currentTarget = waypoints[0];
+
+        // Входим в holding pattern у центра радара, если решение ещё не принято
+        bool isWaitingForRunway = dispatchStatus == DispatchStatus.Approved && string.IsNullOrEmpty(assignedRunway);
+        if (waypoints.Count == 1 && (dispatchStatus == DispatchStatus.Pending || isWaitingForRunway) && currentTarget == Vector2.zero)
         {
-            Vector2 currentTarget = waypoints[0];
-
-            bool isWaitingForRunway = (dispatchStatus == DispatchStatus.Approved && string.IsNullOrEmpty(assignedRunway));
-            if (waypoints.Count == 1 && (dispatchStatus == DispatchStatus.Pending || isWaitingForRunway) && currentTarget == Vector2.zero)
+            if (Vector2.Distance(logicalPosition, currentTarget) <= holdingRadius)
             {
-                if (Vector2.Distance(logicalPosition, currentTarget) <= holdingRadius)
-                {
-                    if (!isOutOfFuel) StartHolding(currentTarget);
-                    return;
-                }
-            }
-
-            logicalPosition = Vector2.MoveTowards(logicalPosition, currentTarget, currentSpeed * Time.deltaTime);
-
-            if (Vector2.Distance(logicalPosition, currentTarget) < 5f)
-            {
-                if (waypoints.Count > 1)
-                {
-                    waypoints.RemoveAt(0);
-                    RebuildRouteLayer();
-                }
-                else // We reached the LAST waypoint
-                {
-                    // Case A: This was the point BEFORE the runway (alignment point)
-                    if (isAligningToLand)
-                    {
-                        isAligningToLand = false;
-                        isLandingPhase = true;
-                        waypoints.Clear();
-
-                        // HIDE UI - Make it look like it's landing
-                        if (canvasGroup != null) canvasGroup.alpha = 0.2f;
-                        if (callsignText != null) callsignText.gameObject.SetActive(false);
-                        foreach (var marker in activeMarkers) if (marker != null) marker.SetActive(false);
-                        foreach (var segment in lineSegments) if (segment != null) segment.SetActive(false);
-
-                        // Disable ALL colliders so it's a "ghost"
-                        SetCollidersActive(false);
-                        if (hitboxVisual != null) hitboxVisual.gameObject.SetActive(false);
-
-                        // Target the REAL runway position now
-                        Vector2 runwayPos = Vector2.zero;
-                        if (RunwayManager.Instance != null)
-                        {
-                            Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
-                            if (rw != null) runwayPos = rw.GetComponent<RectTransform>().anchoredPosition;
-                        }
-
-                        waypoints.Add(runwayPos);
-                        RebuildRouteLayer();
-                        UpdateVisualRotation();
-                        return; 
-                    }
-
-                    // Case B: We reached the ACTUAL runway
-                    Vector2 targetRunwayPos = Vector2.zero;
-                    bool hasRunway = false;
-                    if (!string.IsNullOrEmpty(assignedRunway) && RunwayManager.Instance != null)
-                    {
-                        Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
-                        if (rw != null) 
-                        {
-                            targetRunwayPos = rw.GetComponent<RectTransform>().anchoredPosition;
-                            hasRunway = true;
-                        }
-                    }
-
-                    // Check if we actually landed - use a larger threshold (30f) to prevent "freezing"
-                    if (dispatchStatus == DispatchStatus.Approved && hasRunway && Vector2.Distance(logicalPosition, targetRunwayPos) < 30f)
-                    {
-                        if (FlightDataManager.Instance != null) FlightDataManager.Instance.MarkFlightAsLanded(realCallsign);
-                        if (VideoLandingManager.Instance != null) VideoLandingManager.Instance.RequestLandingVideo();
-                        if (RunwayManager.Instance != null) RunwayManager.Instance.OccupyRunway(assignedRunway, 15f);
-                        AirplaneSpawner.Instance.ReturnPlaneToPool(this);
-                    }
-                    else 
-                    {
-                        // In any other case, if we reached the end of waypoints, just despawn
-                        AirplaneSpawner.Instance.ReturnPlaneToPool(this);
-                    }
-                }
+                if (!isOutOfFuel) StartHolding(currentTarget);
+                return;
             }
         }
 
-        HandlePing();
-        FadeOut();
+        logicalPosition = Vector2.MoveTowards(logicalPosition, currentTarget, currentSpeed * Time.deltaTime);
 
-        if (transform.parent != null)
+        if (Vector2.Distance(logicalPosition, currentTarget) >= 5f) return;
+
+        // Достигли текущей точки маршрута
+        if (waypoints.Count > 1)
         {
-            float zoom = transform.parent.localScale.x;
-            CheckZoomVisibility(zoom);
+            waypoints.RemoveAt(0);
+            RebuildRouteLayer();
+            return;
         }
 
-        if (lineSegments.Count > 0 && !isHolding && !isTakingOff && hasBeenPinged)
-        {
-            // Ничего — линия обновляется только в HandlePing(), там же где обновляется позиция самолета
-        }
+        // Достигли ПОСЛЕДНЕЙ точки маршрута
+        HandleWaypointReached();
+    }
 
-        if (Vector2.Distance(Vector2.zero, logicalPosition) > despawnRadius)
+    // ── Логика достижения последней точки (посадка или деспавн) ─────────────
+    private void HandleWaypointReached()
+    {
+        // Случай A: это была точка выравнивания перед ВПП
+        if (isAligningToLand)
         {
-            if (FlightDataManager.Instance != null)
+            isAligningToLand = false;
+            isLandingPhase = true;
+            waypoints.Clear();
+            SetVisualState(false, 0.2f);
+            SetCollidersActive(false);
+
+            // Теперь летим прямо на ВПП
+            Vector2 runwayPos = Vector2.zero;
+            if (RunwayManager.Instance != null)
             {
-                var flight = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
-                if (flight != null)
-                {
-                    if ((flight.hasLanded && FlightDataManager.Instance.ShouldPlaneDepart(flight)) || flight.isDeparting)
-                    {
-                        FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
-                    }
-                    else if (flight.decisionMade && !flight.approved)
-                    {
-                        FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
-                    }
-                }
+                Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
+                if (rw != null) runwayPos = rw.GetComponent<RectTransform>().anchoredPosition;
             }
+
+            waypoints.Add(runwayPos);
+            RebuildRouteLayer();
+            UpdateVisualRotation();
+            return;
+        }
+
+        // Случай B: достигли реальной ВПП — проверяем посадку
+        Vector2 targetRunwayPos = Vector2.zero;
+        bool hasRunway = false;
+        if (!string.IsNullOrEmpty(assignedRunway) && RunwayManager.Instance != null)
+        {
+            Runway rw = RunwayManager.Instance.GetRunwayByID(assignedRunway);
+            if (rw != null)
+            {
+                targetRunwayPos = rw.GetComponent<RectTransform>().anchoredPosition;
+                hasRunway = true;
+            }
+        }
+
+        if (dispatchStatus == DispatchStatus.Approved && hasRunway && Vector2.Distance(logicalPosition, targetRunwayPos) < 30f)
+        {
+            if (FlightDataManager.Instance != null) FlightDataManager.Instance.MarkFlightAsLanded(realCallsign);
+            if (VideoLandingManager.Instance != null) VideoLandingManager.Instance.RequestLandingVideo();
+            if (RunwayManager.Instance != null) RunwayManager.Instance.OccupyRunway(assignedRunway, 15f);
             AirplaneSpawner.Instance.ReturnPlaneToPool(this);
         }
+        else
+        {
+            // Иных условий нет — деспавним
+            AirplaneSpawner.Instance.ReturnPlaneToPool(this);
+        }
+    }
+
+    // ── Деспавн при выходе за границу радара ─────────────────────────────────
+    private void HandleDespawnCheck()
+    {
+        if (Vector2.Distance(Vector2.zero, logicalPosition) <= despawnRadius) return;
+
+        if (FlightDataManager.Instance != null)
+        {
+            var flight = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
+            if (flight != null)
+            {
+                bool shouldRemove = (flight.hasLanded && FlightDataManager.Instance.ShouldPlaneDepart(flight))
+                                 || flight.isDeparting
+                                 || (flight.decisionMade && !flight.approved);
+                if (shouldRemove) FlightDataManager.Instance.RemoveDepartedPlane(originalCallsign);
+            }
+        }
+        AirplaneSpawner.Instance.ReturnPlaneToPool(this);
     }
 
     private void StartHolding(Vector2 center)
     {
         isHolding = true;
         holdingCenter = center;
-        holdingTimer = maxHoldingTime;
 
         Vector2 dirFromCenter = (logicalPosition - center).normalized;
         currentHoldingAngle = Mathf.Atan2(dirFromCenter.y, dirFromCenter.x) * Mathf.Rad2Deg;
@@ -1221,8 +1223,6 @@ public class UIAirplane : MonoBehaviour
 
     private void TriggerCollision()
     {
-//Debug.Log($"<color=red>АВАРИЯ: {realCallsign} столкнулся!</color>");
-
         if (AirplaneSpawner.Instance != null && FlightDataManager.Instance != null)
         {
             var fd = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == originalCallsign);
@@ -1248,16 +1248,31 @@ public class UIAirplane : MonoBehaviour
         Destroy(gameObject);
     }
 
+    /// <summary>
+    /// Уничтожает все визуальные элементы маршрута (сегменты линий и маркеры вейпоинтов).
+    /// Вызывается при возврате самолёта в пул и при уничтожении объекта.
+    /// </summary>
+    public void CleanupRouteVisuals()
+    {
+        if (lineSegments != null)
+        {
+            foreach (GameObject seg in lineSegments) if (seg != null) Destroy(seg);
+            lineSegments.Clear();
+        }
+
+        if (activeMarkers != null)
+        {
+            foreach (GameObject marker in activeMarkers) if (marker != null) Destroy(marker);
+            activeMarkers.Clear();
+        }
+    }
+
     private void OnDestroy()
     {
         if (RadarManager.Instance != null)
             RadarManager.Instance.UnregisterAirplane(this);
 
-        if (lineSegments != null)
-            foreach (GameObject seg in lineSegments) if (seg != null) Destroy(seg);
-
-        if (activeMarkers != null)
-            foreach (GameObject marker in activeMarkers) if (marker != null) Destroy(marker);
+        CleanupRouteVisuals();
     }
 
     public void SetWarning(bool warn)

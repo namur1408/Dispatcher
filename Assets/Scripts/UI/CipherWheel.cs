@@ -55,8 +55,6 @@ public class CipherWheel : MonoBehaviour
     public float minPitch = 0.9f;
     public float maxPitch = 1.1f;
     public float fastThreshold = 1.5f;
-
-    // ── Private state ──────────────────────────────────────────────────────────
     private AudioSource dedicatedAudioSource;
     private bool isMoving = false;
     private bool isCurrentlyFast = false;
@@ -68,7 +66,6 @@ public class CipherWheel : MonoBehaviour
     private float currentFloatIndex = 0f;
     private float velocity = 0f;      // for spring simulation
 
-    // ── Init ──────────────────────────────────────────────────────────────────
     void Start()
     {
         for (int i = 0; i < alphabet.Length; i++)
@@ -94,7 +91,6 @@ public class CipherWheel : MonoBehaviour
         currentFloatIndex = currentIndex;
     }
 
-    // ── Update ────────────────────────────────────────────────────────────────
     void Update()
     {
         // ── Spring-damper towards target ──────────────────────────────────────
@@ -176,7 +172,6 @@ public class CipherWheel : MonoBehaviour
         }
     }
 
-    // ── Sound ─────────────────────────────────────────────────────────────────
     private void HandleSound(bool moving, bool isFast)
     {
         if (dedicatedAudioSource == null)

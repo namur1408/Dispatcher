@@ -25,7 +25,6 @@ public class WindowTopResizer : MonoBehaviour, IDragHandler, IPointerDownHandler
 
         if (windowRect != null)
         {
-            // Устанавливаем высоту при старте, корректно обрабатывая якоря
             SetHeightFromTop(minHeight, windowRect.rect.height, windowRect.anchoredPosition);
         }
     }
@@ -33,15 +32,11 @@ public class WindowTopResizer : MonoBehaviour, IDragHandler, IPointerDownHandler
     public void OnPointerDown(PointerEventData data)
     {
         if (windowRect == null) return;
-
-        // Запоминаем начальную позицию курсора относительно родителя окна (холста или панели)
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             windowRect.parent as RectTransform,
             data.position,
             data.pressEventCamera,
             out originalPointerPosition);
-
-        // Запоминаем изначальные абсолютные размеры и позицию окна
         originalHeight = windowRect.rect.height;
         originalPosition = windowRect.anchoredPosition;
     }
@@ -57,13 +52,8 @@ public class WindowTopResizer : MonoBehaviour, IDragHandler, IPointerDownHandler
             data.pressEventCamera,
             out localPointerPosition))
         {
-            // Вычисляем, насколько сдвинули мышку по оси Y
             float deltaY = localPointerPosition.y - originalPointerPosition.y;
-
-            // Вычисляем новую высоту
             float newHeight = originalHeight + deltaY;
-
-            // Ограничиваем высоту от minHeight до maxHeight
             newHeight = Mathf.Clamp(newHeight, minHeight, maxHeight);
 
             SetHeightFromTop(newHeight, originalHeight, originalPosition);
@@ -73,11 +63,7 @@ public class WindowTopResizer : MonoBehaviour, IDragHandler, IPointerDownHandler
     private void SetHeightFromTop(float newHeight, float baseHeight, Vector2 basePosition)
     {
         float heightDifference = newHeight - baseHeight;
-
-        // SetSizeWithCurrentAnchors устанавливает абсолютную высоту, игнорируя настройки якорей (Stretch и т.д.)
-        windowRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, newHeight);
-        
-        // Компенсируем сдвиг, чтобы нижний край оставался строго на месте в зависимости от Pivot
+        windowRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, newHeight);        
         windowRect.anchoredPosition = basePosition + new Vector2(0, heightDifference * windowRect.pivot.y);
     }
 }
