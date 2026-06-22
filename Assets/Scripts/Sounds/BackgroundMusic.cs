@@ -22,6 +22,7 @@ public class BackgroundMusic : MonoBehaviour
 
     private int currentGameTrackIndex = 0;
     private float currentTargetVolume = 1f;
+    private float userVolumeMultiplier = 1f; // Мультипликатор от ползунка в настройках
     private bool isFadingOut = false;
     private bool isFadingIn = false;
 
@@ -38,13 +39,12 @@ public class BackgroundMusic : MonoBehaviour
         if (instance == null)
         {
             instance = this;
-            // DontDestroyOnLoad работает ТОЛЬКО если объект лежит в самом корне сцены (без родителей).
-            // Отвязываем его от всех родителей на всякий случай, чтобы он точно перенёсся:
             transform.SetParent(null); 
             DontDestroyOnLoad(gameObject);
             
             audioSource = GetComponent<AudioSource>();
-            audioSource.loop = false; // Теперь мы сами контролируем повтор через затухание
+            audioSource.loop = false;
+            // userVolumeMultiplier загружается через SetMusicVolume() из MainMenuController.Start()
         }
         else
         {
@@ -60,6 +60,21 @@ public class BackgroundMusic : MonoBehaviour
         isFadingOut = true;
         isFadingIn = false;
         StartCoroutine(FadeOutCoroutine(duration));
+    }
+
+    /// <summary>
+    /// Устанавливает громкость музыки через ползунок. Применяется мгновенно.
+    /// </summary>
+    public void SetMusicVolume(float normalizedValue)
+    {
+        userVolumeMultiplier = Mathf.Clamp01(normalizedValue);
+
+        // Всегда применяем немедленно, даже во время фейда —
+        // иначе слайдер не реагирует 3 секунды пока идёт FadeIn
+        if (audioSource != null && !isFadingOut)
+        {
+            audioSource.volume = currentTargetVolume * userVolumeMultiplier;
+        }
     }
 
     private IEnumerator FadeOutCoroutine(float duration)
@@ -148,10 +163,13 @@ public class BackgroundMusic : MonoBehaviour
         while (timer < fadeDuration)
         {
             timer += Time.unscaledDeltaTime;
-            audioSource.volume = Mathf.Lerp(0f, currentTargetVolume, timer / fadeDuration);
+            // Читаем userVolumeMultiplier каждый кадр —
+            // так слайдер работает в реальном времени даже во время фейда
+            float targetVol = currentTargetVolume * userVolumeMultiplier;
+            audioSource.volume = Mathf.Lerp(0f, targetVol, timer / fadeDuration);
             yield return null;
         }
-        audioSource.volume = currentTargetVolume;
+        audioSource.volume = currentTargetVolume * userVolumeMultiplier;
         isFadingIn = false;
     }
 

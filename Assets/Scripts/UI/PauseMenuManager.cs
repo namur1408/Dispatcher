@@ -106,8 +106,14 @@ public class PauseMenuManager : MonoBehaviour
 
     public void OnSettingsClicked()
     {
-        Debug.Log("Settings opened");
-        // Здесь будет вызов окна настроек
+        // Устанавливаем флаг, что мы пришли из игры
+        PlayerPrefs.SetInt("SettingsFromGame", 1);
+        PlayerPrefs.Save();
+        
+        Time.timeScale = 1f; // Восстанавливаем время перед сменой сцены
+        if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager();
+        
+        SceneManager.LoadScene("MainMenu");
     }
 
     public void OnExitClicked()
