@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 using TMPro;
 using System;
 
@@ -18,13 +19,27 @@ public class PauseMenuManager : MonoBehaviour
     [Tooltip("Текст для времени (PM 14:18)")]
     public TextMeshProUGUI timeText;
 
+    [Header("Settings UI")]
+    [Tooltip("Перетащите сюда все главные кнопки (Resume, Settings, MainMenu), чтобы они скрывались при открытии настроек")]
+    public GameObject[] pauseMainButtons; 
+    public GameObject settingsPanel;  // Панель настроек
+    public GameObject settingsButtonsContainer;
+    public GameObject audioSlidersContainer;
+    public GameObject graphicsPanelContainer;
+
+    [Header("Audio Sliders")]
+    public Slider musicSlider;
+    public Slider sfxSlider;
+
     [Header("VHS Effect Settings")]
     public bool enableVHSEffect = true;
     public int scanlinesCount = 40; // Больше линий, так как они теперь как мелкий шум
     public float noiseSpeed = 0.05f; // Обновляем чуть быстрее для эффекта "шума"
     
     [Header("Text Glitch (Chromatic Aberration)")]
-    [Tooltip("Добавьте сюда все тексты (PAUSE, RESUME, и т.д.), на которых хотите сделать RGB искажение")]
+    [Tooltip("Автоматически применить эффект ко всем текстам в меню паузы (кнопкам, дате и т.д.)")]
+    public bool applyGlitchToAllTexts = true;
+    [Tooltip("Или добавьте вручную тексты, на которых хотите сделать RGB искажение")]
     public TextMeshProUGUI[] glitchTextsToEffect;
     public float rgbOffset = 4f; // На сколько пикселей разъезжаются цвета
     
@@ -102,18 +117,146 @@ public class PauseMenuManager : MonoBehaviour
         {
             pauseCanvasObj.SetActive(isPaused);
         }
+
+        if (isPaused)
+        {
+            // Сбрасываем панели на начальные (Главное меню паузы)
+            if (pauseMainButtons != null)
+            {
+                foreach (var btn in pauseMainButtons)
+                {
+                    if (btn != null) btn.SetActive(true);
+                }
+            }
+            if (settingsPanel != null) settingsPanel.SetActive(false);
+
+            // Синхронизируем слайдеры при открытии паузы
+            float savedMusic = PlayerPrefs.GetFloat("MusicVolume", 0.15f);
+            float savedSFX   = PlayerPrefs.GetFloat("SFXVolume",   0.5f);
+            
+            if (musicSlider != null) musicSlider.SetValueWithoutNotify(savedMusic);
+            if (sfxSlider != null) sfxSlider.SetValueWithoutNotify(savedSFX);
+        }
     }
 
     public void OnSettingsClicked()
     {
-        // Устанавливаем флаг, что мы пришли из игры
-        PlayerPrefs.SetInt("SettingsFromGame", 1);
+        // Открываем панель настроек внутри паузы
+        if (pauseMainButtons != null)
+        {
+            foreach (var btn in pauseMainButtons)
+            {
+                if (btn != null) btn.SetActive(false);
+            }
+        }
+        if (settingsPanel != null) settingsPanel.SetActive(true);
+        
+        if (settingsButtonsContainer != null) settingsButtonsContainer.SetActive(true);
+        if (audioSlidersContainer != null) audioSlidersContainer.SetActive(false);
+        if (graphicsPanelContainer != null) graphicsPanelContainer.SetActive(false);
+    }
+
+    public void OnBackFromSettingsClicked()
+    {
+        // Если мы внутри подменю аудио
+        if (audioSlidersContainer != null && audioSlidersContainer.activeSelf)
+        {
+            audioSlidersContainer.SetActive(false);
+            if (settingsButtonsContainer != null) settingsButtonsContainer.SetActive(true);
+        }
+        // Если мы внутри подменю графики
+        else if (graphicsPanelContainer != null && graphicsPanelContainer.activeSelf)
+        {
+            graphicsPanelContainer.SetActive(false);
+            if (settingsButtonsContainer != null) settingsButtonsContainer.SetActive(true);
+        }
+        else
+        {
+            // Возвращаемся в основное меню паузы
+            if (settingsPanel != null) settingsPanel.SetActive(false);
+            if (pauseMainButtons != null)
+            {
+                foreach (var btn in pauseMainButtons)
+                {
+                    if (btn != null) btn.SetActive(true);
+                }
+            }
+        }
+    }
+
+    public void OnAudioClicked()
+    {
+        if (graphicsPanelContainer != null) graphicsPanelContainer.SetActive(false);
+        if (settingsButtonsContainer != null) settingsButtonsContainer.SetActive(false);
+        if (audioSlidersContainer != null) audioSlidersContainer.SetActive(true);
+    }
+
+    public void OnGraphicsClicked()
+    {
+        if (audioSlidersContainer != null) audioSlidersContainer.SetActive(false);
+        if (settingsButtonsContainer != null) settingsButtonsContainer.SetActive(false);
+        if (graphicsPanelContainer != null) graphicsPanelContainer.SetActive(true);
+    }
+
+    public void OnHighGraphicsClicked()
+    {
+        Debug.Log("[PauseSettings] Graphics → HIGH");
+        if (GraphicsQualityManager.Instance != null)
+            GraphicsQualityManager.Instance.ApplyQuality(false); // false = HIGH
+        else
+        {
+            int highLevel = QualitySettings.names.Length - 1;
+            QualitySettings.SetQualityLevel(highLevel, true);
+            PlayerPrefs.SetInt("GraphicsQuality", highLevel);
+            PlayerPrefs.Save();
+        }
+        StartCoroutine(DeselectNextFrame());
+    }
+
+    public void OnLowGraphicsClicked()
+    {
+        Debug.Log("[PauseSettings] Graphics → LOW");
+        if (GraphicsQualityManager.Instance != null)
+            GraphicsQualityManager.Instance.ApplyQuality(true); // true = LOW
+        else
+        {
+            QualitySettings.SetQualityLevel(0, true);
+            PlayerPrefs.SetInt("GraphicsQuality", 0);
+            PlayerPrefs.Save();
+        }
+        StartCoroutine(DeselectNextFrame());
+    }
+
+    private System.Collections.IEnumerator DeselectNextFrame()
+    {
+        yield return null;
+        if (EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(null);
+    }
+
+    public void OnMusicVolumeChanged(float value)
+    {
+        PlayerPrefs.SetFloat("MusicVolume", value);
         PlayerPrefs.Save();
-        
-        Time.timeScale = 1f; // Восстанавливаем время перед сменой сцены
-        if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager();
-        
-        SceneManager.LoadScene("MainMenu");
+
+        if (BackgroundMusic.Instance != null)
+        {
+            BackgroundMusic.Instance.SetMusicVolume(value);
+        }
+        else
+        {
+            var bgMusic = FindFirstObjectByType<BackgroundMusic>();
+            if (bgMusic != null) bgMusic.SetMusicVolume(value);
+        }
+    }
+
+    public void OnSFXVolumeChanged(float value)
+    {
+        PlayerPrefs.SetFloat("SFXVolume", value);
+        PlayerPrefs.Save();
+
+        if (ButtonSoundManager.instance != null)
+            ButtonSoundManager.instance.SetVolume(value);
     }
 
     public void OnExitClicked()
@@ -253,11 +396,20 @@ public class PauseMenuManager : MonoBehaviour
 
     private void CreateChromaticAberration()
     {
+        if (applyGlitchToAllTexts && pauseCanvasObj != null)
+        {
+            // Автоматически находим вообще все тексты внутри меню паузы
+            glitchTextsToEffect = pauseCanvasObj.GetComponentsInChildren<TextMeshProUGUI>(true);
+        }
+
         if (glitchTextsToEffect == null || glitchTextsToEffect.Length == 0) return;
 
         foreach (var txt in glitchTextsToEffect)
         {
             if (txt == null) continue;
+            
+            // Защита: не добавляем эффект к уже созданным клонам
+            if (txt.name.EndsWith("_GlitchClone")) continue;
 
             GlitchTextData data = new GlitchTextData();
             data.original = txt;
@@ -270,7 +422,7 @@ public class PauseMenuManager : MonoBehaviour
             
             glitchDataList.Add(data);
 
-            // Чтобы оригинальный текст (белый/зеленый) был поверх клонов
+            // Чтобы оригинальный текст был поверх клонов
             txt.transform.SetAsLastSibling();
         }
     }
