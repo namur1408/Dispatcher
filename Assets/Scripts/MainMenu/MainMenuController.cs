@@ -1,6 +1,8 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 using TMPro;
 
 public class MainMenuController : MonoBehaviour
@@ -15,8 +17,13 @@ public class MainMenuController : MonoBehaviour
     public GameObject settingsPanel; // Панель настроек
 
     [Header("Settings Sub-Panels")]
-    public GameObject settingsButtonsContainer; // Контейнер с кнопками (Languages, Sounds, Graphics)
-    public GameObject audioSlidersContainer;    // Контейнер с ползунками (Master, Music)
+    public GameObject settingsButtonsContainer;
+    public GameObject audioSlidersContainer;
+    public GameObject graphicsPanelContainer;
+
+    [Header("Audio Sliders")]
+    public Slider musicSlider;  // Перетащи Slider_Music сюда
+    public Slider sfxSlider;    // Перетащи Slider_SFX сюда
 
     [Header("Boot Animation Settings")]
     public TextMeshProUGUI bootText;
@@ -39,18 +46,67 @@ public class MainMenuController : MonoBehaviour
 
     void Start()
     {
-        // Изначально включена только главная панель
-        if (modeSelectPanel) modeSelectPanel.SetActive(false);
-        if (continueSelectPanel) continueSelectPanel.SetActive(false);
-        if (settingsPanel) settingsPanel.SetActive(false);
+        bool fromGame = PlayerPrefs.GetInt("SettingsFromGame", 0) == 1;
+
+        if (fromGame)
+        {
+            // Открываем сразу настройки
+            if (mainButtonsPanel) mainButtonsPanel.SetActive(false);
+            if (modeSelectPanel) modeSelectPanel.SetActive(false);
+            if (continueSelectPanel) continueSelectPanel.SetActive(false);
+            if (settingsPanel) settingsPanel.SetActive(true);
+            
+            // Если мы пришли из игры для настроек, скрываем текст бут-секвенции
+            if (bootText != null) bootText.gameObject.SetActive(false);
+        }
+        else
+        {
+            // Обычный запуск главного меню
+            if (mainButtonsPanel) mainButtonsPanel.SetActive(true);
+            if (modeSelectPanel) modeSelectPanel.SetActive(false);
+            if (continueSelectPanel) continueSelectPanel.SetActive(false);
+            if (settingsPanel) settingsPanel.SetActive(false);
+        }
         
         if (settingsButtonsContainer) settingsButtonsContainer.SetActive(true);
         if (audioSlidersContainer) audioSlidersContainer.SetActive(false);
+        if (graphicsPanelContainer) graphicsPanelContainer.SetActive(false);
 
-        // Применяем сохраненную громкость при старте
-        if (PlayerPrefs.HasKey("MasterVolume"))
+        // Если настройки ещё не были установлены нами — принудительно ставим дефолты
+        // (сбрасывает старые значения сохранённые до смены дефолтов)
+        if (!PlayerPrefs.HasKey("AudioDefaultsSet"))
         {
-            AudioListener.volume = PlayerPrefs.GetFloat("MasterVolume");
+            PlayerPrefs.SetFloat("MusicVolume", 0.15f);
+            PlayerPrefs.SetFloat("SFXVolume",   0.5f);
+            PlayerPrefs.SetInt("AudioDefaultsSet", 1);
+            PlayerPrefs.Save();
+        }
+
+        // Восстанавливаем сохранённую громкость при старте
+        float savedMusic = PlayerPrefs.GetFloat("MusicVolume", 0.15f);
+        float savedSFX   = PlayerPrefs.GetFloat("SFXVolume",   0.5f);
+
+        // Защита от нулей
+        if (savedMusic < 0.01f) { savedMusic = 0.15f; PlayerPrefs.SetFloat("MusicVolume", savedMusic); }
+        if (savedSFX   < 0.01f) { savedSFX   = 0.5f;  PlayerPrefs.SetFloat("SFXVolume",   savedSFX);   }
+        PlayerPrefs.Save();
+
+        // Устанавливаем слайдеры БЕЗ вызова OnValueChanged
+        if (musicSlider != null) musicSlider.SetValueWithoutNotify(savedMusic);
+        if (sfxSlider   != null) sfxSlider.SetValueWithoutNotify(savedSFX);
+
+        // Применяем значения к системам звука
+        if (BackgroundMusic.Instance != null)
+            BackgroundMusic.Instance.SetMusicVolume(savedMusic);
+        if (ButtonSoundManager.instance != null)
+            ButtonSoundManager.instance.SetVolume(savedSFX);
+
+        Debug.Log($"[Audio Init] Music={savedMusic:F2}, SFX={savedSFX:F2}");
+
+        // Применяем сохранённое качество графики
+        if (PlayerPrefs.HasKey("GraphicsQuality"))
+        {
+            QualitySettings.SetQualityLevel(PlayerPrefs.GetInt("GraphicsQuality"), true);
         }
 
         if (textContainer != null)
@@ -71,8 +127,11 @@ public class MainMenuController : MonoBehaviour
             if (screenCanvasGroup == null) screenCanvasGroup = entireScreenContainer.gameObject.AddComponent<CanvasGroup>();
         }
 
-        StartCoroutine(BootSequenceRoutine());
-        StartCoroutine(BackgroundTextGlitchRoutine());
+        if (!fromGame)
+        {
+            StartCoroutine(BootSequenceRoutine());
+            StartCoroutine(BackgroundTextGlitchRoutine());
+        }
     }
 
     private IEnumerator BootSequenceRoutine()
@@ -191,6 +250,15 @@ public class MainMenuController : MonoBehaviour
 
     private IEnumerator PanelTransitionGlitch(GameObject hidePanel, GameObject showPanel)
     {
+        // Защита от незаполненных полей в Inspector
+        if (hidePanel == null || showPanel == null)
+        {
+            Debug.LogWarning($"[Glitch] Панель не назначена в Inspector! hide={hidePanel}, show={showPanel}");
+            if (hidePanel != null) hidePanel.SetActive(false);
+            if (showPanel != null) showPanel.SetActive(true);
+            yield break;
+        }
+
         if (entireScreenContainer == null)
         {
             hidePanel.SetActive(false);
@@ -270,9 +338,10 @@ public class MainMenuController : MonoBehaviour
 
     public void OnSettingsClicked()
     {
-        // Убедимся, что при входе в настройки показываются кнопки, а не ползунки
+        // Убедимся, что при входе в настройки показываются кнопки, а не подпанели
         if (settingsButtonsContainer) settingsButtonsContainer.SetActive(true);
         if (audioSlidersContainer) audioSlidersContainer.SetActive(false);
+        if (graphicsPanelContainer) graphicsPanelContainer.SetActive(false);
 
         // Переход в панель настроек
         StartCoroutine(PanelTransitionGlitch(mainButtonsPanel, settingsPanel));
@@ -280,57 +349,122 @@ public class MainMenuController : MonoBehaviour
 
     public void OnBackFromSettingsClicked()
     {
-        // Если мы внутри подменю ползунков, возвращаемся к кнопкам настроек
+        // Если мы внутри подменю аудио — возвращаемся к кнопкам настроек
         if (audioSlidersContainer != null && audioSlidersContainer.activeSelf)
         {
-            audioSlidersContainer.SetActive(false);
-            if (settingsButtonsContainer) settingsButtonsContainer.SetActive(true);
+            StartCoroutine(PanelTransitionGlitch(audioSlidersContainer, settingsButtonsContainer));
+        }
+        // Если мы внутри подменю графики — возвращаемся к кнопкам настроек
+        else if (graphicsPanelContainer != null && graphicsPanelContainer.activeSelf)
+        {
+            StartCoroutine(PanelTransitionGlitch(graphicsPanelContainer, settingsButtonsContainer));
         }
         else
         {
-            // Иначе возвращаемся в главное меню
-            StartCoroutine(PanelTransitionGlitch(settingsPanel, mainButtonsPanel));
+            // Проверяем, пришли ли мы из игры
+            if (PlayerPrefs.GetInt("SettingsFromGame", 0) == 1)
+            {
+                // Сбрасываем флаг и возвращаемся в игру
+                PlayerPrefs.SetInt("SettingsFromGame", 0);
+                PlayerPrefs.Save();
+                SceneManager.LoadScene(gameSceneName);
+            }
+            else
+            {
+                // Иначе возвращаемся в главное меню
+                StartCoroutine(PanelTransitionGlitch(settingsPanel, mainButtonsPanel));
+            }
         }
-    }
-
-    public void OnLanguagesClicked()
-    {
-        Debug.Log("Languages Settings Clicked - Coming Soon");
     }
 
     public void OnAudioClicked()
     {
-        Debug.Log("Audio Settings Clicked - Coming Soon");
+        // Открыть панель аудио – с глитч-анимацией
+        if (graphicsPanelContainer && graphicsPanelContainer.activeSelf)
+            graphicsPanelContainer.SetActive(false);
+        StartCoroutine(PanelTransitionGlitch(settingsButtonsContainer, audioSlidersContainer));
     }
 
     public void OnGraphicsClicked()
     {
-        Debug.Log("Graphics Settings Clicked - Coming Soon");
+        // Открыть панель графики – с глитч-анимацией
+        if (audioSlidersContainer && audioSlidersContainer.activeSelf)
+            audioSlidersContainer.SetActive(false);
+        StartCoroutine(PanelTransitionGlitch(settingsButtonsContainer, graphicsPanelContainer));
     }
 
-    public void OnMasterVolumeChanged(float value)
+    // --- Graphics quality ---
+
+    public void OnHighGraphicsClicked()
     {
-        AudioListener.volume = value;
-        PlayerPrefs.SetFloat("MasterVolume", value);
-        PlayerPrefs.Save();
+        Debug.Log("[Settings] Graphics → HIGH");
+        if (GraphicsQualityManager.Instance != null)
+            GraphicsQualityManager.Instance.ApplyQuality(false); // false = HIGH
+        else
+        {
+            // Fallback если менеджера нет на сцене
+            int highLevel = QualitySettings.names.Length - 1;
+            QualitySettings.SetQualityLevel(highLevel, true);
+            PlayerPrefs.SetInt("GraphicsQuality", highLevel);
+            PlayerPrefs.Save();
+        }
+        StartCoroutine(DeselectNextFrame());
+    }
+
+    public void OnLowGraphicsClicked()
+    {
+        Debug.Log("[Settings] Graphics → LOW");
+        if (GraphicsQualityManager.Instance != null)
+            GraphicsQualityManager.Instance.ApplyQuality(true); // true = LOW
+        else
+        {
+            QualitySettings.SetQualityLevel(0, true);
+            PlayerPrefs.SetInt("GraphicsQuality", 0);
+            PlayerPrefs.Save();
+        }
+        StartCoroutine(DeselectNextFrame());
+    }
+
+    // Сбрасываем выделение кнопки на следующий кадр —
+    // иначе Unity не даёт нажать ту же кнопку повторно
+    private IEnumerator DeselectNextFrame()
+    {
+        yield return null;
+        if (EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(null);
     }
 
     public void OnMusicVolumeChanged(float value)
     {
         PlayerPrefs.SetFloat("MusicVolume", value);
         PlayerPrefs.Save();
-        // Применяем громкость к BackgroundMusic, если он существует
-        var bgMusic = FindFirstObjectByType<BackgroundMusic>();
-        if (bgMusic != null)
+
+        Debug.Log($"[Audio] Music slider → {value:F2} | BackgroundMusic.Instance = {BackgroundMusic.Instance}");
+
+        if (BackgroundMusic.Instance != null)
         {
-            var audioSource = bgMusic.GetComponent<AudioSource>();
-            if (audioSource != null)
-            {
-                // Для простоты напрямую меняем volume AudioSource. 
-                // Идеально было бы умножать на targetVolume, но это самый быстрый способ
-                audioSource.volume = value; 
-            }
+            BackgroundMusic.Instance.SetMusicVolume(value);
         }
+        else
+        {
+            // Если синглтон почему-то недоступен — ищем напрямую
+            var bgMusic = FindFirstObjectByType<BackgroundMusic>();
+            if (bgMusic != null) bgMusic.SetMusicVolume(value);
+            else Debug.LogWarning("[Audio] BackgroundMusic не найден в сцене!");
+        }
+    }
+
+    public void OnSFXVolumeChanged(float value)
+    {
+        PlayerPrefs.SetFloat("SFXVolume", value);
+        PlayerPrefs.Save();
+
+        Debug.Log($"[Audio] SFX slider → {value:F2} | ButtonSoundManager.instance = {ButtonSoundManager.instance}");
+
+        if (ButtonSoundManager.instance != null)
+            ButtonSoundManager.instance.SetVolume(value);
+        else
+            Debug.LogWarning("[Audio] ButtonSoundManager не найден!");
     }
 
     public void OnStartWithTutorialClicked()
