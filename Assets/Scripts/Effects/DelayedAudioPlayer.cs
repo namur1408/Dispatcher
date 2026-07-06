@@ -22,7 +22,7 @@ public class DelayedAudioPlayer : MonoBehaviour
 
     void OnEnable()
     {
-        // Восстанавливаем оригинальное состояние Loop при каждом включении
+        // Restoring Loop to its original state every time you turn it on
         if (audioSource != null)
         {
             audioSource.loop = originalLoopState;
@@ -47,7 +47,7 @@ public class DelayedAudioPlayer : MonoBehaviour
             yield return new WaitForSeconds(initialDelay);
             audioSource.Play();
 
-            // Если задано время воспроизведения, ждем это время и отключаем зацикливание
+            // If playback time is set, wait for this time and turn off looping
             if (playDuration > 0f)
             {
                 yield return new WaitForSeconds(playDuration);

@@ -1,14 +1,14 @@
 using UnityEngine;
 
 /// <summary>
-/// Общий справочник координат пунктов назначения на радаре.
-/// Используется UIAirplane и RadarPanelsManager для исключения дублирования.
+/// Global registry for coordinates of destinations on radar.
+/// Used by UIAirplane and RadarPanelsManager to prevent code duplication.
 /// </summary>
 public static class DestinationHelper
 {
     /// <summary>
-    /// Возвращает координату пункта назначения в пространстве RadarContent.
-    /// Если пункт неизвестен — вычисляет позицию по хешу имени.
+    /// Returns the coordinate of a destination in RadarContent space.
+    /// For unknown items, calculates the position using the name hash.
     /// </summary>
     public static Vector2 GetCoordinate(string destination)
     {

@@ -1,15 +1,15 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
-using UnityEngine.UI; // Обязательно для CanvasGroup
+using UnityEngine.UI; // Required for CanvasGroup
 
 public class ZoomReturnManager : MonoBehaviour
 {
-    // Статическая переменная, которая помнит, откуда мы возвращаемся
+    // Static variable that remembers where we are returning from
     public static string pendingReturnTargetName = "";
 
     [Header("Настройки отдаления")]
-    public RectTransform rootContainer; // Твой ScreenContent
+    public RectTransform rootContainer; // Your ScreenContent
     public float zoomDuration = 0.2f;
     public float startingZoomMultiplier = 2.5f;
 
@@ -20,7 +20,7 @@ public class ZoomReturnManager : MonoBehaviour
 
     public void TriggerReturnAnimation()
     {
-        // Если переменная не пустая, значит мы загрузили сцену, возвращаясь с радара/терминала
+        // If the variable is not empty, then we loaded the scene when returning from the radar/terminal
         if (!string.IsNullOrEmpty(pendingReturnTargetName))
         {
             StartCoroutine(PrepareAndZoomOut());
@@ -31,41 +31,41 @@ public class ZoomReturnManager : MonoBehaviour
     {
         var evSys = Object.FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>();
         if (evSys != null) evSys.enabled = false;
-        // 0. Создаём полностью черный оверлей ДО ожидания кадра, чтобы скрыть "прыжок"
+        // 0. Create a completely black overlay BEFORE waiting for a frame to hide the “jump”
         GameObject fadeObj = new GameObject("ReturnFadeOverlay");
         Canvas fadeCanvas = fadeObj.AddComponent<Canvas>();
         fadeCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
         fadeCanvas.sortingOrder = 9999;
         UnityEngine.UI.Image fadeImage = fadeObj.AddComponent<UnityEngine.UI.Image>();
-        fadeImage.color = new Color(0f, 0f, 0f, 1f); // Полностью черный для скрытия загрузки
+        fadeImage.color = new Color(0f, 0f, 0f, 1f); // Completely black to hide loading
 
-        // 1. Делаем контейнер временно прозрачным на 1 кадр, чтобы скрыть "прыжок"
+        // 1. Make the container temporarily transparent for 1 frame to hide the “jump”
         CanvasGroup canvasGroup = rootContainer.GetComponent<CanvasGroup>();
         if (canvasGroup == null) canvasGroup = rootContainer.gameObject.AddComponent<CanvasGroup>();
         canvasGroup.alpha = 0f;
 
-        // 2. ИСПРАВЛЕНИЕ: Ждем ровно один кадр и принудительно обновляем UI. 
-        // Без этого Unity думает, что все объекты находятся в точке (0,0).
+        // 2. FIX: Wait exactly one frame and force the UI to update. 
+        // Without this, Unity thinks that all objects are at point (0,0).
         yield return new WaitForEndOfFrame();
         Canvas.ForceUpdateCanvases();
 
-        // 3. Ищем наш объект по сохраненному имени
+        // 3. We look for our object by saved name
         GameObject targetObj = GameObject.Find(pendingReturnTargetName);
 
         if (targetObj != null)
         {
             Debug.Log($"<color=green>[ZoomReturn]</color> Найден объект для возврата: {targetObj.name}");
-            // Передаем fadeImage и fadeObj в функцию анимации
+            // Passing fadeImage and fadeObj to the animation function
             yield return StartCoroutine(ZoomOutAnimation(targetObj.transform, canvasGroup, fadeImage, fadeObj, evSys));
         }
         else
         {
             Debug.LogError($"<color=red>[ZoomReturn]</color> Ошибка! Не найден объект с именем: {pendingReturnTargetName}. Возврат из центра.");
-            canvasGroup.alpha = 1f; // Возвращаем видимость, если сломалось
+            canvasGroup.alpha = 1f; // We restore visibility if it’s broken
             Destroy(fadeObj);
         }
 
-        // Очищаем переменную
+        // Clearing the variable
         pendingReturnTargetName = "";
     }
 
@@ -110,10 +110,10 @@ public class ZoomReturnManager : MonoBehaviour
 
         canvasGroup.alpha = 1f;
         
-        // Открываем зумированный кадр (снижаем черноту до 70%)
+        // Open the zoomed frame (reduce the blackness to 70%)
         fadeImage.color = new Color(0f, 0f, 0f, 0.7f);
 
-        // Зависаем немного перед объектом перед началом отдаления
+        // Hover a little in front of the object before starting to move away
         yield return new WaitForSecondsRealtime(0.15f);
 
         float elapsedTime = 0f;
@@ -126,7 +126,7 @@ public class ZoomReturnManager : MonoBehaviour
             rootContainer.localScale = Vector3.Lerp(zoomedScale, normalScale, smooth);
             rootContainer.anchoredPosition = Vector2.Lerp(zoomedPos, normalPos, smooth);
             
-            // Плавное исчезновение черного затемнения
+            // Smooth blackout fade
             fadeImage.color = new Color(0f, 0f, 0f, Mathf.Lerp(0.7f, 0f, smooth));
 
             float currentScaleRatio = rootContainer.localScale.x / normalScale.x;

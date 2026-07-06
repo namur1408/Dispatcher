@@ -2,9 +2,9 @@ using UnityEngine;
 using TMPro;
 
 /// <summary>
-/// Добавь этот скрипт на TMP-объект Ticker внизу терминала.
-/// Меняет текст по таймеру, как строка статуса в AEGIS OS.
-/// Сообщения можно задать в инспекторе.
+/// Add this script to the terminal below the TMP-object Ticker.
+/// Changes text on a timer, like the status bar in AEGIS OS.
+/// Messages can be set in the inspector.
 /// </summary>
 [RequireComponent(typeof(TMP_Text))]
 public class TerminalTicker : MonoBehaviour

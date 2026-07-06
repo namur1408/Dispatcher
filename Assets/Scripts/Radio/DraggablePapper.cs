@@ -48,11 +48,11 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler, 
 
         dragAudioSource.pitch = Random.Range(minPitch, maxPitch);
         
-        // Мгновенно возвращаем громкость, если она успела затухнуть
+        // Instantly return the volume if it has already faded out
         dragAudioSource.volume = volume;
         targetDragVolume = volume;
         
-        dragAudioSource.PlayOneShot(clip, 1f); // 1f потому что общая громкость уже volume
+        dragAudioSource.PlayOneShot(clip, 1f); // 1f because the overall volume is already volume
     }
 
     private void PlayDropSound(AudioClip clip, float volume)
@@ -66,16 +66,16 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler, 
 
     private void Update()
     {
-        // Если движение остановилось на 0.1 сек или бумагу отпустили
+        // If the movement stops for 0.1 sec or the paper is released
         if (!isDragging || (isDragging && Time.time - lastDragTime > 0.1f))
         {
-            targetDragVolume = 0f; // Начинаем плавное затухание
+            targetDragVolume = 0f; // We begin a smooth fade
         }
 
-        // Плавное изменение громкости шуршания
+        // Smooth change in rustling volume
         if (dragAudioSource.volume != targetDragVolume)
         {
-            // Скорость затухания (Fade Out) - 5 единиц в секунду (затухнет за 0.2с)
+            // Fade Out rate - 5 units per second (fade out in 0.2s)
             dragAudioSource.volume = Mathf.MoveTowards(dragAudioSource.volume, targetDragVolume, Time.deltaTime * 5f);
         }
     }
@@ -86,7 +86,7 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler, 
         
         lastDragDirection = Vector2.zero;
         lastDragTime = Time.time;
-        lastSoundPlayTime = 0f; // Обнуляем, чтобы первый звук проигрался сразу же при микросдвиге
+        lastSoundPlayTime = 0f; // We reset it so that the first sound is played immediately upon microshift
         wasDragged = false;
         isDragging = true;
         targetDragVolume = soundVolume;
@@ -99,7 +99,7 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler, 
         if (canvas == null) return;
         rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
 
-        // Понижен порог реагирования, чтобы звук играл с самого начала микродвижения
+        // The response threshold has been lowered so that the sound plays from the very beginning of the micro-movement
         if (eventData.delta.sqrMagnitude > 0.1f)
         {
             wasDragged = true;
@@ -120,7 +120,7 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler, 
             }
 
             lastDragTime = Time.time;
-            targetDragVolume = soundVolume; // Поддерживаем громкость во время движения
+            targetDragVolume = soundVolume; // Maintain volume while driving
         }
 
         if (constrainToScreen)
@@ -143,7 +143,7 @@ public class DraggablePaper : MonoBehaviour, IPointerDownHandler, IDragHandler, 
     {
         isDragging = false;
         
-        // Звук шуршания сам плавно затухнет в Update()
+        // The rustling sound will gradually fade away in Update()
         
         if (wasDragged)
         {

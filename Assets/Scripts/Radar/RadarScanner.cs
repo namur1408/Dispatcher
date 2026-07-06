@@ -4,13 +4,13 @@ public class RadarScanner : MonoBehaviour
 {
     public float rotationSpeed = 60f; 
 
-    // Глобальный угол, чтобы все лучи на всех радарах крутились абсолютно синхронно
+    // Global angle so that all beams on all radars rotate absolutely synchronously
     public static float globalSweepAngle = 0f;
     private static int lastUpdateFrame = -1;
 
     void Update()
     {
-        // Обновляем глобальный угол 1 раз за кадр, даже если сканеров несколько
+        // We update the global angle once per frame, even if there are several scanners
         if (Time.frameCount != lastUpdateFrame)
         {
             globalSweepAngle -= rotationSpeed * Time.deltaTime;

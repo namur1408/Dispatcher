@@ -2,9 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Добавь этот компонент на Image в каждой строке списка рейсов.
-/// При наведении/выборе — подсвечивает зелёной рамкой как в AEGIS.
-/// Работает с Button или через SelectFlightEntry.Select().
+/// Add this component to Image in each line of the flight list.
+/// When hovering/selecting, it lights up with a green frame like in AEGIS.
+/// Works with Button or via SelectFlightEntry.Select().
 /// </summary>
 [RequireComponent(typeof(Image))]
 public class AegisFlightEntryHighlight : MonoBehaviour
@@ -39,7 +39,7 @@ public class AegisFlightEntryHighlight : MonoBehaviour
         go.transform.SetAsFirstSibling();
 
         Image img = go.GetComponent<Image>();
-        img.color = new Color(0f, 1f, 0.314f, 0f); // прозрачный по умолчанию
+        img.color = new Color(0f, 1f, 0.314f, 0f); // transparent by default
         img.raycastTarget = false;
 
         RectTransform rt = go.GetComponent<RectTransform>();

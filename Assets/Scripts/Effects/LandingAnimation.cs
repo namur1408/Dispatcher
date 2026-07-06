@@ -17,6 +17,25 @@ public class VideoLandingManager : MonoBehaviour
     void Awake()
     {
         Instance = this;
+        if (landingVideoPlayer != null)
+        {
+            landingVideoPlayer.loopPointReached += OnLandingVideoFinished;
+        }
+    }
+
+    private void OnEnable()
+    {
+        GameEvents.OnFlightLanded += HandleFlightLanded;
+    }
+
+    private void OnDisable()
+    {
+        GameEvents.OnFlightLanded -= HandleFlightLanded;
+    }
+
+    private void HandleFlightLanded(FlightData data)
+    {
+        RequestLandingVideo();
     }
 
     void Start()
@@ -30,7 +49,6 @@ public class VideoLandingManager : MonoBehaviour
 
         if (landingVideoPlayer != null)
         {
-            landingVideoPlayer.loopPointReached += OnLandingVideoFinished;
             landingVideoPlayer.gameObject.SetActive(false);
         }
     }

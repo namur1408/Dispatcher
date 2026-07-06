@@ -1,18 +1,18 @@
 using UnityEngine;
 
 /// <summary>
-/// Автоматически устанавливает ограничение в 60 FPS при запуске игры.
-/// Не требует прикрепления к объектам на сцене.
+/// Automatically sets the framerate cap to 60 FPS when starting the game.
+/// No MonoBehaviour attachment required.
 /// </summary>
 public static class GlobalOptimizer
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     public static void Initialize()
     {
-        // Для мобильных устройств отключаем VSync, так как мы вручную задаем targetFrameRate
+        // Disable VSync on mobile devices to allow manual targetFrameRate control.
         QualitySettings.vSyncCount = 0;
         
-        // Ограничиваем FPS до 60, чтобы телефон не перегревался и работал стабильно
+        // Cap framerate to 60 FPS to prevent device overheating and ensure stability.
         Application.targetFrameRate = 60;
         
         Debug.Log("[GlobalOptimizer] Установлен лимит: 60 FPS. VSync отключен.");

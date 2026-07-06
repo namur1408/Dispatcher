@@ -22,7 +22,7 @@ public class PauseMenuManager : MonoBehaviour
     [Header("Settings UI")]
     [Tooltip("Перетащите сюда все главные кнопки (Resume, Settings, MainMenu), чтобы они скрывались при открытии настроек")]
     public GameObject[] pauseMainButtons; 
-    public GameObject settingsPanel;  // Панель настроек
+    public GameObject settingsPanel;  // Settings panel
     public GameObject settingsButtonsContainer;
     public GameObject audioSlidersContainer;
     public GameObject graphicsPanelContainer;
@@ -33,15 +33,15 @@ public class PauseMenuManager : MonoBehaviour
 
     [Header("VHS Effect Settings")]
     public bool enableVHSEffect = true;
-    public int scanlinesCount = 40; // Больше линий, так как они теперь как мелкий шум
-    public float noiseSpeed = 0.05f; // Обновляем чуть быстрее для эффекта "шума"
+    public int scanlinesCount = 40; // More lines as they are now like small noise
+    public float noiseSpeed = 0.05f; // Update a little faster for the “noise” effect
     
     [Header("Text Glitch (Chromatic Aberration)")]
     [Tooltip("Автоматически применить эффект ко всем текстам в меню паузы (кнопкам, дате и т.д.)")]
     public bool applyGlitchToAllTexts = true;
     [Tooltip("Или добавьте вручную тексты, на которых хотите сделать RGB искажение")]
     public TextMeshProUGUI[] glitchTextsToEffect;
-    public float rgbOffset = 4f; // На сколько пикселей разъезжаются цвета
+    public float rgbOffset = 4f; // How many pixels do the colors spread across?
     
     private bool isPaused = false;
     private float noiseTimer = 0f;
@@ -50,7 +50,7 @@ public class PauseMenuManager : MonoBehaviour
     private RectTransform[] scanlineRects;
     private Image[] scanlineImages;
 
-    // Храним данные для клонов
+    // Cache clone data.
     private class GlitchTextData
     {
         public TextMeshProUGUI original;
@@ -64,7 +64,7 @@ public class PauseMenuManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            // Убрана автоматическая генерация UI по вашей просьбе
+            // Removed automatic generation of UI at your request
         }
         else
         {
@@ -95,7 +95,7 @@ public class PauseMenuManager : MonoBehaviour
         }
 #endif
 
-        // Обновляем эффекты и время каждый кадр, пока игра на паузе
+        // Process effects and update UI while paused.
         if (isPaused)
         {
             UpdateDateAndTime();
@@ -120,7 +120,7 @@ public class PauseMenuManager : MonoBehaviour
 
         if (isPaused)
         {
-            // Сбрасываем панели на начальные (Главное меню паузы)
+            // Reset the panels to the initial ones (Main menu pause)
             if (pauseMainButtons != null)
             {
                 foreach (var btn in pauseMainButtons)
@@ -130,7 +130,7 @@ public class PauseMenuManager : MonoBehaviour
             }
             if (settingsPanel != null) settingsPanel.SetActive(false);
 
-            // Синхронизируем слайдеры при открытии паузы
+            // Synchronizing sliders when opening a pause
             float savedMusic = PlayerPrefs.GetFloat("MusicVolume", 0.15f);
             float savedSFX   = PlayerPrefs.GetFloat("SFXVolume",   0.5f);
             
@@ -141,7 +141,7 @@ public class PauseMenuManager : MonoBehaviour
 
     public void OnSettingsClicked()
     {
-        // Открываем панель настроек внутри паузы
+        // Open settings sub-menu.
         if (pauseMainButtons != null)
         {
             foreach (var btn in pauseMainButtons)
@@ -158,13 +158,13 @@ public class PauseMenuManager : MonoBehaviour
 
     public void OnBackFromSettingsClicked()
     {
-        // Если мы внутри подменю аудио
+        // Handle audio sub-menu navigation.
         if (audioSlidersContainer != null && audioSlidersContainer.activeSelf)
         {
             audioSlidersContainer.SetActive(false);
             if (settingsButtonsContainer != null) settingsButtonsContainer.SetActive(true);
         }
-        // Если мы внутри подменю графики
+        // Handle graphics sub-menu navigation.
         else if (graphicsPanelContainer != null && graphicsPanelContainer.activeSelf)
         {
             graphicsPanelContainer.SetActive(false);
@@ -172,7 +172,7 @@ public class PauseMenuManager : MonoBehaviour
         }
         else
         {
-            // Возвращаемся в основное меню паузы
+            // Returning to the main pause menu
             if (settingsPanel != null) settingsPanel.SetActive(false);
             if (pauseMainButtons != null)
             {
@@ -261,14 +261,14 @@ public class PauseMenuManager : MonoBehaviour
 
     public void OnExitClicked()
     {
-        Time.timeScale = 1f; // Возвращаем время перед выходом
+        Time.timeScale = 1f; // We return the time before leaving
         
         if (RadarManager.Instance != null)
         {
             RadarManager.Instance.SaveToGlobalManager();
         }
         
-        // Сохраняем игру в файл перед выходом
+        // Persist game state to disk before exit.
         GameSaveManager.SaveGame();
         PlayerPrefs.Save();
         
@@ -279,9 +279,9 @@ public class PauseMenuManager : MonoBehaviour
     {
         if (dateText != null)
         {
-            // Форматируем дату игры (в игре август, начинается с 19 числа)
+            // We format the date of the game (in the game it is August, it starts on the 19th)
             int day = 1;
-            // Пытаемся получить текущий день из StoryManager
+            // Trying to get the current day from StoryManager
             day = StoryManager.currentDay; 
             
             string formattedDate = "AUG " + (18 + day).ToString("D2") + "\n2038";
@@ -290,17 +290,17 @@ public class PauseMenuManager : MonoBehaviour
 
         if (timeText != null)
         {
-            // Показываем реальное время компьютера (как на старых VHS записях)
+            // Display real-world system time (VHS style). (like old VHS recordings)
             timeText.text = DateTime.Now.ToString("tt HH:mm").ToUpper();
         }
     }
 
     private void CreateVHSEffect()
     {
-        // Создаем контейнер для помех прямо внутри вашего канваса
+        // Create a container for clutter right inside your canvas
         vhsContainer = new GameObject("VHS_Noise_Lines");
         vhsContainer.transform.SetParent(pauseCanvasObj.transform, false);
-        vhsContainer.transform.SetAsLastSibling(); // Помехи всегда будут поверх кнопок!
+        vhsContainer.transform.SetAsLastSibling(); // The noise will always be on top of the buttons!
 
         vhsContainerRt = vhsContainer.AddComponent<RectTransform>();
         vhsContainerRt.anchorMin = Vector2.zero;
@@ -320,7 +320,7 @@ public class PauseMenuManager : MonoBehaviour
             img.raycastTarget = false; 
             
             RectTransform lineRt = lineObj.GetComponent<RectTransform>();
-            // Теперь центрируем якорь, чтобы линии были не на весь экран, а кусочками
+            // Now we center the anchor so that the lines are not on the entire screen, but in pieces
             lineRt.anchorMin = new Vector2(0.5f, 0.5f);
             lineRt.anchorMax = new Vector2(0.5f, 0.5f);
             
@@ -335,11 +335,11 @@ public class PauseMenuManager : MonoBehaviour
     {
         if (scanlineRects == null || vhsContainerRt == null) return;
         
-        // Используем unscaledDeltaTime, так как Time.timeScale = 0 на паузе
+        // We use unscaledDeltaTime, since Time.timeScale = 0 on pause
         noiseTimer += Time.unscaledDeltaTime;
         if (noiseTimer < noiseSpeed) return;
         
-        noiseTimer = 0f; // Сбрасываем таймер
+        noiseTimer = 0f; // Resetting the timer
         
         float halfWidth = vhsContainerRt.rect.width * 0.5f;
         float halfHeight = vhsContainerRt.rect.height * 0.5f;
@@ -349,15 +349,15 @@ public class PauseMenuManager : MonoBehaviour
             RectTransform rt = scanlineRects[i];
             Image img = scanlineImages[i];
 
-            // Первая линия (i == 0) всегда будет отвечать за ту самую редкую толстую полосу
+            // The first line (i == 0) will always be responsible for that very rare thick stripe
             if (i == 0)
             {
-                if (UnityEngine.Random.value > 0.95f) // Появляется еще реже (шанс 5% за кадр анимации)
+                if (UnityEngine.Random.value > 0.95f) // Appears even less frequently (5% chance per animation frame)
                 {
                     rt.gameObject.SetActive(true);
                     float yPos = UnityEngine.Random.Range(-halfHeight, halfHeight);
                     rt.anchoredPosition = new Vector2(0, yPos);
-                    // Ширина контейнера плюс небольшой запас, чтобы точно перекрыть весь экран
+                    // Container width plus a small margin to accurately cover the entire screen
                     rt.sizeDelta = new Vector2(halfWidth * 2f + 200f, UnityEngine.Random.Range(20f, 80f)); 
                     img.color = new Color(1f, 1f, 1f, UnityEngine.Random.Range(0.1f, 0.3f));
                 }
@@ -368,22 +368,22 @@ public class PauseMenuManager : MonoBehaviour
                 continue;
             }
 
-            // Все остальные линии — это постоянный мелкий белый шум
-            if (UnityEngine.Random.value > 0.7f) // Шум тоже стал более редким (шанс 30%)
+            // All other lines are constant fine white noise
+            if (UnityEngine.Random.value > 0.7f) // The noise also became less frequent (30% chance)
             {
                 rt.gameObject.SetActive(true);
                 
                 float xPos = UnityEngine.Random.Range(-halfWidth, halfWidth);
                 float yPos = UnityEngine.Random.Range(-halfHeight, halfHeight);
                 
-                // Супер маленькие линии
+                // Super small lines
                 float width = UnityEngine.Random.Range(5f, 40f);
                 float height = UnityEngine.Random.Range(1f, 3f);
                 
                 rt.anchoredPosition = new Vector2(xPos, yPos);
                 rt.sizeDelta = new Vector2(width, height);
                 
-                // Делаем шум белым и полупрозрачным
+                // Making the noise white and translucent
                 float alpha = UnityEngine.Random.Range(0.1f, 0.6f);
                 img.color = new Color(1f, 1f, 1f, alpha);
             }
@@ -398,7 +398,7 @@ public class PauseMenuManager : MonoBehaviour
     {
         if (applyGlitchToAllTexts && pauseCanvasObj != null)
         {
-            // Автоматически находим вообще все тексты внутри меню паузы
+            // Automatically find all texts inside the pause menu
             glitchTextsToEffect = pauseCanvasObj.GetComponentsInChildren<TextMeshProUGUI>(true);
         }
 
@@ -408,21 +408,21 @@ public class PauseMenuManager : MonoBehaviour
         {
             if (txt == null) continue;
             
-            // Защита: не добавляем эффект к уже созданным клонам
+            // Protection: we do not add the effect to already created clones
             if (txt.name.EndsWith("_GlitchClone")) continue;
 
             GlitchTextData data = new GlitchTextData();
             data.original = txt;
 
-            // Клонируем красный канал
+            // Clone the red channel
             data.redClone = CloneTextForGlitch(txt, new Color(1f, 0f, 0f, 0.8f));
 
-            // Клонируем синий канал
+            // Cloning the blue channel
             data.blueClone = CloneTextForGlitch(txt, new Color(0f, 0.5f, 1f, 0.8f));
             
             glitchDataList.Add(data);
 
-            // Чтобы оригинальный текст был поверх клонов
+            // So that the original text is on top of the clones
             txt.transform.SetAsLastSibling();
         }
     }
@@ -432,7 +432,7 @@ public class PauseMenuManager : MonoBehaviour
         GameObject cloneObj = Instantiate(original.gameObject, original.transform.parent);
         cloneObj.name = original.name + "_GlitchClone";
         
-        // Удаляем лишние скрипты с клона (например кнопки), оставляем только текст
+        // We remove unnecessary scripts from the clone (for example buttons), leaving only the text
         var components = cloneObj.GetComponents<MonoBehaviour>();
         foreach (var comp in components)
         {
@@ -442,7 +442,7 @@ public class PauseMenuManager : MonoBehaviour
         TextMeshProUGUI cloneTxt = cloneObj.GetComponent<TextMeshProUGUI>();
         cloneTxt.color = glitchColor;
         
-        // Отключаем Raycast, чтобы клоны не мешали нажимать на кнопки
+        // Disable Raycast so that clones do not interfere with pressing buttons
         cloneTxt.raycastTarget = false;
         
         return cloneTxt;
@@ -464,11 +464,11 @@ public class PauseMenuManager : MonoBehaviour
         {
             if (data.original == null) continue;
 
-            // Синхронизируем текст (чтобы время и дата обновлялись у клонов)
+            // Synchronize the text (so that the time and date are updated for the clones)
             if (data.redClone.text != data.original.text) data.redClone.text = data.original.text;
             if (data.blueClone.text != data.original.text) data.blueClone.text = data.original.text;
 
-            // Синхронизируем позицию относительно оригинала
+            // Synchronizing the position relative to the original
             if (shouldUpdateOffset)
             {
                 Vector2 basePos = data.original.rectTransform.anchoredPosition;

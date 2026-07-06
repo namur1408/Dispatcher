@@ -6,10 +6,10 @@ public class PenCircle : Graphic
 {
     [Header("Настройки реализма")]
     public float thickness = 5f; 
-    public float padding = 20f; // Увеличен отступ от слова
+    public float padding = 20f; // Increased word indentation
     
     [Header("Форма и искажения")]
-    public float roundness = 4.5f; // 2 = эллипс, 4-6 = скругленный прямоугольник (squircle)
+    public float roundness = 4.5f; // 2 = ellipse, 4-6 = rounded rectangle (squircle)
     public float roughness = 2f; 
     public float shapeDistortion = 7f; 
     public float spiralAmount = 6f; 
@@ -128,7 +128,7 @@ public class PenCircle : Graphic
         float cos = Mathf.Cos(angle);
         float sin = Mathf.Sin(angle);
         
-        // Суперэллипс (чтобы длинные слова обводились "скругленным прямоугольником", а не огромным овалом)
+        // Superellipse (so that long words are outlined in a "rounded rectangle" rather than a huge oval)
         float absCos = Mathf.Pow(Mathf.Abs(cos) / baseW, roundness);
         float absSin = Mathf.Pow(Mathf.Abs(sin) / baseH, roundness);
         float rBase = 1f / Mathf.Pow(absCos + absSin, 1f / roundness);
@@ -139,10 +139,10 @@ public class PenCircle : Graphic
 
         float finalRadius = rBase + macroDistortion + spiral + microNoise;
 
-        // ИДЕАЛЬНАЯ ЗАЩИТА: Строгий математический радиус самого слова (углы включены)
+        // [Critical] Math constraint: Strict mathematical radius of the word itself (corners included)
         float rWord = 1f / Mathf.Max(Mathf.Abs(cos) / Mathf.Max(0.1f, wordW), Mathf.Abs(sin) / Mathf.Max(0.1f, wordH));
         
-        // Линия обводки обязана быть хотя бы на 10px дальше самого дальнего угла слова (дистанция от края слова)
+        // The stroke line must be at least 10px further than the farthest corner of the word (distance from the edge of the word)
         float minAllowed = rWord + (thickness / 2f) + 10f;
         if (finalRadius < minAllowed)
         {
@@ -189,7 +189,7 @@ public class PenCircle : Graphic
     {
         if (paperRect == null) return Vector2.zero;
         
-        // Максимальное расширение круга за пределы слова
+        // Maximum expansion of the circle beyond the word
         float maxRadiusExtension = padding + shapeDistortion + spiralAmount + roughness + thickness;
         
         Rect localRect = rectTransform.rect;
@@ -237,7 +237,7 @@ public class PenCircle : Graphic
         Vector3 offsetWorld = paperRect.TransformPoint(paperOffset);
         Vector3 localOffset = rectTransform.InverseTransformPoint(offsetWorld) - rectTransform.InverseTransformPoint(originWorld);
 
-        // Ограничиваем сдвиг, чтобы круг не "слез" со слова
+        // We limit the shift so that the circle does not “tear” from the word
         float maxShiftX = Mathf.Max(0, padding - 5f);
         float maxShiftY = Mathf.Max(0, padding - 5f);
         localOffset.x = Mathf.Clamp(localOffset.x, -maxShiftX, maxShiftX);

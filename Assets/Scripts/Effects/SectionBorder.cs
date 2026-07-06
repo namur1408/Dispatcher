@@ -2,17 +2,17 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Рисует тонкую рамку вокруг секции (ARRIVALS / TRANSITS / DEPARTURES)
-/// через 4 тонких Image-полоски. Никакой текстуры не нужно.
+/// Draws a thin border around a section (ARRIVALS / TRANSITS / DEPARTURES)
+/// through 4 thin Image strips. No texture needed.
 /// 
-/// Добавь на корневой объект секции (ArrivalsSection и т.д.).
-/// Полоски создаются автоматически как дочерние объекты НИЖЕ всего контента.
+/// Add sections to the root object (ArrivalsSection, etc.).
+/// Stripes are created automatically as child objects BELOW all content.
 /// </summary>
 public class SectionBorder : MonoBehaviour
 {
     [Header("Внешний вид")]
-    public Color borderColor = new Color(0f, 1f, 0.314f, 0.22f); // тонкий зелёный
-    public int   thickness   = 1;                                  // 1 пиксель
+    public Color borderColor = new Color(0f, 1f, 0.314f, 0.22f); // thin green
+    public int   thickness   = 1;                                  // 1 pixel
 
     void Awake()
     {

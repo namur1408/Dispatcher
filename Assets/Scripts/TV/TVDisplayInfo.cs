@@ -282,7 +282,7 @@ public class TVDisplayInfo : MonoBehaviour
                         {
                             if (flight.isUnloading)
                             {
-                                float progress = 1f - (flight.unloadTimer / FlightDataManager.UNLOAD_TIME);
+                                float progress = 1f - (flight.unloading.timer / FlightConstants.UnloadTime);
                                 resourcesSb.Append($"    {CreateProgressBar(progress)}\n");
                             }
                             else
@@ -296,7 +296,7 @@ public class TVDisplayInfo : MonoBehaviour
                             {
                                 if (flight.isRefueling)
                                 {
-                                    float progress = 1f - (flight.refuelTimer / FlightDataManager.REFUEL_TIME);
+                                    float progress = 1f - (flight.refueling.timer / FlightConstants.RefuelTime);
                                     resourcesSb.Append("    ").Append(CreateProgressBar(progress, "#00BFFF")).Append("\n");
                                 }
                                 else
@@ -316,7 +316,7 @@ public class TVDisplayInfo : MonoBehaviour
                             {
                                 if (flight.isRepairing)
                                 {
-                                    float progress = 1f - (flight.repairTimer / FlightDataManager.REPAIR_TIME);
+                                    float progress = 1f - (flight.repairing.timer / FlightConstants.RepairTime);
                                     resourcesSb.Append("    ").Append(CreateProgressBar(progress, "#FF8C00")).Append("\n");
                                 }
                                 else
@@ -415,36 +415,17 @@ public class TVDisplayInfo : MonoBehaviour
                 return;
             }
 
-            bool isFull = fdm != null && fdm.landedPlanes >= fdm.maxPlanes;
+            // End shift is allowed when all base slots are filled (landedPlanes >= maxPlanes).
+            bool allPlanesGone = (fdm != null) && (fdm.landedPlanes >= fdm.maxPlanes);
 
-            int approachingPlanesOnRadar = 0;
-            if (fdm != null)
-            {
-                for (int i = 0; i < fdm.savedFlights.Count; i++)
-                {
-                    var flight = fdm.savedFlights[i];
-                    if (flight.targetPosition == Vector2.zero && !flight.hasLanded && !flight.hasTakenOff && !flight.isDeparting)
-                    {
-                        approachingPlanesOnRadar++;
-                    }
-                }
-            }
-
-            bool noApproachingPlanes = (approachingPlanesOnRadar == 0);
-
-            endShiftButton.interactable = (isFull && noApproachingPlanes);
+            endShiftButton.interactable = allPlanesGone;
 
             TextMeshProUGUI normalBtnText = endShiftButton.GetComponentInChildren<TextMeshProUGUI>();
             if (normalBtnText != null)
             {
-                if (!isFull)
+                if (!allPlanesGone)
                 {
-                    normalBtnText.text = "FILL BASE\nTO END";
-                    normalBtnText.fontSize = 40;
-                }
-                else if (!noApproachingPlanes)
-                {
-                    normalBtnText.text = "WAIT FOR\nDEPARTURE";
+                    normalBtnText.text = "WAIT FOR\nLANDING";
                     normalBtnText.fontSize = 40;
                 }
                 else
@@ -694,7 +675,13 @@ public class TVDisplayInfo : MonoBehaviour
             infoString += $"Status: {currentStatus}\n";
             infoString += $"Speed: {data.speed:F0}\n";
 
-            if (!data.isCargoKnown)
+            bool isCargoKnownLoc = true;
+            if (FlightDataManager.Instance != null) {
+                var state = FlightDataManager.Instance.GetOrCreateInterrogationState(data.callsign);
+                isCargoKnownLoc = state.isCargoKnown;
+            }
+
+            if (!isCargoKnownLoc)
             {
                 infoString += $"Cargo: <color=#FF0000><b>UNKNOWN</b></color>\n";
             }

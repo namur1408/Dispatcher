@@ -52,8 +52,8 @@ public class WindowLightning : MonoBehaviour
     {
         if (DynamicStorm.Instance != null && !isFlashing)
         {
-            // МАГІЯ ТУТ: Якщо ти нічого не вказав, скрипт бере центр самого об'єкту DynamicStorm (центр великого радара).
-            // Оскільки авіабаза завжди по центру радара, це ідеально співпадає!
+            // THE MAGIC IS HERE: If you didn't specify anything, the script takes the center of the DynamicStorm object itself (the center of the big radar).
+            // Since the air base is always in the center of the radar, this is a perfect match!
             Vector3 centerPos = radarCenter != null ? radarCenter.position : DynamicStorm.Instance.transform.position;
 
             if (DynamicStorm.Instance.IsInStorm(centerPos))

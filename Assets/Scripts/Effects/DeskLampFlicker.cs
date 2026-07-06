@@ -29,16 +29,16 @@ public class DeskLampFlicker : MonoBehaviour
 
     void Awake()
     {
-        // Единый сдвиг шума для всей группы (чтобы они мерцали синхронно)
+        // Single noise shift for the entire group (so they flicker in sync)
         noiseOffset = Random.Range(0f, 1000f); 
         
-        // Если забыли перетащить ручками, ищем все Light2D на объекте и его детях
+        // If you forgot to drag with handles, look for all Light2D on the object and its children
         if (lamps == null || lamps.Length == 0)
         {
             lamps = GetComponentsInChildren<Light2D>();
         }
 
-        // Запоминаем изначальную яркость каждого источника
+        // We remember the initial brightness of each source
         if (lamps != null && lamps.Length > 0)
         {
             baseIntensities = new float[lamps.Length];
@@ -56,23 +56,23 @@ public class DeskLampFlicker : MonoBehaviour
     {
         if (lamps == null || lamps.Length == 0) return;
 
-        // 1. Считаем ОБЩИЙ множитель мерцания для всех ламп
+        // 1. Calculate the TOTAL flicker multiplier for all lamps
         float noise = Mathf.PerlinNoise(Time.time * flickerSpeed + noiseOffset, 0f);
-        // Множитель будет плавать, например, от 0.9 до 1.1 (при flickerIntensity = 0.1)
+        // The multiplier will fluctuate, for example, from 0.9 to 1.1 (with flickerIntensity = 0.1)
         float multiplier = 1f + ((noise - 0.5f) * 2f * flickerIntensity);
 
-        // 2. Рассчитываем сбои (тоже одни на всех, чтобы моргало синхронно)
+        // 2. We calculate failures (also the same for everyone, so that they blink synchronously)
         if (enableGlitches)
         {
             if (glitchTimer > 0)
             {
                 glitchTimer -= Time.deltaTime;
-                // Резкое падение яркости во время сбоя (от 30% до 70%)
+                // Sharp drop in brightness during a crash (from 30% to 70%)
                 multiplier *= Random.Range(0.3f, 0.7f); 
             }
             else
             {
-                // Шанс сбоя
+                // Chance of failure
                 if (Random.value < glitchChancePerSecond * Time.deltaTime)
                 {
                     glitchTimer = glitchDuration;
@@ -80,7 +80,7 @@ public class DeskLampFlicker : MonoBehaviour
             }
         }
 
-        // 3. Применяем синхронно ко всем лампам с учетом их родной яркости
+        // 3. Apply synchronously to all lamps, taking into account their native brightness
         for (int i = 0; i < lamps.Length; i++)
         {
             if (lamps[i] != null)

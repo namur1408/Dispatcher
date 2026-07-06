@@ -12,8 +12,8 @@ public class ShiftIntroBuilder : MonoBehaviour
     public Color warningColor = new Color(1f, 0.7f, 0f, 1f); // #FFB400
 
     [Header("Font Settings")]
-    public TMP_FontAsset customFont; // Основной шрифт (если пусто, возьмется из StoryManager)
-    public TMP_FontAsset customTitleFont; // Отдельный шрифт только для заголовка "SHIFT"
+    public TMP_FontAsset customFont; // Main font (if empty, will be taken from StoryManager)
+    public TMP_FontAsset customTitleFont; // Separate font for the "SHIFT" heading only
     public int statusFontSize = 36;
     public int titleFontSize = 120;
     public int dateFontSize = 44;
@@ -23,7 +23,7 @@ public class ShiftIntroBuilder : MonoBehaviour
     {
         TMP_FontAsset fontToUse = customFont != null ? customFont : defaultFont;
 
-        // 1. Создаем контейнер
+        // 1. Create a container
         GameObject container = new GameObject("ShiftIntroSequence");
         RectTransform containerRt = container.AddComponent<RectTransform>();
         containerRt.SetParent(parent, false);
@@ -32,7 +32,7 @@ public class ShiftIntroBuilder : MonoBehaviour
         containerRt.offsetMin = Vector2.zero;
         containerRt.offsetMax = Vector2.zero;
 
-        // 2. Создаем элементы
+        // 2. Create elements
         GameObject statusCont = new GameObject("StatusLines");
         RectTransform statusRt = statusCont.AddComponent<RectTransform>();
         statusRt.SetParent(containerRt, false);
@@ -102,7 +102,7 @@ public class ShiftIntroBuilder : MonoBehaviour
         hintTxt.characterSpacing = 4;
         hintTxt.alpha = 0;
 
-        // === АНИМАЦИЯ ===
+        // === ANIMATION ===
         yield return new WaitForSecondsRealtime(0.4f);
 
         if (isMarauderAttack)
@@ -111,7 +111,7 @@ public class ShiftIntroBuilder : MonoBehaviour
             yield return new WaitForSecondsRealtime(0.1f);
             yield return FadeTMP(s2, 1f, 0.2f);
             
-            yield return new WaitForSecondsRealtime(1.2f); // Пауза
+            yield return new WaitForSecondsRealtime(1.2f); // Pause
             
             yield return FadeTMP(s3, 1f, 0.4f);
         }
@@ -124,7 +124,7 @@ public class ShiftIntroBuilder : MonoBehaviour
             yield return FadeTMP(s3, 1f, 0.4f);
         }
 
-        // Расширение линии
+        // Line extension
         float t = 0;
         while (t < 0.6f)
         {
@@ -137,7 +137,7 @@ public class ShiftIntroBuilder : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(0.3f);
 
-        // Печать SHIFT
+        // Print SHIFT
         string shiftText = $"SHIFT {dayNumber}";
         for (int i = 0; i < shiftText.Length; i++)
         {
@@ -147,7 +147,7 @@ public class ShiftIntroBuilder : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(0.3f);
 
-        // Печать даты с курсором
+        // Print date with cursor
         string dateStrFinal = dateStr;
         string cursorColorHex = ColorUtility.ToHtmlStringRGB(hackerGreen);
         for (int i = 0; i < dateStrFinal.Length; i++)
@@ -156,19 +156,19 @@ public class ShiftIntroBuilder : MonoBehaviour
             yield return new WaitForSecondsRealtime(0.07f);
         }
         yield return new WaitForSecondsRealtime(0.5f);
-        dateTxt.text = dateStrFinal; // убираем курсор
+        dateTxt.text = dateStrFinal; // remove the cursor
 
         yield return new WaitForSecondsRealtime(0.4f);
         yield return FadeTMP(hintTxt, 1f, 0.5f);
 
-        // Ждем клика
+        // We are waiting for your click
         bool clicked = false;
         while (!clicked)
         {
-            // Пульсация подсказки
+            // Ripple prompt
             hintTxt.alpha = 0.2f + Mathf.PingPong(Time.unscaledTime * 0.8f, 0.4f);
 
-            // Мерцание заголовка (Flicker)
+            // Header Flicker
             if (Random.value > 0.95f) titleTxt.alpha = Random.Range(0.6f, 1f);
             else titleTxt.alpha = 1f;
 
@@ -182,7 +182,7 @@ public class ShiftIntroBuilder : MonoBehaviour
             yield return null;
         }
 
-        // Очистка
+        // Cleaning
         Object.Destroy(container);
     }
 
@@ -193,7 +193,7 @@ public class ShiftIntroBuilder : MonoBehaviour
         rt.SetParent(parent, false);
         rt.anchorMin = new Vector2(0.5f, 0.5f);
         rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.sizeDelta = new Vector2(1000, 150); // Достаточно большое, чтобы не было переносов
+        rt.sizeDelta = new Vector2(1000, 150); // Large enough to avoid transfers
         
         TextMeshProUGUI tmp = go.AddComponent<TextMeshProUGUI>();
         tmp.font = font;

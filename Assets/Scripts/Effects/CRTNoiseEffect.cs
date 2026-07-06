@@ -183,23 +183,23 @@ public class CRTNoiseEffect : MonoBehaviour
         foreach (var data in glitchDataList)
         {
             // 1. Position, Scale, Alpha Twitch
-            if (Random.value > 0.96f) // Небольшой шанс дернуться
+            if (Random.value > 0.96f) // Little chance to twitch
             {
                 data.rect.anchoredPosition = data.origPos + new Vector2(Random.Range(-15f, 15f), Random.Range(-5f, 5f));
                 data.rect.localScale = new Vector3(data.origScale.x * Random.Range(0.95f, 1.05f), data.origScale.y * Random.Range(0.95f, 1.05f), 1f);
                 data.cg.alpha = Random.Range(0.5f, 0.9f);
             }
-            else if (Random.value > 0.8f) // Быстрое возвращение на место
+            else if (Random.value > 0.8f) // Quick return to place
             {
                 data.rect.anchoredPosition = data.origPos;
                 data.rect.localScale = data.origScale;
                 data.cg.alpha = 1f;
             }
 
-            // 2. Text Scrambling (если есть текст)
+            // 2. Text Scrambling (if there is text)
             if (data.tmp != null)
             {
-                // Запоминаем текст, если он изменился извне (например, таймер обновился)
+                // We remember the text if it has changed externally (for example, the timer has been updated)
                 if (data.tmp.text != data.cleanText && data.tmp.text != data.scrambledText)
                 {
                     data.cleanText = data.tmp.text;
@@ -217,17 +217,17 @@ public class CRTNoiseEffect : MonoBehaviour
                 }
                 else
                 {
-                    if (Random.value > 0.98f) // Шанс превратить часть букв в символы
+                    if (Random.value > 0.98f) // Chance to turn some letters into symbols
                     {
                         data.isScrambled = true;
-                        data.textGlitchTimer = Random.Range(0.05f, 0.2f); // Символы висят долю секунды
+                        data.textGlitchTimer = Random.Range(0.05f, 0.2f); // Symbols hang for a split second
                         
                         char[] chars = data.cleanText.ToCharArray();
                         string symbols = "!@#$%^&*()_+-=[]{}|;:,.<>?/";
                         for (int i = 0; i < chars.Length; i++)
                         {
                             if (char.IsWhiteSpace(chars[i])) continue;
-                            if (Random.value > 0.8f) // 20% символов в строке ломаются
+                            if (Random.value > 0.8f) // 20% of characters in a line are broken
                             {
                                 chars[i] = symbols[Random.Range(0, symbols.Length)];
                             }

@@ -12,9 +12,9 @@ public class MainMenuController : MonoBehaviour
 
     [Header("UI Panels")]
     public GameObject mainButtonsPanel;
-    public GameObject continueSelectPanel; // Новая панель для выбора Continue / New Game
+    public GameObject continueSelectPanel; // New panel for selecting Continue / New Game
     public GameObject modeSelectPanel;
-    public GameObject settingsPanel; // Панель настроек
+    public GameObject settingsPanel; // Settings panel
 
     [Header("Settings Sub-Panels")]
     public GameObject settingsButtonsContainer;
@@ -22,8 +22,8 @@ public class MainMenuController : MonoBehaviour
     public GameObject graphicsPanelContainer;
 
     [Header("Audio Sliders")]
-    public Slider musicSlider;  // Перетащи Slider_Music сюда
-    public Slider sfxSlider;    // Перетащи Slider_SFX сюда
+    public Slider musicSlider;  // Drag Slider_Music here
+    public Slider sfxSlider;    // Drag Slider_SFX here
 
     [Header("Boot Animation Settings")]
     public TextMeshProUGUI bootText;
@@ -50,18 +50,18 @@ public class MainMenuController : MonoBehaviour
 
         if (fromGame)
         {
-            // Открываем сразу настройки
+            // Open settings right away
             if (mainButtonsPanel) mainButtonsPanel.SetActive(false);
             if (modeSelectPanel) modeSelectPanel.SetActive(false);
             if (continueSelectPanel) continueSelectPanel.SetActive(false);
             if (settingsPanel) settingsPanel.SetActive(true);
             
-            // Если мы пришли из игры для настроек, скрываем текст бут-секвенции
+            // If we came from the game for settings, hide the text of the boot sequence
             if (bootText != null) bootText.gameObject.SetActive(false);
         }
         else
         {
-            // Обычный запуск главного меню
+            // Normal start of the main menu
             if (mainButtonsPanel) mainButtonsPanel.SetActive(true);
             if (modeSelectPanel) modeSelectPanel.SetActive(false);
             if (continueSelectPanel) continueSelectPanel.SetActive(false);
@@ -72,8 +72,8 @@ public class MainMenuController : MonoBehaviour
         if (audioSlidersContainer) audioSlidersContainer.SetActive(false);
         if (graphicsPanelContainer) graphicsPanelContainer.SetActive(false);
 
-        // Если настройки ещё не были установлены нами — принудительно ставим дефолты
-        // (сбрасывает старые значения сохранённые до смены дефолтов)
+        // If the settings have not yet been set by us, we force defaults
+        // (resets old values ​​saved before defaults were changed)
         if (!PlayerPrefs.HasKey("AudioDefaultsSet"))
         {
             PlayerPrefs.SetFloat("MusicVolume", 0.15f);
@@ -82,20 +82,20 @@ public class MainMenuController : MonoBehaviour
             PlayerPrefs.Save();
         }
 
-        // Восстанавливаем сохранённую громкость при старте
+        // Restoring the saved volume at startup
         float savedMusic = PlayerPrefs.GetFloat("MusicVolume", 0.15f);
         float savedSFX   = PlayerPrefs.GetFloat("SFXVolume",   0.5f);
 
-        // Защита от нулей
+        // Zero protection
         if (savedMusic < 0.01f) { savedMusic = 0.15f; PlayerPrefs.SetFloat("MusicVolume", savedMusic); }
         if (savedSFX   < 0.01f) { savedSFX   = 0.5f;  PlayerPrefs.SetFloat("SFXVolume",   savedSFX);   }
         PlayerPrefs.Save();
 
-        // Устанавливаем слайдеры БЕЗ вызова OnValueChanged
+        // Setting sliders WITHOUT calling OnValueChanged
         if (musicSlider != null) musicSlider.SetValueWithoutNotify(savedMusic);
         if (sfxSlider   != null) sfxSlider.SetValueWithoutNotify(savedSFX);
 
-        // Применяем значения к системам звука
+        // Applying Values ​​to Sound Systems
         if (BackgroundMusic.Instance != null)
             BackgroundMusic.Instance.SetMusicVolume(savedMusic);
         if (ButtonSoundManager.instance != null)
@@ -103,7 +103,7 @@ public class MainMenuController : MonoBehaviour
 
         Debug.Log($"[Audio Init] Music={savedMusic:F2}, SFX={savedSFX:F2}");
 
-        // Применяем сохранённое качество графики
+        // Applying the saved graphics quality
         if (PlayerPrefs.HasKey("GraphicsQuality"))
         {
             QualitySettings.SetQualityLevel(PlayerPrefs.GetInt("GraphicsQuality"), true);
@@ -250,7 +250,7 @@ public class MainMenuController : MonoBehaviour
 
     private IEnumerator PanelTransitionGlitch(GameObject hidePanel, GameObject showPanel)
     {
-        // Защита от незаполненных полей в Inspector
+        // Protection against empty fields in Inspector
         if (hidePanel == null || showPanel == null)
         {
             Debug.LogWarning($"[Glitch] Панель не назначена в Inspector! hide={hidePanel}, show={showPanel}");
@@ -301,12 +301,12 @@ public class MainMenuController : MonoBehaviour
     {
         if (GameSaveManager.HasSave())
         {
-            // Если есть сейв, переходим в панель продолжения
+            // If there is a save, go to the continuation panel
             StartCoroutine(PanelTransitionGlitch(mainButtonsPanel, continueSelectPanel));
         }
         else
         {
-            // Если сейва нет, сразу переходим к выбору мода
+            // If there is no save, go straight to choosing a mod
             StartCoroutine(PanelTransitionGlitch(mainButtonsPanel, modeSelectPanel));
         }
     }
@@ -319,59 +319,59 @@ public class MainMenuController : MonoBehaviour
 
     public void OnNewGameClicked()
     {
-        // Удаляем сохранение и идем в панель выбора мода
+        // Delete the save and go to the mod selection panel
         GameSaveManager.DeleteSave();
         StartCoroutine(PanelTransitionGlitch(continueSelectPanel, modeSelectPanel));
     }
 
     public void OnBackFromContinueClicked()
     {
-        // Возврат из панели Continue в главное меню
+        // Return from the Continue panel to the main menu
         StartCoroutine(PanelTransitionGlitch(continueSelectPanel, mainButtonsPanel));
     }
 
     public void OnBackClicked()
     {
-        // Возврат из панели выбора мода в главное меню (или Continue, но для простоты вернем в главное)
+        // Return from the mod selection panel to the main menu (or Continue, but for simplicity we’ll return to the main menu)
         StartCoroutine(PanelTransitionGlitch(modeSelectPanel, mainButtonsPanel));
     }
 
     public void OnSettingsClicked()
     {
-        // Убедимся, что при входе в настройки показываются кнопки, а не подпанели
+        // Let's make sure that when entering the settings, buttons are shown and not subpanels
         if (settingsButtonsContainer) settingsButtonsContainer.SetActive(true);
         if (audioSlidersContainer) audioSlidersContainer.SetActive(false);
         if (graphicsPanelContainer) graphicsPanelContainer.SetActive(false);
 
-        // Переход в панель настроек
+        // Go to the settings panel
         StartCoroutine(PanelTransitionGlitch(mainButtonsPanel, settingsPanel));
     }
 
     public void OnBackFromSettingsClicked()
     {
-        // Если мы внутри подменю аудио — возвращаемся к кнопкам настроек
+        // Handle audio sub-menu navigation., we return to the settings buttons
         if (audioSlidersContainer != null && audioSlidersContainer.activeSelf)
         {
             StartCoroutine(PanelTransitionGlitch(audioSlidersContainer, settingsButtonsContainer));
         }
-        // Если мы внутри подменю графики — возвращаемся к кнопкам настроек
+        // Handle graphics sub-menu navigation., we return to the settings buttons
         else if (graphicsPanelContainer != null && graphicsPanelContainer.activeSelf)
         {
             StartCoroutine(PanelTransitionGlitch(graphicsPanelContainer, settingsButtonsContainer));
         }
         else
         {
-            // Проверяем, пришли ли мы из игры
+            // Checking if we came from the game
             if (PlayerPrefs.GetInt("SettingsFromGame", 0) == 1)
             {
-                // Сбрасываем флаг и возвращаемся в игру
+                // Reset the flag and return to the game
                 PlayerPrefs.SetInt("SettingsFromGame", 0);
                 PlayerPrefs.Save();
                 SceneManager.LoadScene(gameSceneName);
             }
             else
             {
-                // Иначе возвращаемся в главное меню
+                // Otherwise we return to the main menu
                 StartCoroutine(PanelTransitionGlitch(settingsPanel, mainButtonsPanel));
             }
         }
@@ -379,7 +379,7 @@ public class MainMenuController : MonoBehaviour
 
     public void OnAudioClicked()
     {
-        // Открыть панель аудио – с глитч-анимацией
+        // Open audio panel - with glitch animation
         if (graphicsPanelContainer && graphicsPanelContainer.activeSelf)
             graphicsPanelContainer.SetActive(false);
         StartCoroutine(PanelTransitionGlitch(settingsButtonsContainer, audioSlidersContainer));
@@ -387,7 +387,7 @@ public class MainMenuController : MonoBehaviour
 
     public void OnGraphicsClicked()
     {
-        // Открыть панель графики – с глитч-анимацией
+        // Open graphics panel - with glitch animation
         if (audioSlidersContainer && audioSlidersContainer.activeSelf)
             audioSlidersContainer.SetActive(false);
         StartCoroutine(PanelTransitionGlitch(settingsButtonsContainer, graphicsPanelContainer));
@@ -402,7 +402,7 @@ public class MainMenuController : MonoBehaviour
             GraphicsQualityManager.Instance.ApplyQuality(false); // false = HIGH
         else
         {
-            // Fallback если менеджера нет на сцене
+            // Fallback if the manager is not on stage
             int highLevel = QualitySettings.names.Length - 1;
             QualitySettings.SetQualityLevel(highLevel, true);
             PlayerPrefs.SetInt("GraphicsQuality", highLevel);
@@ -425,8 +425,8 @@ public class MainMenuController : MonoBehaviour
         StartCoroutine(DeselectNextFrame());
     }
 
-    // Сбрасываем выделение кнопки на следующий кадр —
-    // иначе Unity не даёт нажать ту же кнопку повторно
+    // Reset the button selection to the next frame -
+    // Otherwise Unity won't let you press the same button again
     private IEnumerator DeselectNextFrame()
     {
         yield return null;
@@ -447,7 +447,7 @@ public class MainMenuController : MonoBehaviour
         }
         else
         {
-            // Если синглтон почему-то недоступен — ищем напрямую
+            // If for some reason the singleton is not available, we look for it directly
             var bgMusic = FindFirstObjectByType<BackgroundMusic>();
             if (bgMusic != null) bgMusic.SetMusicVolume(value);
             else Debug.LogWarning("[Audio] BackgroundMusic не найден в сцене!");
@@ -487,12 +487,12 @@ public class MainMenuController : MonoBehaviour
 
     private IEnumerator LoadSceneWithPreload()
     {
-        // Создаем черный экран для плавного затемнения поверх всего
+        // Create a black screen to smoothly fade over everything
         GameObject fadeObj = new GameObject("MainMenuFade");
         Canvas fadeCanvas = fadeObj.AddComponent<Canvas>();
         fadeCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        fadeCanvas.sortingOrder = 32000; // Поверх всего
-        fadeObj.AddComponent<UnityEngine.UI.GraphicRaycaster>(); // Блокируем клики
+        fadeCanvas.sortingOrder = 32000; // On top of everything
+        fadeObj.AddComponent<UnityEngine.UI.GraphicRaycaster>(); // Blocking clicks
         
         UnityEngine.UI.Image fadeImg = fadeObj.AddComponent<UnityEngine.UI.Image>();
         fadeImg.color = new Color(0, 0, 0, 0);
@@ -506,13 +506,13 @@ public class MainMenuController : MonoBehaviour
 
         float fadeDuration = 1.0f;
 
-        // Плавное затухание музыки
+        // Smooth fade out of music
         if (BackgroundMusic.Instance != null)
         {
             BackgroundMusic.Instance.FadeOutToZero(fadeDuration);
         }
 
-        // Плавное затухание (увеличиваем альфу до 1)
+        // Smooth fade (increase alpha to 1)
         float timer = 0f;
         while (timer < fadeDuration)
         {
@@ -522,7 +522,7 @@ public class MainMenuController : MonoBehaviour
         }
         fadeImg.color = Color.black;
 
-        // После затухания начинаем загрузку сцены
+        // After fading, we begin loading the scene
         AsyncOperation op = SceneManager.LoadSceneAsync(gameSceneName);
         op.allowSceneActivation = false;
         

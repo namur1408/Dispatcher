@@ -3,8 +3,8 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// Добавь этот компонент на любую панель-фон.
-/// Рисует рамку в стиле AEGIS (тонкие зелёные линии по краям) без лишних объектов.
+/// Add this component to any background panel.
+/// Draws a frame in AEGIS style (thin green lines around the edges) without unnecessary objects.
 /// </summary>
 [RequireComponent(typeof(RawImage))]
 public class AegisBorder : MonoBehaviour

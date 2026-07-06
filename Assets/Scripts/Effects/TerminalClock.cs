@@ -2,15 +2,15 @@ using UnityEngine;
 using TMPro;
 
 /// <summary>
-/// Добавь на TMP-объект рядом со StatusDot.
-/// Показывает текущее время в формате ЧЧ:ММ:СС как в AEGIS OS.
+/// Add to the TMP object next to StatusDot.
+/// Shows the current time in HH:MM:SS format as in AEGIS OS.
 /// </summary>
 [RequireComponent(typeof(TMP_Text))]
 public class TerminalClock : MonoBehaviour
 {
     [Header("Формат")]
-    public string format = "HH:mm:ss"; // стандартный C# формат времени
-    // Примеры: "HH:mm" → 22:09  |  "HH:mm:ss" → 22:09:23
+    public string format = "HH:mm:ss"; // standard C# time format
+    // Examples: "HH:mm" → 22:09 |  "HH:mm:ss" → 22:09:23
 
     private TMP_Text tmp;
 

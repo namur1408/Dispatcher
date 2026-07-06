@@ -3,10 +3,8 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
 
-public class RadarPanelsManager : MonoBehaviour
+public class RadarPanelsManager : SingletonMB<RadarPanelsManager>
 {
-    public static RadarPanelsManager Instance;
-
     [Header("Windows (Parents)")]
     public GameObject arrivalsWindow;
     public GameObject transitsWindow;
@@ -70,19 +68,19 @@ public class RadarPanelsManager : MonoBehaviour
                 
                 rect.offsetMin = new Vector2(0f, -currentHeight);
                 rect.offsetMax = new Vector2(0f, 0f);
-                
-//Debug.Log($"[UI] Programmatically set {window.name}'s Header to Top-Stretch with height {currentHeight}");
             }
         }
     }
 
-    private void Awake()
+    protected override void Awake()
     {
-        Instance = this;
+        base.Awake();
+        if (Instance != this) return;
+
         if (runwaySelectionPanel != null) runwaySelectionPanel.SetActive(false);
-        
+
         SetupRunwayButtons();
-        
+
         FixHeaderAnchors(arrivalsWindow);
         FixHeaderAnchors(transitsWindow);
         FixHeaderAnchors(departuresWindow);
@@ -90,18 +88,12 @@ public class RadarPanelsManager : MonoBehaviour
 
     private void SetupRunwayButtons()
     {
-//Debug.Log($"[Runway] SetupRunwayButtons: found {runwayButtons.Count} buttons");
         foreach (var config in runwayButtons)
         {
             if (config.button != null && !string.IsNullOrEmpty(config.runwayId))
             {
                 string rId = config.runwayId;
-                config.button.onClick.AddListener(() =>
-                {
-//Debug.Log($"[Runway] Button clicked for runway: {rId}");
-                    AssignRunway(rId);
-                });
-//Debug.Log($"[Runway] Listener added to button for runway: {rId}");
+                config.button.onClick.AddListener(() => AssignRunway(rId));
             }
             else
             {
@@ -179,12 +171,12 @@ public class RadarPanelsManager : MonoBehaviour
 
             if (flight.isReadyToDepart)
             {
-                // Обслуженный самолёт, ожидающий назначения полосы вылета
+                // Serviced aircraft awaiting departure runway assignment
                 newEntry = CreateEntry(flight, departuresContent);
             }
             else if (flight.isDeparting && !flight.hasTakenOff)
             {
-                // Самолёт на полосе, но ещё не оторвался от земли (показываем белым)
+                // The plane is on the runway, but has not yet taken off from the ground (showed in white)
                 newEntry = CreateEntry(flight, departuresContent);
             }
             else if (flight.targetPosition != Vector2.zero && string.IsNullOrEmpty(flight.assignedRunway))
@@ -249,10 +241,10 @@ public class RadarPanelsManager : MonoBehaviour
 
             if (data.isReadyToDepart)
             {
-                // Ожидает назначения полосы в Departures
+                // Waiting for lane assignment in Departures
                 dest = string.IsNullOrEmpty(data.departureDestination) ? "DEPART" : data.departureDestination;
                 text.text = $"{data.callsign} | {dest} | {status}";
-                // Жёлтый — ждёт полосы
+                // Yellow - waiting for stripes
                 text.color = string.IsNullOrEmpty(data.assignedRunway) ? Color.yellow : Color.green;
             }
             else if (data.isDeparting)
@@ -295,10 +287,10 @@ public class RadarPanelsManager : MonoBehaviour
     private void OnFlightClicked(FlightData data, GameObject clickedEntry)
     {
         // Allow runway assignment if:
-        // - прилёт, одобрен, нет полосы
-        // - прилёт, одобрен, есть полоса, но самолёт ещё выравнивается (не начал садиться) — смена полосы
-        // - вылетает (isDeparting), нет полосы
-        // - готов к вылету (isReadyToDepart), нет полосы (ждёт назначения)
+        // - arrival, approved, no runway
+        // - arrival, approved, there is a runway, but the plane is still leveling off (has not started to land) - change of runway
+        // - crashes (isDeparting), no lane
+        // - ready for departure (isReadyToDepart), no runway (waiting for destination)
         bool canAssign = (!data.isDeparting && !data.isReadyToDepart && data.approved && string.IsNullOrEmpty(data.assignedRunway))
                       || (!data.isDeparting && !data.isReadyToDepart && data.approved && !string.IsNullOrEmpty(data.assignedRunway) && data.isAligningToLand && !data.isLandingPhase)
                       || (data.isDeparting && string.IsNullOrEmpty(data.assignedRunway))
@@ -319,7 +311,6 @@ public class RadarPanelsManager : MonoBehaviour
             selectedFlightForRunway = data;
             if (runwaySelectionPanel != null)
             {
-//Debug.Log($"[Runway] Showing panel for: {data.callsign}");
                 runwaySelectionPanel.transform.SetParent(clickedEntry.transform.parent, false);
                 runwaySelectionPanel.transform.SetSiblingIndex(clickedEntry.transform.GetSiblingIndex() + 1);
                 runwaySelectionPanel.SetActive(true);
@@ -350,7 +341,7 @@ public class RadarPanelsManager : MonoBehaviour
             return;
         }
 
-        // 1. Обновляем данные
+        // 1. Update the data
         selectedFlightForRunway.assignedRunway = runwayId;
         selectedFlightForRunway.isAligningToLand = !selectedFlightForRunway.isDeparting && !selectedFlightForRunway.isReadyToDepart;
 
@@ -364,14 +355,14 @@ public class RadarPanelsManager : MonoBehaviour
         }
         else
         {
-            // 2b. Обычный самолёт уже в сцене — находим и назначаем полосу
+            // 2b. A regular plane is already in the scene - find and assign a runway
             UIAirplane[] allPlanes = Object.FindObjectsByType<UIAirplane>(FindObjectsSortMode.None);
             foreach (var plane in allPlanes)
             {
                 if (plane != null && (plane.originalCallsign == selectedFlightForRunway.callsign ||
                                      (plane.callsignText != null && plane.callsignText.text == selectedFlightForRunway.callsign)))
                 {
-                    // Если у самолёта уже была назначена полоса — сбрасываем старое состояние
+                    // If the plane already had a runway assigned, reset the old state
                     if (!string.IsNullOrEmpty(plane.assignedRunway))
                     {
                         plane.assignedRunway = "";
@@ -425,8 +416,6 @@ public class RadarPanelsManager : MonoBehaviour
             {
                 labelText.text = $"➔ {destinationName.ToUpper()}";
             }
-
-//Debug.Log($"[DepartureMarker] Created prefab marker for {destinationName} at {destPos}");
         }
         else
         {
@@ -480,8 +469,6 @@ public class RadarPanelsManager : MonoBehaviour
             
             labelText.outlineColor = Color.black;
             labelText.outlineWidth = 0.2f;
-
-//Debug.Log($"[DepartureMarker] Created pulsing marker for {destinationName} at {destPos}");
         }
     }
 

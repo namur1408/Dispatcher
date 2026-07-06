@@ -2,17 +2,17 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Добавь на Image-фон любой панели.
-/// Рисует тёмно-зелёную сетку процедурно — никаких текстур не нужно.
+/// Add a background to the Image of any panel.
+/// Draws a dark green mesh procedurally - no textures needed.
 /// </summary>
 [RequireComponent(typeof(RawImage))]
 public class GridBackground : MonoBehaviour
 {
     [Header("Grid settings")]
     public Color backgroundColor = new Color(0.012f, 0.055f, 0.024f, 1f); // #030e06
-    public Color lineColor        = new Color(0f, 1f, 0.314f, 0.05f);      // зелень, очень прозрачная
-    public int cellSize  = 32;  // пикселей на ячейку
-    public int lineWidth = 1;   // ширина линий
+    public Color lineColor        = new Color(0f, 1f, 0.314f, 0.05f);      // green, very transparent
+    public int cellSize  = 32;  // pixels per cell
+    public int lineWidth = 1;   // line width
 
     private RawImage img;
 
@@ -46,7 +46,7 @@ public class GridBackground : MonoBehaviour
         tex.Apply();
 
         img.texture = tex;
-        img.uvRect  = new Rect(0, 0, 40, 40); // тайлинг
+        img.uvRect  = new Rect(0, 0, 40, 40); // tailing
         img.color   = Color.white;
     }
 }

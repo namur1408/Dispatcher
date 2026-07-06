@@ -21,7 +21,7 @@ public class GlobalPaperBend : MonoBehaviour
     private RectTransform paperRect;
     private float lastBendAmount;
     
-    // Список дочерних графических элементов
+    // List of child graphic elements
     private List<PaperBendChild> childrenModifiers = new List<PaperBendChild>();
     private List<TMP_Text> tmpTexts = new List<TMP_Text>();
 
@@ -32,11 +32,11 @@ public class GlobalPaperBend : MonoBehaviour
 
     void Start()
     {
-        // Находим все Graphic компоненты (картинки, фоны и обычный Text)
+        // Find all Graphic components (pictures, backgrounds and regular Text)
         Graphic[] graphics = GetComponentsInChildren<Graphic>(true);
         foreach (var g in graphics)
         {
-            // Пропускаем TextMeshPro, так как он обрабатывается отдельно
+            // We skip TextMeshPro as it is processed separately
             if (g is TMP_Text) continue;
 
             var modifier = g.gameObject.GetComponent<PaperBendChild>();
@@ -48,18 +48,18 @@ public class GlobalPaperBend : MonoBehaviour
             childrenModifiers.Add(modifier);
         }
 
-        // Находим все элементы TextMeshPro
+        // Finding all TextMeshPro elements
         tmpTexts.AddRange(GetComponentsInChildren<TMP_Text>(true));
     }
 
     void Update()
     {
-        // Обновляем геометрию (порог уменьшен для плавности)
+        // Update the geometry (threshold reduced for smoothness)
         if (Mathf.Abs(bendAmount - lastBendAmount) > 0.01f)
         {
             lastBendAmount = bendAmount;
             
-            // 1. Обновляем обычные UI элементы (Image и старый Text)
+            // 1. Update regular UI elements (Image and old Text)
             foreach (var mod in childrenModifiers)
             {
                 if (mod != null)
@@ -69,15 +69,15 @@ public class GlobalPaperBend : MonoBehaviour
                 }
             }
 
-            // 2. Искривляем TextMeshPro напрямую
+            // 2. Warp TextMeshPro directly
             foreach (var tmp in tmpTexts)
             {
                 if (tmp != null && tmp.isActiveAndEnabled)
                 {
-                    tmp.ForceMeshUpdate(); // Генерируем ровный меш
+                    tmp.ForceMeshUpdate(); // Generating a smooth mesh
                     TMP_TextInfo textInfo = tmp.textInfo;
 
-                    // Модифицируем вершины каждого символа
+                    // Modifying the vertices of each symbol
                     for (int i = 0; i < textInfo.characterCount; i++)
                     {
                         if (!textInfo.characterInfo[i].isVisible) continue;
@@ -86,12 +86,12 @@ public class GlobalPaperBend : MonoBehaviour
                         int vertexIndex = textInfo.characterInfo[i].vertexIndex;
                         Vector3[] sourceVertices = textInfo.meshInfo[materialIndex].vertices;
 
-                        // У каждого символа 4 вершины
+                        // Each symbol has 4 vertices
                         for (int vIndex = 0; vIndex < 4; vIndex++)
                         {
                             Vector3 origPos = sourceVertices[vertexIndex + vIndex];
                             
-                            // Упаковываем в UIVertex для совместимости с нашей функцией
+                            // Packed in UIVertex for compatibility with our function
                             UIVertex tempV = new UIVertex();
                             tempV.position = origPos;
                             
@@ -101,7 +101,7 @@ public class GlobalPaperBend : MonoBehaviour
                         }
                     }
 
-                    // Обновляем меш TMP
+                    // Updating the TMP mesh
                     for (int i = 0; i < textInfo.materialCount; i++)
                     {
                         if (textInfo.meshInfo[i].mesh != null)
@@ -115,29 +115,29 @@ public class GlobalPaperBend : MonoBehaviour
         }
     }
 
-    // Эта функция вызывается каждым дочерним элементом при генерации меша
+    // This function is called by each child element when generating the mesh
     public void ApplyBendToVertex(ref UIVertex v, RectTransform childRect, bool isPaperBackground)
     {
-        // 1. Переводим локальную координату вершины child в локальную координату paper
+        // 1. Convert the local coordinate of the vertex child to the local coordinate of paper
         Vector3 worldPos = childRect.TransformPoint(v.position);
         Vector3 localToPaper = paperRect.InverseTransformPoint(worldPos);
 
-        // 2. Считаем изгиб (математика параболы)
+        // 2. Calculate the bend (mathematics of a parabola)
         float width = paperRect.rect.width;
-        if (width == 0) width = 100f; // Защита от деления на ноль
+        if (width == 0) width = 100f; // Divide by zero protection
 
-        // Нормализованная координата X на бумаге (0 - лево, 1 - право)
+        // Normalized X coordinate on paper (0 - left, 1 - right)
         float normalizedX = (localToPaper.x - paperRect.rect.xMin) / width;
         float dist = normalizedX - bendCenter;
 
         float bend = dist * dist * bendAmount;
 
-        // 3. Если это фон бумаги, добавляем тень (изменяем цвет вершин)
+        // 3. If this is a paper background, add a shadow (change the color of the vertices)
         if (isPaperBackground)
         {
             float shadowStrength = 0.15f;
-            // Тень теперь зависит от факта поднятия (foldShadowAlpha), а не от силы прогиба, 
-            // чтобы не пропадала резко при переходе через 0.
+            // The shadow now depends on the fact of raising (foldShadowAlpha), and not on the force of deflection, 
+            // so that it does not disappear abruptly when passing through 0.
             float shadowMask = 1.0f - Mathf.Clamp01(Mathf.Abs(dist) * 3f) * shadowStrength * foldShadowAlpha;
             
             Color32 c = v.color;
@@ -147,11 +147,11 @@ public class GlobalPaperBend : MonoBehaviour
             v.color = c;
         }
 
-        // 4. Применяем изгиб
+        // 4. Apply a bend
         localToPaper.y += bend;
-        localToPaper.z -= Mathf.Abs(bend) * 0.02f; // Немного объёма
+        localToPaper.z -= Mathf.Abs(bend) * 0.02f; // A little volume
 
-        // 5. Возвращаем обратно в локальные координаты child
+        // 5. Return child back to local coordinates
         Vector3 newWorldPos = paperRect.TransformPoint(localToPaper);
         v.position = childRect.InverseTransformPoint(newWorldPos);
     }

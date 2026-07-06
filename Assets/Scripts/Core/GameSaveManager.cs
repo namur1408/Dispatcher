@@ -2,35 +2,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
 
-[System.Serializable]
-public class SaveData
-{
-    public int currentDay;
-    public bool isShiftActive;
-    public float globalSpawnTimer;
-    
-    // FlightDataManager state
-    public List<FlightData> savedFlights = new List<FlightData>();
-    public List<FlightData> pendingFlights = new List<FlightData>();
-    public List<float> pendingDelays = new List<float>();
-
-    public int totalFuel;
-    public int totalFood;
-    public int totalPeople;
-    public int totalMedicines;
-
-    public int startFuelDay;
-    public int startFoodDay;
-    public int startPeopleDay;
-    public int startMedsDay;
-
-    public int maxPlanes;
-    public int landedPlanes;
-    public float accumulatedFoodConsumption;
-    
-    public List<EmailData> savedEmails = new List<EmailData>();
-}
-
 public static class GameSaveManager
 {
     private static string SavePath => Application.persistentDataPath + "/savedata.json";
@@ -53,8 +24,8 @@ public static class GameSaveManager
         data.isShiftActive = FlightDataManager.Instance.isShiftActive;
         data.globalSpawnTimer = FlightDataManager.Instance.globalSpawnTimer;
         
-        // Обновляем float-списки координат вейпоинтов перед сохранением
-        // (JsonUtility не умеет сериализовать List<Vector2> напрямую)
+        // Update float lists of waypoint coordinates before saving
+        // (JsonUtility does not know how to serialize List<Vector2> directly)
         foreach (var flight in FlightDataManager.Instance.savedFlights)
             flight.UpdateSerializedWaypoints();
         
@@ -78,6 +49,9 @@ public static class GameSaveManager
         data.accumulatedFoodConsumption = FlightDataManager.Instance.accumulatedFoodConsumption;
         
         data.savedEmails = new List<EmailData>(AegisMailApp.globalInbox);
+        
+        data.interrogationKeys = new List<string>(FlightDataManager.Instance.interrogationStates.Keys);
+        data.interrogationValues = new List<FlightInterrogationState>(FlightDataManager.Instance.interrogationStates.Values);
         
         string json = JsonUtility.ToJson(data, true);
         File.WriteAllText(SavePath, json);

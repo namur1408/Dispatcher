@@ -18,11 +18,11 @@ public class BackgroundMusic : MonoBehaviour
 
     [Header("Настройки сцен и затухания")]
     public string menuSceneName = "MainMenu";
-    public float fadeDuration = 3f; // Время затухания в секундах
+    public float fadeDuration = 3f; // Decay time in seconds
 
     private int currentGameTrackIndex = 0;
     private float currentTargetVolume = 1f;
-    private float userVolumeMultiplier = 1f; // Мультипликатор от ползунка в настройках
+    private float userVolumeMultiplier = 1f; // Multiplier from the slider in the settings
     private bool isFadingOut = false;
     private bool isFadingIn = false;
 
@@ -44,7 +44,7 @@ public class BackgroundMusic : MonoBehaviour
             
             audioSource = GetComponent<AudioSource>();
             audioSource.loop = false;
-            // userVolumeMultiplier загружается через SetMusicVolume() из MainMenuController.Start()
+            // userVolumeMultiplier is loaded via SetMusicVolume() from MainMenuController.Start()
         }
         else
         {
@@ -53,7 +53,7 @@ public class BackgroundMusic : MonoBehaviour
         }
     }
 
-    // Вызывать перед загрузкой сцены
+    // Call before loading scene
     public void FadeOutToZero(float duration)
     {
         StopAllCoroutines();
@@ -63,14 +63,14 @@ public class BackgroundMusic : MonoBehaviour
     }
 
     /// <summary>
-    /// Устанавливает громкость музыки через ползунок. Применяется мгновенно.
+    /// Sets the music volume via the slider. Applies instantly.
     /// </summary>
     public void SetMusicVolume(float normalizedValue)
     {
         userVolumeMultiplier = Mathf.Clamp01(normalizedValue);
 
-        // Всегда применяем немедленно, даже во время фейда —
-        // иначе слайдер не реагирует 3 секунды пока идёт FadeIn
+        // We always apply it immediately, even during a fade -
+        // otherwise the slider does not respond for 3 seconds while FadeIn is in progress
         if (audioSource != null && !isFadingOut)
         {
             audioSource.volume = currentTargetVolume * userVolumeMultiplier;
@@ -136,7 +136,7 @@ public class BackgroundMusic : MonoBehaviour
         if (targetClip != null)
         {
             audioSource.clip = targetClip;
-            audioSource.volume = 0f; // Начинаем с нуля для плавного появления
+            audioSource.volume = 0f; // Starting from scratch for a smooth appearance
             audioSource.Play();
             StartCoroutine(FadeIn());
         }
@@ -149,7 +149,7 @@ public class BackgroundMusic : MonoBehaviour
 
         float remainingTime = audioSource.clip.length - audioSource.time;
 
-        // Если до конца трека осталось меньше времени, чем длительность затухания
+        // If there is less time left until the end of the track than the fade duration
         if (remainingTime <= fadeDuration)
         {
             StartCoroutine(FadeOutAndNext());
@@ -163,8 +163,8 @@ public class BackgroundMusic : MonoBehaviour
         while (timer < fadeDuration)
         {
             timer += Time.unscaledDeltaTime;
-            // Читаем userVolumeMultiplier каждый кадр —
-            // так слайдер работает в реальном времени даже во время фейда
+            // Read userVolumeMultiplier every frame -
+            // this is how the slider works in real time even during a fade
             float targetVol = currentTargetVolume * userVolumeMultiplier;
             audioSource.volume = Mathf.Lerp(0f, targetVol, timer / fadeDuration);
             yield return null;
@@ -190,7 +190,7 @@ public class BackgroundMusic : MonoBehaviour
         audioSource.Stop();
         isFadingOut = false;
 
-        // Выбираем следующий трек
+        // Select the next track
         if (currentState == MusicState.Game)
         {
             if (gameMusicTracks.Count > 0)
@@ -198,13 +198,13 @@ public class BackgroundMusic : MonoBehaviour
                 currentGameTrackIndex++;
                 if (currentGameTrackIndex >= gameMusicTracks.Count)
                 {
-                    currentGameTrackIndex = 0; // Плейлист пошел по кругу
+                    currentGameTrackIndex = 0; // The playlist went in circles
                 }
             }
         }
-        // Для Menu трек не меняется, он просто начнётся заново
+        // For Menu, the track does not change, it will simply start again
 
         PlayCurrentStateMusic();
     }
 }
-
+

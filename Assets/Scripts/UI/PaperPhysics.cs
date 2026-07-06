@@ -5,14 +5,14 @@ using UnityEngine.EventSystems;
 public class PaperPhysics : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     [Header("Настройки физики бумаги")]
-    public float swayMultiplier = -0.5f; // Сила наклона от скорости мышки
-    public float maxSwayAngle = 15f;     // Максимальный угол наклона
-    public float springForce = 15f;      // Как быстро бумага выравнивается обратно
-    public float dragDamping = 10f;      // Плавность наклона
+    public float swayMultiplier = -0.5f; // Tilt force on mouse speed
+    public float maxSwayAngle = 15f;     // Maximum tilt angle
+    public float springForce = 15f;      // How quickly does the paper straighten back out?
+    public float dragDamping = 10f;      // Smoothness of tilt
     
     [Header("Настройки сжатия (Squash & Stretch)")]
     public bool enableSquash = true;
-    public float squashAmount = 0.05f;   // Насколько бумага вытягивается при движении
+    public float squashAmount = 0.05f;   // How much does the paper stretch when moving?
 
     [Header("Настройки прогиба (Shader Bend)")]
     public bool enableBend = true;
@@ -52,7 +52,7 @@ public class PaperPhysics : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
     private float targetBend = 0f;
 
     // Lift
-    private float currentLift = 0f; // 0 = лежит, 1 = поднята в воздух
+    private float currentLift = 0f; // 0 = lying down, 1 = raised in the air
     private GlobalPaperBend globalBend;
 
     void Start()
@@ -62,7 +62,7 @@ public class PaperPhysics : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
 
         if (enableBend)
         {
-            // Подключаем наш новый глобальный модификатор мешей
+            // Connecting our new global mesh modifier
             globalBend = GetComponent<GlobalPaperBend>();
             if (globalBend == null)
             {
@@ -82,14 +82,14 @@ public class PaperPhysics : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
         Vector2 delta = eventData.position - lastMousePos;
         lastMousePos = eventData.position;
         
-        // Горизонтальное движение вызывает наклон
+        // Horizontal movement causes tilt
         targetSway = Mathf.Clamp(delta.x * swayMultiplier, -maxSwayAngle, maxSwayAngle);
 
-        // Вертикальное движение вызывает прогиб бумаги
+        // Vertical movement causes the paper to sag
         if (enableBend)
         {
-            // Увеличили множитель, чтобы было заметнее.
-            // При движении мыши (delta) мы добавляем или вычитаем из базового провисания.
+            // Increased the multiplier to make it more noticeable.
+            // As we move the mouse (delta), we add or subtract from the base slack.
             float motionBend = -delta.y * bendMultiplier * 2.5f;
             motionBend += Mathf.Abs(delta.x) * bendMultiplier * 0.5f;
             
@@ -108,34 +108,34 @@ public class PaperPhysics : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
     {
         if (!isDragging)
         {
-            targetSway = 0f; // Если отпустили, цель - ровное положение
-            if (enableBend) targetBend = 0f; // Кладём на стол - бумага выравнивается
+            targetSway = 0f; // If released, the goal is a level position
+            if (enableBend) targetBend = 0f; // Place it on the table - the paper is leveled
         }
         else
         {
-            // Если мы держим бумагу (isDragging = true), но мышь не двигается,
-            // delta в OnDrag равна 0, поэтому нам нужно плавно возвращать targetBend к baseSagAmount.
-            // OnDrag вызывается только при движении, поэтому восстанавливаем тут:
+            // If we are holding the paper (isDragging = true) but the mouse is not moving,
+            // delta in OnDrag is 0, so we need to smoothly return targetBend to baseSagAmount.
+            // OnDrag is called only when moving, so we restore it here:
             targetBend = Mathf.Lerp(targetBend, baseSagAmount, Time.deltaTime * bendSpringForce);
         }
 
-        // Плавно меняем текущий наклон к целевому
+        // Smoothly change the current slope to the target one
         float speed = isDragging ? dragDamping : springForce;
         currentSway = Mathf.Lerp(currentSway, targetSway, Time.deltaTime * speed);
         
-        // Применяем вращение
+        // Apply rotation
         rectTransform.localRotation = Quaternion.Euler(0, 0, currentSway);
 
-        // ── Lift & Squash (Увеличение и Тень) ──
+        // ── Lift & Squash (Increase and Shadow) ──
         
-        // Плавно меняем значение поднятия (0 - лежит, 1 - в руке)
+        // Smoothly change the lift value (0 - lying, 1 - in hand)
         currentLift = Mathf.Lerp(currentLift, isDragging ? 1f : 0f, Time.deltaTime * liftSpeed);
         
-        // Базовый масштаб с учетом поднятия
+        // Basic scale taking into account elevation
         float liftScaleAmount = 1f + (liftScaleMultiplier - 1f) * currentLift;
         Vector3 currentBaseScale = originalScale * liftScaleAmount;
 
-        // Применяем эффект "провисания/вытягивания" при движении мышки
+        // Applying the “sagging/pulling” effect when moving the mouse
         if (enableSquash)
         {
             float stretch = 1f + (Mathf.Abs(currentSway) / maxSwayAngle) * squashAmount;
@@ -148,7 +148,7 @@ public class PaperPhysics : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
             rectTransform.localScale = currentBaseScale;
         }
 
-        // ── Передаем данные о тени и изгибе ──
+        // ── We transmit data about the shadow and bend ──
         if (globalBend != null)
         {
             globalBend.dropShadowAlpha = currentLift * shadowAlpha;
@@ -162,11 +162,11 @@ public class PaperPhysics : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
                 globalBend.bendAmount = currentBend;
             }
             
-            // Если тень анимируется, нам нужно перестраивать сетку
+            // If the shadow is animated, we need to rebuild the mesh
             if (isDragging || currentLift > 0.01f || Mathf.Abs(targetBend - currentBend) > 0.1f)
             {
-                // Форсируем обновление графики в GlobalPaperBend
-                // (уже обрабатывается через bendAmount, но добавим грязный флаг для тени)
+                // Force the graphics update in GlobalPaperBend
+                // (already handled through bendAmount, but let's add a dirty flag for the shadow)
                 var g = GetComponent<UnityEngine.UI.Graphic>();
                 if (g != null) g.SetVerticesDirty();
             }

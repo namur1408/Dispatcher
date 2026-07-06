@@ -2,17 +2,17 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Добавь на Image-объект — он будет пульсировать как "ONLINE"-точка в AEGIS.
+/// Add an Image object - it will pulsate as an "ONLINE" point in AEGIS.
 /// </summary>
 public class PulsingDot : MonoBehaviour
 {
     [Header("Colors")]
-    public Color onColor  = new Color(0f, 1f, 0.314f, 1f);     // ярко-зелёный
-    public Color offColor = new Color(0f, 1f, 0.314f, 0.2f);   // тусклый
+    public Color onColor  = new Color(0f, 1f, 0.314f, 1f);     // bright green
+    public Color offColor = new Color(0f, 1f, 0.314f, 0.2f);   // dim
 
     [Header("Timing")]
-    public float period   = 2f;   // секунд на полный цикл
-    public float glowSize = 5f;   // радиус свечения
+    public float period   = 2f;   // seconds for a full cycle
+    public float glowSize = 5f;   // glow radius
 
     private Image img;
     private float t;
@@ -23,7 +23,7 @@ public class PulsingDot : MonoBehaviour
         img.type = Image.Type.Simple;
         img.preserveAspect = false;
 
-        // Размер НЕ меняем — задаётся в редакторе Unity
+        // We DO NOT change the size - it is set in the Unity editor
         img.sprite = CreateCircleSprite(32);
     }
 

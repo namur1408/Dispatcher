@@ -6,11 +6,11 @@ public class SlideToggleUI : MonoBehaviour
     public RectTransform panelToMove; 
     public Vector2 hideOffset = new Vector2(0, -1000f); 
     public float speed = 10f; 
-    public bool startHidden = true; // Добавлена настройка
+    public bool startHidden = true; // Added setting
 
     [Header("Кнопки (Опционально)")]
-    public GameObject buttonToOpen; // Кнопка, которая появится, когда машина полностью спрячется
-    public GameObject buttonToClose; // Кнопка, которая будет скрываться во время уезда машины
+    public GameObject buttonToOpen; // A button that will appear when the car is completely hidden
+    public GameObject buttonToClose; // A button that will hide while the car is driving away
 
     private Vector2 visiblePosition;
     private Vector2 hiddenPosition;
@@ -27,12 +27,12 @@ public class SlideToggleUI : MonoBehaviour
         if (startHidden)
         {
             isVisible = false;
-            panelToMove.anchoredPosition = hiddenPosition; // Мгновенно перемещаем вниз
+            panelToMove.anchoredPosition = hiddenPosition; // Instantly move down
         }
         
         initialized = true;
         
-        // Начальное состояние кнопок
+        // Initial state of the buttons
         if (buttonToOpen != null) buttonToOpen.SetActive(!isVisible);
         if (buttonToClose != null) buttonToClose.SetActive(isVisible);
     }
@@ -56,13 +56,13 @@ public class SlideToggleUI : MonoBehaviour
         
         if (isVisible)
         {
-            // Как только мы нажали "Открыть", сразу прячем кнопку открытия и показываем кнопку закрытия
+            // As soon as we clicked "Open", we immediately hide the open button and show the close button
             if (buttonToOpen != null) buttonToOpen.SetActive(false);
             if (buttonToClose != null) buttonToClose.SetActive(true);
         }
         else
         {
-            // Как только нажали "Закрыть", сразу прячем кнопку закрытия и показываем кнопку открытия
+            // As soon as you click “Close”, we immediately hide the close button and show the open button
             if (buttonToClose != null) buttonToClose.SetActive(false);
             if (buttonToOpen != null) buttonToOpen.SetActive(true);
         }

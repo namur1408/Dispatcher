@@ -1,13 +1,13 @@
 using UnityEngine;
 
 /// <summary>
-/// Генератор диалогов пилотов на основе типа личности.
-/// Используется как фоллбэк — кастомные строки из FlightData имеют приоритет.
+/// Generator of pilot dialogues based on personality type.
+/// Used as a fallback - custom strings from FlightData take precedence.
 /// </summary>
 public static class PilotDialogue
 {
     // ========================
-    //  ПРИВЕТСТВИЕ
+    // GREETINGS
     // ========================
 
     public static string GetGreeting(PilotPersonality personality, string callsign)
@@ -64,7 +64,7 @@ public static class PilotDialogue
     }
 
     // ========================
-    //  ОТВЕТЫ НА ВОПРОСЫ
+    // ANSWERS TO QUESTIONS
     // ========================
 
     public static string GetAnswer(PilotPersonality personality, string topic, string value)
@@ -276,7 +276,7 @@ public static class PilotDialogue
     }
 
     // ========================
-    //  КОНФРОНТАЦИЯ
+    // CONFRONTATION
     // ========================
 
     public static string GetConfrontResponse(PilotPersonality personality)
@@ -329,12 +329,12 @@ public static class PilotDialogue
     }
 
     // ========================
-    //  ЗАДЕРЖКА ОТВЕТА
+    // RESPONSE DELAY
     // ========================
 
     /// <summary>
-    /// Возвращает (min, max) задержку ответа пилота в секундах.
-    /// Нервный отвечает быстро (спешит оправдаться), холодный — медленно.
+    /// Returns (min, max) the pilot response delay in seconds.
+    /// A nervous person answers quickly (hurries to justify himself), a cold person answers slowly.
     /// </summary>
     public static (float min, float max) GetResponseDelay(PilotPersonality personality)
     {
@@ -349,18 +349,18 @@ public static class PilotDialogue
     }
 
     // ========================
-    //  РАНДОМНЫЙ ВЫБОР ДЛЯ ПРОЦЕДУРНЫХ РЕЙСОВ
+    // RANDOM SELECTION FOR PROCEDURE FLIGHTS
     // ========================
 
     /// <summary>
-    /// Возвращает случайную личность для рандомных (не сюжетных) самолётов.
+    /// Returns a random identity for random (non-story) aircraft.
     /// </summary>
     public static PilotPersonality GetRandomPersonality()
     {
         PilotPersonality[] pool = new PilotPersonality[]
         {
             PilotPersonality.Standard,
-            PilotPersonality.Standard,    // повышенный шанс Standard
+            PilotPersonality.Standard,    // increased chance Standard
             PilotPersonality.Aggressive,
             PilotPersonality.Nervous,
             PilotPersonality.Cold,
@@ -370,7 +370,7 @@ public static class PilotDialogue
     }
 
     // ========================
-    //  УТИЛИТЫ
+    // UTILITIES
     // ========================
 
     static string Pick(params string[] variants)

@@ -20,7 +20,7 @@ public class LampToggle : MonoBehaviour, IPointerClickHandler
 
     void Awake()
     {
-        // Ищем ВСЕ компоненты Light 2D на этом объекте и на всех вложенных (дочерних)
+        // We are looking for ALL Light 2D components on this object and on all nested (child)
         allLamps = GetComponentsInChildren<Light2D>();
         
         if (allLamps == null || allLamps.Length == 0)
@@ -35,7 +35,7 @@ public class LampToggle : MonoBehaviour, IPointerClickHandler
             audioSource.playOnAwake = false;
         }
 
-        // Автоматично шукаємо дочірній об'єкт з назвою "LampDust", якщо не перетягнули вручну
+        // We automatically look for a child object with the name "LampDust", if it was not dragged manually
         if (lampDust == null)
         {
             Transform dustTransform = transform.Find("LampDust");
@@ -45,7 +45,7 @@ public class LampToggle : MonoBehaviour, IPointerClickHandler
             }
             else
             {
-                // Якщо не знайшли прямого нащадка, шукаємо по всій ієрархії вглиб
+                // If we do not find a direct descendant, we search deeply throughout the hierarchy
                 foreach (Transform child in GetComponentsInChildren<Transform>(true))
                 {
                     if (child.name == "LampDust")
@@ -58,16 +58,16 @@ public class LampToggle : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    // Вызывается, если лампа является UI-элементом
+    // Called if the lamp is a UI element
     public void OnPointerClick(PointerEventData eventData)
     {
         ToggleLight();
     }
 
-    // Вызывается, если лампа - объект в мире (с Collider2D)
+    // Called if the lamp is an object in the world (with Collider2D)
     void OnMouseDown()
     {
-        // Если перед лампой есть UI элемент, игнорируем клик
+        // If there is a UI element in front of the lamp, ignore the click
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
         {
             return;
@@ -80,8 +80,8 @@ public class LampToggle : MonoBehaviour, IPointerClickHandler
     {
         if (allLamps != null && allLamps.Length > 0)
         {
-            // Переключаем состояние у КАЖДОГО найденного света
-            bool newState = !allLamps[0].enabled; // Смотрим по первой лампе
+            // Switch the state of EVERY light found
+            bool newState = !allLamps[0].enabled; // Let's look at the first lamp
             
             foreach (var lamp in allLamps)
             {
@@ -91,13 +91,13 @@ public class LampToggle : MonoBehaviour, IPointerClickHandler
                 }
             }
 
-            // Вмикаємо або вимикаємо пил лампи
+            // We turn on or off the dust of the lamp
             if (lampDust != null)
             {
                 lampDust.SetActive(newState);
             }
 
-            // Відтворюємо звук з налаштованою гучністю
+            // Play the sound with the adjusted volume
             if (audioSource != null && clickSound != null)
             {
                 audioSource.PlayOneShot(clickSound, soundVolume);

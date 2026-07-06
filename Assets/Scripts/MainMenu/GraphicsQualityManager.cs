@@ -3,11 +3,11 @@ using UnityEngine.Rendering;
 using System.Collections;
 
 /// <summary>
-/// Управляет реальным качеством графики в игре.
-/// LOW: отключает дождь, молнию, CRT-шум, снижает качество Unity.
-/// HIGH: включает всё обратно.
-/// Добавь этот компонент на тот же объект что и MainMenuController,
-/// ИЛИ на отдельный DontDestroyOnLoad-объект.
+/// Controls the actual graphics quality in the game.
+/// LOW: disables rain, lightning, CRT noise, reduces Unity quality.
+/// HIGH: turns everything back on.
+/// Add this component to the same object as MainMenuController,
+/// OR to a separate DontDestroyOnLoad object.
 /// </summary>
 public class GraphicsQualityManager : MonoBehaviour
 {
@@ -31,13 +31,13 @@ public class GraphicsQualityManager : MonoBehaviour
 
     void Start()
     {
-        // Восстанавливаем сохранённую настройку
+        // Restoring a saved setting
         int savedLevel = PlayerPrefs.GetInt("GraphicsQuality", QualitySettings.names.Length - 1);
         bool savedLow = savedLevel == 0;
         ApplyQuality(savedLow);
     }
 
-    /// <summary>Вызови с true для LOW, false для HIGH</summary>
+    /// <summary>Call with true for LOW, false for HIGH</summary>
     public void ApplyQuality(bool low)
     {
         isLowQuality = low;
@@ -48,7 +48,7 @@ public class GraphicsQualityManager : MonoBehaviour
             QualitySettings.SetQualityLevel(0, true); // Very Low
             PlayerPrefs.SetInt("GraphicsQuality", 0);
 
-            // --- Тени ---
+            // --- Shadows ---
             QualitySettings.shadows = ShadowQuality.Disable;
             QualitySettings.shadowDistance = 0f;
         }
@@ -59,14 +59,14 @@ public class GraphicsQualityManager : MonoBehaviour
             QualitySettings.SetQualityLevel(highLevel, true);
             PlayerPrefs.SetInt("GraphicsQuality", highLevel);
 
-            // --- Тени ---
+            // --- Shadows ---
             QualitySettings.shadows = ShadowQuality.All;
             QualitySettings.shadowDistance = 50f;
         }
 
         PlayerPrefs.Save();
 
-        // Применяем к эффектам в сцене
+        // Apply to effects in the scene
         StartCoroutine(ApplyToSceneEffects(low));
 
         Debug.Log($"[Graphics] Качество установлено: {(low ? "LOW" : "HIGH")}");
@@ -74,45 +74,45 @@ public class GraphicsQualityManager : MonoBehaviour
 
     private IEnumerator ApplyToSceneEffects(bool low)
     {
-        // Ждём кадр чтобы сцена точно была загружена
+        // We are waiting for the frame so that the scene is definitely loaded
         yield return null;
 
-        // --- Дождь / Шторм ---
+        // ---Rain/Storm ---
         DynamicStorm[] storms = FindObjectsByType<DynamicStorm>(FindObjectsSortMode.None);
         foreach (var s in storms)
         {
             s.gameObject.SetActive(!low);
         }
 
-        // --- Молния ---
+        // --- Lightning ---
         AdvancedStormLightning[] lightnings = FindObjectsByType<AdvancedStormLightning>(FindObjectsSortMode.None);
         foreach (var l in lightnings)
         {
             l.gameObject.SetActive(!low);
         }
 
-        // --- CRT / Noise эффект ---
+        // --- CRT/Noise effect ---
         CRTNoiseEffect[] crts = FindObjectsByType<CRTNoiseEffect>(FindObjectsSortMode.None);
         foreach (var c in crts)
         {
             c.gameObject.SetActive(!low);
         }
 
-        // --- WindowLightning (вспышки в окне) ---
+        // --- WindowLightning (flashes in the window) ---
         WindowLightning[] windowLights = FindObjectsByType<WindowLightning>(FindObjectsSortMode.None);
         foreach (var w in windowLights)
         {
             w.gameObject.SetActive(!low);
         }
 
-        // --- Мерцание лампы ---
+        // --- Lamp flickering ---
         DeskLampFlicker[] lamps = FindObjectsByType<DeskLampFlicker>(FindObjectsSortMode.None);
         foreach (var lamp in lamps)
         {
             lamp.enabled = !low;
         }
 
-        // --- Particle Systems (любые) ---
+        // --- Particle Systems (any) ---
         ParticleSystem[] particles = FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None);
         foreach (var ps in particles)
         {

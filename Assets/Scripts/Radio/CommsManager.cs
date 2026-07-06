@@ -1,15 +1,16 @@
 using UnityEngine;
 using TMPro;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.Events;
 
+/// <summary>
+/// Facade for the Communications system. 
+/// Retains all inspector references but delegates heavy logic to CommsUIController and CommsDocumentLogic.
+/// </summary>
 public class CommsManager : SingletonMB<CommsManager>
 {
-
-
     [Header("Document Prefabs")]
     public GameObject manifestPrefab;
     public GameObject radarPrefab;
@@ -35,7 +36,6 @@ public class CommsManager : SingletonMB<CommsManager>
     [Header("Decrypter Settings")]
     public GameObject decryptionMachineObj;
     public GameObject decryptionPaperPrefab;
-    private GameObject decryptionPaperInstance;
     
     [Header("Teletype Settings")]
     public float typeDelay = 0.05f; 
@@ -52,75 +52,28 @@ public class CommsManager : SingletonMB<CommsManager>
     public int paperScrollJerksMin = 4;
     public int paperScrollJerksMax = 8;
 
+    [Header("Single Scene Return Mode (Optional)")]
+    public Camera returnCamera;
+    public GameObject returnScreenRoot;
+    public GameObject currentCommsRoot;
+    public UnityEvent onReturn;
+
+    // --- Sub-Controllers ---
+    private CommsUIController uiController;
+    private CommsDocumentLogic docLogic;
+
+    // --- State ---
     private FlightData currentData;
-    private string firstFactID = "";
+    private FlightInterrogationState currentState;
+    private string pendingQuestionTopic = "";
+    private bool isTyping = false;
+
     private FactScanner firstFactScanner;
     private int firstFactIndex = -1;
-    private string pendingQuestionTopic = "";
-
-    private bool askedCargo = false;
-    private bool askedOrigin = false;
-    private bool askedWeight = false;
-    private bool askedSpeed = false;
-
-    private string currentLieTopic = "";
-    private DocumentUI pilotReportDoc;
-
-    private bool isTyping = false;
-    private Coroutine scrollCoroutine;
-    private bool isAnimatingPaper = false;
-
-    private GameObject manifestDocInstance;
-    private GameObject radarDocInstance;
-    private GameObject cheatSheetDocInstance;
 
     private AudioSource dedicatedPrinterSource;
     private AudioSource dedicatedTypewriterSource;
     private float previousButtonVolume = 0.7f;
-
-    private void PlaySound(AudioClip clip)
-    {
-        if (commsAudioSource != null && clip != null)
-        {
-            commsAudioSource.PlayOneShot(clip, effectsVolume);
-        }
-    }
-
-    private void StartTypewriterSound()
-    {
-        if (typewriterSound == null) return;
-        
-        dedicatedTypewriterSource.clip = typewriterSound;
-        dedicatedTypewriterSource.volume = effectsVolume;
-        dedicatedTypewriterSource.loop = true;
-        if (!dedicatedTypewriterSource.isPlaying) dedicatedTypewriterSource.Play();
-    }
-
-    private void StopTypewriterSound()
-    {
-        if (dedicatedTypewriterSource != null)
-        {
-            dedicatedTypewriterSource.Stop();
-        }
-    }
-
-    private void StartPrinterSound()
-    {
-        if (printerSound == null) return;
-        
-        dedicatedPrinterSource.clip = printerSound;
-        dedicatedPrinterSource.volume = effectsVolume;
-        dedicatedPrinterSource.loop = true;
-        if (!dedicatedPrinterSource.isPlaying) dedicatedPrinterSource.Play();
-    }
-
-    private void StopPrinterSound()
-    {
-        if (dedicatedPrinterSource != null)
-        {
-            dedicatedPrinterSource.Stop();
-        }
-    }
 
     protected override void Awake()
     {
@@ -136,40 +89,19 @@ public class CommsManager : SingletonMB<CommsManager>
         if (confrontButton != null) confrontButton.SetActive(false);
         if (askButton != null) askButton.SetActive(false);
 
-        if (chatHistoryText != null)
-        {
-            chatHistoryText.alignment = TextAlignmentOptions.TopLeft;
-        }
+        if (chatHistoryText != null) chatHistoryText.alignment = TextAlignmentOptions.TopLeft;
 
         if (folderUI != null && folderUI.GetComponent<DraggablePaper>() == null)
-        {
             folderUI.AddComponent<DraggablePaper>();
-        }
-    }
 
-    private void ConfigureChatScrollView()
-    {
-        if (chatScroll == null) return;
-
-        RectTransform rect = chatScroll.GetComponent<RectTransform>();
-        if (rect != null)
-        {
-            // Lock the anchors to Right-Stretch:
-            // - Horizontal: Anchored to the right of the screen (Right = -50f, Width = 509f, Left = -559f)
-            // - Vertical: Stretches vertically with Top = 18.055f and Bottom = -861.645f offsets to match teletype height
-            rect.anchorMin = new Vector2(1f, 0f);
-            rect.anchorMax = new Vector2(1f, 1f);
-            rect.pivot = new Vector2(1f, 0.5f);
-            
-            rect.offsetMin = new Vector2(-559f, -861.645f);
-            rect.offsetMax = new Vector2(-50f, 18.055f);
-            
-            Debug.Log($"[UI] Programmatically locked Chat Scroll View to a responsive Right-Stretch layout.");
-        }
+        uiController = new CommsUIController(this);
+        docLogic = new CommsDocumentLogic();
     }
 
     void OnEnable()
     {
+        if (Instance != this) return;
+
         if (ButtonSoundManager.instance != null)
         {
             previousButtonVolume = ButtonSoundManager.instance.volume;
@@ -178,42 +110,54 @@ public class CommsManager : SingletonMB<CommsManager>
 
         if (HintManager.Instance != null) HintManager.Instance.TriggerAskQuestionHint();
 
-        ConfigureChatScrollView();
-        
-        Canvas.ForceUpdateCanvases();
-
-        // Enforce the starting paper position where only the top 150 pixels stick out from the bottom
-        if (chatScroll != null && chatScroll.content != null && chatScroll.viewport != null)
+        if (chatScroll != null)
         {
-            float viewportHeight = chatScroll.viewport.rect.height;
-            RectTransform contentRect = chatScroll.content;
-            float startY = -viewportHeight + 150f;
-            contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, startY);
+            RectTransform rect = chatScroll.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.anchorMin = new Vector2(1f, 0f);
+                rect.anchorMax = new Vector2(1f, 1f);
+                rect.pivot = new Vector2(1f, 0.5f);
+                rect.offsetMin = new Vector2(-559f, -861.645f);
+                rect.offsetMax = new Vector2(-50f, 18.055f);
+            }
+            if (chatScroll.content != null && chatScroll.viewport != null)
+            {
+                float viewportHeight = chatScroll.viewport.rect.height;
+                RectTransform contentRect = chatScroll.content;
+                float startY = -viewportHeight + 150f;
+                contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, startY);
+            }
         }
 
         RefreshData();
     }
 
+    void OnDisable()
+    {
+        if (Instance != this) return;
+        if (ButtonSoundManager.instance != null)
+            ButtonSoundManager.instance.SetVolume(previousButtonVolume);
+    }
+
     public void RefreshData()
     {
-        if (manifestDocInstance != null) { Destroy(manifestDocInstance); manifestDocInstance = null; }
-        if (radarDocInstance != null) { Destroy(radarDocInstance); radarDocInstance = null; }
-        if (cheatSheetDocInstance != null) { Destroy(cheatSheetDocInstance); cheatSheetDocInstance = null; }
-        if (pilotReportDoc != null) { Destroy(pilotReportDoc.gameObject); pilotReportDoc = null; }
-        if (decryptionPaperInstance != null) { Destroy(decryptionPaperInstance); decryptionPaperInstance = null; }
+        if (uiController == null || docLogic == null) return;
 
-        if (chatHistoryText != null) chatHistoryText.text = "";
+        uiController.ClearDocuments();
+        uiController.ClearChat();
+
+        StopAllCoroutines();
         StopPrinterSound();
         StopTypewriterSound();
-        StopAllCoroutines();
         isTyping = false;
-        isAnimatingPaper = false;
+        pendingQuestionTopic = "";
         
-        firstFactID = "";
+        docLogic.firstFactID = "";
+        docLogic.currentLieTopic = "";
         firstFactScanner = null;
         firstFactIndex = -1;
-        pendingQuestionTopic = "";
-        currentLieTopic = "";
+
         if (askButton != null) askButton.SetActive(false);
         if (confrontButton != null) confrontButton.SetActive(false);
 
@@ -223,140 +167,51 @@ public class CommsManager : SingletonMB<CommsManager>
             currentData = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == callsign);
             if (currentData != null)
             {
-                askedCargo = currentData.askedCargo;
-                askedOrigin = currentData.askedOrigin;
-                askedWeight = currentData.askedWeight;
-                askedSpeed = currentData.askedSpeed;
+                currentState = FlightDataManager.Instance.GetOrCreateInterrogationState(callsign);
 
-                GenerateDocuments();
+                docLogic.SetFlightData(currentData, currentState);
+                uiController.GenerateDocuments(currentData, docLogic);
+                uiController.SetupFolder(currentData, currentState);
+                uiController.SetupDecryptionMachine(currentData, currentState, decryptionMachineObj);
 
-                SetupDecryptionMachine(askedCargo);
-
-                if (string.IsNullOrEmpty(currentData.chatHistory))
+                if (string.IsNullOrEmpty(currentState.chatHistory))
                 {
                     StartCoroutine(Routine_StartChat());
                 }
                 else
                 {
-                    chatHistoryText.text = currentData.chatHistory;
-                    ScrollToBottom(true);
+                    uiController.SetChatText(currentState.chatHistory);
+                    uiController.ScrollToBottom(true);
                 }
             }
         }
     }
 
-    string GetStatedOrigin() => !string.IsNullOrEmpty(currentData.spokenOrigin) ? currentData.spokenOrigin : currentData.manifestOrigin;
-    string GetStatedCargo() => !string.IsNullOrEmpty(currentData.spokenCargo) ? currentData.spokenCargo : currentData.manifestCargo;
-    string GetStatedWeight() => !string.IsNullOrEmpty(currentData.spokenWeight) ? currentData.spokenWeight : currentData.manifestCargoAmount.ToString();
-    string GetStatedSpeed() => !string.IsNullOrEmpty(currentData.spokenSpeed) ? currentData.spokenSpeed : (currentData.speed * 5f).ToString();
-
-    void GenerateDocuments()
+    public void OnFolderTorn()
     {
-        string highlightStart = "";
-        string highlightEnd = "";
-
-        string manifestText = $"<align=center><b>FLIGHT MANIFEST</b></align>\n\n" +
-                              $"<b>FLIGHT:</b> {currentData.callsign}\n" +
-                              $"<b>ORIGIN:</b> <link=\"man_origin\">{currentData.manifestOrigin}</link>\n" +
-                              $"<b>CARGO:</b> {highlightStart}<link=\"man_cargo\">{currentData.manifestCargo.ToUpper()}</link>{highlightEnd}\n" +
-                              $"<b>WEIGHT:</b> <link=\"man_weight\">{currentData.manifestCargoAmount} UNITS</link>\n";
-
-        manifestDocInstance = SpawnDocument(manifestPrefab, manifestText, currentData.manifestPos, true);
-
-        string radarLogText = $"<align=center><b>RADAR REPORT</b></align>\n\n" +
-                              $"<b>SPEED:</b> <link=\"rad_speed\">{currentData.speed * 5f} KTS</link>\n" +
-                              $"<b>CLASS:</b> {GetPlaneClass()}\n" +
-                              $"{highlightStart}<b>SENSOR:</b>{highlightEnd} UNKNOWN\n";
-        radarDocInstance = SpawnDocument(radarPrefab, radarLogText, currentData.radarPos, false);
-
-
-            string cheatSheetText = $"<size=80%><b>QUICK REF:</b>\n\n" +
-                                    $"<b>[GE] Heavy Cargo</b>\n" +
-                                    $"<link=\"rule_ge_speed\">Speed: < 425 KTS</link>\n" +
-                                    $"<link=\"rule_ge_weight\">Max Wt: 500 UNITS</link>\n\n" +
-                                    $"<b>[TR] Passenger</b>\n" +
-                                    $"<link=\"rule_tr_cargo\">Cargo: PEOPLE ONLY</link>\n" +
-                                    $"<link=\"rule_tr_speed\">Speed: 350-390 KTS</link>\n\n" +
-                                    $"<b>[QY] Light Courier</b>\n" +
-                                    $"<link=\"rule_qy_speed\">Speed: > 400 KTS</link>\n" +
-                                    $"<link=\"rule_qy_weight\">Max Wt: 50 UNITS</link>\n</size>";
-            cheatSheetDocInstance = SpawnDocument(cheatSheetPrefab, cheatSheetText, currentData.cheatSheetPos, false);
-
-        GameObject reportObj = Instantiate(pilotReportPrefab != null ? pilotReportPrefab : defaultDocPrefab, deskArea);
-        Vector3 reportLocPos = reportObj.transform.localPosition;
-        reportLocPos.z = 0f;
-        reportObj.transform.localPosition = reportLocPos;
-        reportObj.GetComponent<RectTransform>().anchoredPosition = currentData.pilotReportPos;
-
-        reportObj.transform.rotation = Quaternion.Euler(0, 0, Random.Range(-2f, 2f));
-        pilotReportDoc = reportObj.GetComponent<DocumentUI>();
-        UpdatePilotReport();
-
-        if (StoryManager.currentDay == 2 && (currentData.callsign == "TR-11" || currentData.callsign == "TR-88" || currentData.callsign == "GE-99" || currentData.callsign == "GE-98"))
-        {
-            string shiftText = $"<align=center><b>ENCRYPTION</b></align>\n<b>TODAY'S SHIFT:</b><align=center><b> -8</b></align></size>";
-            decryptionPaperInstance = SpawnDocument(decryptionPaperPrefab != null ? decryptionPaperPrefab : defaultDocPrefab, shiftText, new Vector2(0,0), true);
-        }
-
-        if (folderUI != null)
-        {
-            bool showFolder = !currentData.isFolderTorn;
-            folderUI.SetActive(showFolder);
-            if (showFolder)
-            {
-                var tearComponents = folderUI.GetComponentsInChildren<FolderTearInteractable>(true);
-                foreach (var tearComponent in tearComponents)
-                {
-                    tearComponent.ResetTear();
-                }
-            }
-            if (folderCallsignText != null)
-            {
-                folderCallsignText.gameObject.SetActive(showFolder);
-                folderCallsignText.text = currentData.callsign;
-            }
-        }
-    }
-
-    void UpdatePilotReport()
-    {
-        string highlightStart = "";
-        string highlightEnd = "";
-
-        string reportText = $"<align=center><b>PILOT'S STATEMENT</b></align>\n\n";
-
-        if (askedOrigin) reportText += $"<b>ORIGIN:</b> <link=\"rep_origin\">{GetStatedOrigin()}</link>\n";
-        else reportText += $"<link=\"unlock_origin\"><b>ORIGIN:</b></link>\n";
-
-        if (askedCargo) reportText += $"<b>CARGO:</b> {highlightStart}<link=\"rep_cargo\">{GetStatedCargo().ToUpper()}</link>{highlightEnd}\n";
-        else reportText += $"{highlightStart}<link=\"unlock_cargo\"><b>CARGO:</b></link>{highlightEnd}\n";
-
-        if (askedWeight) reportText += $"<b>WEIGHT:</b> <link=\"rep_weight\">{GetStatedWeight()} UNITS</link>\n";
-        else reportText += $"<link=\"unlock_weight\"><b>WEIGHT:</b></link>\n";
-
-        if (askedSpeed) reportText += $"<b>SPEED:</b> <link=\"rep_speed\">{GetStatedSpeed()} KTS</link>\n";
-        else reportText += $"<link=\"unlock_speed\"><b>SPEED:</b></link>\n";
-
-        pilotReportDoc.SetContent(reportText);
+        if (currentState != null) currentState.isFolderTorn = true;
+        
+        if (folderCallsignText != null) folderCallsignText.gameObject.SetActive(false);
+        uiController.ShowDocuments();
     }
 
     public void SelectFact(string factID, string factText, FactScanner scanner, int linkIndex)
     {
         if (isTyping) return;
 
-
-
         if (factID.StartsWith("unlock_"))
         {
             string key = factID.Replace("unlock_", "");
             bool alreadyAsked = false;
-            if (key == "cargo" && askedCargo) alreadyAsked = true;
-            if (key == "origin" && askedOrigin) alreadyAsked = true;
-            if (key == "weight" && askedWeight) alreadyAsked = true;
-            if (key == "speed" && askedSpeed) alreadyAsked = true;
+            if (currentState != null)
+            {
+                if (key == "cargo" && currentState.askedCargo) alreadyAsked = true;
+                if (key == "origin" && currentState.askedOrigin) alreadyAsked = true;
+                if (key == "weight" && currentState.askedWeight) alreadyAsked = true;
+                if (key == "speed" && currentState.askedSpeed) alreadyAsked = true;
+            }
             if (alreadyAsked) return;
 
-            // Реалистичный синий цвет шариковой ручки
             scanner.HighlightLink(linkIndex, new Color32(20, 70, 180, 210));
             StartCoroutine(ResetColorRoutine(scanner, linkIndex, 0.5f));
             pendingQuestionTopic = key;
@@ -367,18 +222,36 @@ public class CommsManager : SingletonMB<CommsManager>
 
         if (askButton != null) askButton.SetActive(false);
 
-        if (firstFactID == "")
+        if (docLogic.firstFactID == "")
         {
-            firstFactID = factID;
+            docLogic.firstFactID = factID;
             firstFactScanner = scanner;
             firstFactIndex = linkIndex;
-            // Реалистичный оранжево-желтый (горчичный) карандаш/ручка
             scanner.HighlightLink(linkIndex, new Color32(200, 140, 15, 210));
         }
         else
         {
             CheckContradiction(factID, scanner, linkIndex);
         }
+    }
+
+    void CheckContradiction(string secondID, FactScanner secondScanner, int secondIndex)
+    {
+        bool isValid = docLogic.CheckContradiction(docLogic.firstFactID, secondID, out bool isLie, out string lieTopic);
+
+        Color32 resColor = !isValid ? new Color32(180, 80, 15, 210) : (isLie ? new Color32(180, 25, 30, 210) : new Color32(20, 140, 50, 210));
+        if (firstFactScanner != null) firstFactScanner.HighlightLink(firstFactIndex, resColor);
+        if (secondScanner != null) secondScanner.HighlightLink(secondIndex, resColor);
+
+        if (isLie)
+        {
+            docLogic.currentLieTopic = lieTopic;
+            confrontButton.SetActive(true);
+        }
+
+        StartCoroutine(ResetColorRoutine(firstFactScanner, firstFactIndex, 2f));
+        StartCoroutine(ResetColorRoutine(secondScanner, secondIndex, 2f));
+        docLogic.firstFactID = "";
     }
 
     public void AskQuestion()
@@ -391,36 +264,20 @@ public class CommsManager : SingletonMB<CommsManager>
         switch (pendingQuestionTopic)
         {
             case "cargo":
-                question = !string.IsNullOrEmpty(currentData.customQuestionCargo)
-                    ? currentData.customQuestionCargo
-                    : "State your cargo purpose.";
-                answer = !string.IsNullOrEmpty(currentData.customAnswerCargo)
-                    ? currentData.customAnswerCargo
-                    : PilotDialogue.GetAnswer(currentData.personality, "cargo", GetStatedCargo().ToUpper());
+                question = !string.IsNullOrEmpty(currentData.customQuestionCargo) ? currentData.customQuestionCargo : "State your cargo purpose.";
+                answer = !string.IsNullOrEmpty(currentData.customAnswerCargo) ? currentData.customAnswerCargo : PilotDialogue.GetAnswer(currentData.personality, "cargo", docLogic.GetStatedCargo().ToUpper());
                 break;
             case "origin":
-                question = !string.IsNullOrEmpty(currentData.customQuestionOrigin)
-                    ? currentData.customQuestionOrigin
-                    : "Confirm your point of origin.";
-                answer = !string.IsNullOrEmpty(currentData.customAnswerOrigin)
-                    ? currentData.customAnswerOrigin
-                    : PilotDialogue.GetAnswer(currentData.personality, "origin", GetStatedOrigin());
+                question = !string.IsNullOrEmpty(currentData.customQuestionOrigin) ? currentData.customQuestionOrigin : "Confirm your point of origin.";
+                answer = !string.IsNullOrEmpty(currentData.customAnswerOrigin) ? currentData.customAnswerOrigin : PilotDialogue.GetAnswer(currentData.personality, "origin", docLogic.GetStatedOrigin());
                 break;
             case "weight":
-                question = !string.IsNullOrEmpty(currentData.customQuestionWeight)
-                    ? currentData.customQuestionWeight
-                    : "Report cargo weight.";
-                answer = !string.IsNullOrEmpty(currentData.customAnswerWeight)
-                    ? currentData.customAnswerWeight
-                    : PilotDialogue.GetAnswer(currentData.personality, "weight", GetStatedWeight());
+                question = !string.IsNullOrEmpty(currentData.customQuestionWeight) ? currentData.customQuestionWeight : "Report cargo weight.";
+                answer = !string.IsNullOrEmpty(currentData.customAnswerWeight) ? currentData.customAnswerWeight : PilotDialogue.GetAnswer(currentData.personality, "weight", docLogic.GetStatedWeight());
                 break;
             case "speed":
-                question = !string.IsNullOrEmpty(currentData.customQuestionSpeed)
-                    ? currentData.customQuestionSpeed
-                    : "Confirm your current airspeed.";
-                answer = !string.IsNullOrEmpty(currentData.customAnswerSpeed)
-                    ? currentData.customAnswerSpeed
-                    : PilotDialogue.GetAnswer(currentData.personality, "speed", GetStatedSpeed());
+                question = !string.IsNullOrEmpty(currentData.customQuestionSpeed) ? currentData.customQuestionSpeed : "Confirm your current airspeed.";
+                answer = !string.IsNullOrEmpty(currentData.customAnswerSpeed) ? currentData.customAnswerSpeed : PilotDialogue.GetAnswer(currentData.personality, "speed", docLogic.GetStatedSpeed());
                 break;
         }
 
@@ -428,344 +285,42 @@ public class CommsManager : SingletonMB<CommsManager>
         askButton.SetActive(false);
         pendingQuestionTopic = "";
 
-
-
         StartCoroutine(Routine_TypewriterChat(question, answer, topic));
-    }
-
-    void CheckContradiction(string secondID, FactScanner secondScanner, int secondIndex)
-    {
-
-
-        bool isValid = false;
-        bool isLie = false;
-
-        if (firstFactID.StartsWith("rule_") || secondID.StartsWith("rule_"))
-        {
-            string rule = firstFactID.StartsWith("rule_") ? firstFactID : secondID;
-            string fact = firstFactID.StartsWith("rule_") ? secondID : firstFactID;
-
-            if (rule.Contains("_ge_") && currentData.callsign.StartsWith("GE"))
-            {
-                if (rule == "rule_ge_speed" && (fact == "rad_speed" || fact == "rep_speed"))
-                {
-                    isValid = true;
-                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : (float.TryParse(GetStatedSpeed(), out float s) ? s : 0f);
-                    if (speedToCheck >= 425f) isLie = true;
-                }
-                else if (rule == "rule_ge_weight" && (fact == "man_weight" || fact == "rep_weight"))
-                {
-                    isValid = true;
-                    float weightToCheck = fact == "man_weight" ? currentData.manifestCargoAmount : (float.TryParse(GetStatedWeight(), out float w) ? w : 0f);
-                    if (weightToCheck > 500) isLie = true;
-                }
-            }
-            else if (rule.Contains("_tr_") && currentData.callsign.StartsWith("TR"))
-            {
-                if (rule == "rule_tr_cargo" && (fact == "man_cargo" || fact == "rep_cargo"))
-                {
-                    isValid = true;
-                    string cargoToCheck = fact == "man_cargo" ? currentData.manifestCargo : GetStatedCargo();
-                    if (cargoToCheck != "People") isLie = true;
-                }
-                else if (rule == "rule_tr_speed" && (fact == "rad_speed" || fact == "rep_speed"))
-                {
-                    isValid = true;
-                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : (float.TryParse(GetStatedSpeed(), out float s) ? s : 0f);
-                    if (speedToCheck < 350f || speedToCheck > 390f) isLie = true;
-                }
-            }
-            else if (rule.Contains("_qy_") && currentData.callsign.StartsWith("QY"))
-            {
-                if (rule == "rule_qy_speed" && (fact == "rad_speed" || fact == "rep_speed"))
-                {
-                    isValid = true;
-                    float speedToCheck = fact == "rad_speed" ? currentData.speed * 5f : (float.TryParse(GetStatedSpeed(), out float s) ? s : 0f);
-                    if (speedToCheck <= 400f) isLie = true;
-                }
-                else if (rule == "rule_qy_weight" && (fact == "man_weight" || fact == "rep_weight"))
-                {
-                    isValid = true;
-                    float weightToCheck = fact == "man_weight" ? currentData.manifestCargoAmount : (float.TryParse(GetStatedWeight(), out float w) ? w : 0f);
-                    if (weightToCheck > 50) isLie = true;
-                }
-            }
-        }
-        else
-        {
-            if (CheckPair(firstFactID, secondID, "rad_class", "man_cargo") || CheckPair(firstFactID, secondID, "rad_class", "rep_cargo"))
-            {
-                isValid = true;
-                string cargo = firstFactID.Contains("cargo") ?
-                    (firstFactID == "man_cargo" ? currentData.manifestCargo : GetStatedCargo()) :
-                    (secondID == "man_cargo" ? currentData.manifestCargo : GetStatedCargo());
-
-                if (currentData.callsign.StartsWith("TR") && cargo != "People") isLie = true;
-                if (currentData.callsign.StartsWith("GE") && cargo == "People") isLie = true;
-            }
-            else if (CheckPair(firstFactID, secondID, "rad_sensor", "man_cargo") || CheckPair(firstFactID, secondID, "rad_sensor", "rep_cargo"))
-            {
-                isValid = true;
-                string cargoToCompare = (secondID == "man_cargo" || firstFactID == "man_cargo") ? currentData.manifestCargo : GetStatedCargo();
-                isLie = (currentData.cargo.ToUpper() != cargoToCompare.ToUpper());
-            }
-            else if (CheckPair(firstFactID, secondID, "man_cargo", "rep_cargo"))
-            {
-                isValid = true; isLie = (currentData.manifestCargo.ToUpper() != GetStatedCargo().ToUpper());
-            }
-            else if (CheckPair(firstFactID, secondID, "man_origin", "rep_origin"))
-            {
-                isValid = true; isLie = (currentData.manifestOrigin.ToUpper() != GetStatedOrigin().ToUpper());
-            }
-            else if (CheckPair(firstFactID, secondID, "man_weight", "rep_weight"))
-            {
-                isValid = true; isLie = (currentData.manifestCargoAmount.ToString() != GetStatedWeight());
-            }
-            else if (CheckPair(firstFactID, secondID, "rad_speed", "rep_speed"))
-            {
-                isValid = true; isLie = ((currentData.speed * 5f).ToString() != GetStatedSpeed());
-            }
-        }
-
-        // Реалистичные цвета: темно-оранжевый (ошибка/вопрос), темно-красный (ложь), темно-зеленый (правда)
-        Color32 resColor = !isValid ? new Color32(180, 80, 15, 210) : (isLie ? new Color32(180, 25, 30, 210) : new Color32(20, 140, 50, 210));
-        firstFactScanner.HighlightLink(firstFactIndex, resColor);
-        secondScanner.HighlightLink(secondIndex, resColor);
-
-        if (isLie)
-        {
-            if (firstFactID.Contains("cargo") || secondID.Contains("cargo") || firstFactID.Contains("class") || secondID.Contains("class")) currentLieTopic = "cargo";
-            else if (firstFactID.Contains("origin") || secondID.Contains("origin")) currentLieTopic = "origin";
-            else if (firstFactID.Contains("weight") || secondID.Contains("weight")) currentLieTopic = "weight";
-            else if (firstFactID.Contains("speed") || secondID.Contains("speed")) currentLieTopic = "speed";
-
-            confrontButton.SetActive(true);
-
-
-        }
-
-        if (isValid && !isLie && (firstFactID.Contains("cargo") || secondID.Contains("cargo")))
-        {
-            if (currentData.manifestCargo.ToUpper() == currentData.cargo.ToUpper())
-            {
-                currentData.isCargoKnown = true;
-            }
-        }
-
-        StartCoroutine(ResetColorRoutine(firstFactScanner, firstFactIndex, 2f));
-        StartCoroutine(ResetColorRoutine(secondScanner, secondIndex, 2f));
-        firstFactID = "";
-
-    }
-
-    bool CheckPair(string i1, string i2, string t1, string t2) => (i1 == t1 && i2 == t2) || (i1 == t2 && i2 == t1);
-
-    IEnumerator ResetColorRoutine(FactScanner s, int i, float d)
-    {
-        yield return new WaitForSecondsRealtime(d);
-        if (s != null && s.gameObject.activeInHierarchy)
-        {
-            try
-            {
-                Color32 originalColor = s.GetComponent<TextMeshProUGUI>().color;
-                s.HighlightLink(i, originalColor);
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning("Skipped highlighting due to mesh missing or object destroyed: " + e.Message);
-            }
-        }
     }
 
     public void OnConfront()
     {
         if (isTyping) return;
 
-        if (currentLieTopic == "cargo")
-        {
-            currentData.isCargoKnown = true;
-        }
+        if (docLogic.currentLieTopic == "cargo")
+            currentState.isCargoKnown = true;
 
         string exp = PilotDialogue.GetConfrontResponse(currentData.personality);
 
-        if (currentLieTopic == "cargo" && !string.IsNullOrEmpty(currentData.explanationCargo)) exp = currentData.explanationCargo;
-        else if (currentLieTopic == "origin" && !string.IsNullOrEmpty(currentData.explanationOrigin)) exp = currentData.explanationOrigin;
-        else if (currentLieTopic == "weight" && !string.IsNullOrEmpty(currentData.explanationWeight)) exp = currentData.explanationWeight;
-        else if (currentLieTopic == "speed" && !string.IsNullOrEmpty(currentData.explanationSpeed)) exp = currentData.explanationSpeed;
+        if (docLogic.currentLieTopic == "cargo" && !string.IsNullOrEmpty(currentData.explanationCargo)) exp = currentData.explanationCargo;
+        else if (docLogic.currentLieTopic == "origin" && !string.IsNullOrEmpty(currentData.explanationOrigin)) exp = currentData.explanationOrigin;
+        else if (docLogic.currentLieTopic == "weight" && !string.IsNullOrEmpty(currentData.explanationWeight)) exp = currentData.explanationWeight;
+        else if (docLogic.currentLieTopic == "speed" && !string.IsNullOrEmpty(currentData.explanationSpeed)) exp = currentData.explanationSpeed;
         else if (!string.IsNullOrEmpty(currentData.customExplanation)) exp = currentData.customExplanation;
 
         confrontButton.SetActive(false);
         StartCoroutine(Routine_TypewriterChat("Explain this discrepancy.", exp, ""));
     }
 
-    void ScrollToBottom(bool animate = false)
-    {
-        if (chatScroll != null && chatHistoryText != null)
-        {
-            Canvas.ForceUpdateCanvases();
-            chatScroll.movementType = ScrollRect.MovementType.Unrestricted;
-            
-            RectTransform contentRect = chatScroll.content;
-            RectTransform viewportRect = chatScroll.viewport;
-            
-            float textHeight = chatHistoryText.preferredHeight;
-            float viewportHeight = viewportRect.rect.height;
-            
-            float topMargin = 0f;
-            RectTransform textRect = chatHistoryText.GetComponent<RectTransform>();
-            if (textRect != null) topMargin = Mathf.Abs(textRect.anchoredPosition.y);
-
-            float targetY = textHeight + topMargin - viewportHeight + 50f; 
-            
-            if (animate)
-            {
-                if (scrollCoroutine != null) StopCoroutine(scrollCoroutine);
-                scrollCoroutine = StartCoroutine(Routine_AnimatePaperUp(contentRect, targetY));
-            }
-            else
-            {
-                contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, targetY);
-            }
-        }
-    }
-
-    IEnumerator Routine_AnimatePaperUp(RectTransform contentRect, float targetY)
-    {
-        isAnimatingPaper = true;
-        chatScroll.velocity = Vector2.zero;
-
-        float startY = contentRect.anchoredPosition.y;
-        if (targetY <= startY) 
-        {
-            contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, targetY);
-            isAnimatingPaper = false;
-            yield break;
-        }
-
-        float currentY = startY;
-        float distance = targetY - startY;
-        
-        int jerks = Random.Range(Mathf.Max(1, paperScrollJerksMin), Mathf.Max(2, paperScrollJerksMax));
-        float step = distance / jerks;
-
-        StartPrinterSound();
-        StartTypewriterSound();
-
-        for (int i = 0; i < jerks; i++)
-        {
-            yield return new WaitForSecondsRealtime(Random.Range(paperScrollDelayMin, paperScrollDelayMax));
-            
-            currentY += step;
-            if (i == jerks - 1) currentY = targetY; 
-
-            contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, currentY);
-        }
-
-        StopPrinterSound();
-        StopTypewriterSound();
-        isAnimatingPaper = false;
-    }
-
-    void LateUpdate()
-    {
-        if (chatScroll != null && chatHistoryText != null && !isAnimatingPaper)
-        {
-            RectTransform contentRect = chatScroll.content;
-            float textHeight = chatHistoryText.preferredHeight;
-            float viewportHeight = chatScroll.viewport.rect.height;
-            
-            float topMargin = 0f;
-            RectTransform textRect = chatHistoryText.GetComponent<RectTransform>();
-            if (textRect != null) topMargin = Mathf.Abs(textRect.anchoredPosition.y);
-
-            float targetY = textHeight + topMargin - viewportHeight + 50f;
-            
-            // Разрешаем прятать бумагу вниз, но оставляем видимым верхний край
-            float minY = -viewportHeight + 150f; 
-            float maxY = targetY;
-
-            if (minY > maxY) minY = maxY;
-
-            float clampedY = Mathf.Clamp(contentRect.anchoredPosition.y, minY, maxY);
-            
-            if (contentRect.anchoredPosition.y != clampedY)
-            {
-                contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, clampedY);
-                chatScroll.velocity = Vector2.zero; 
-            }
-        }
-    }
-
-    IEnumerator Routine_StartChat()
-    {
-        isTyping = true;
-        chatHistoryText.text = "";
-
-        string prefix = $"<b>[{currentData.callsign}]:</b> ";
-        string message = PilotDialogue.GetGreeting(currentData.personality, currentData.callsign);
-
-        chatHistoryText.text += prefix + message + "\n\n";
-        
-        ScrollToBottom(true);
-        yield return new WaitForSecondsRealtime(1f); // Ждем пока бумага выедет
-
-        currentData.chatHistory = chatHistoryText.text;
-        isTyping = false;
-    }
-
-    IEnumerator Routine_TypewriterChat(string question, string answer, string dataTopicToUpdate)
-    {
-        isTyping = true;
-
-        chatHistoryText.text += $"<b>[YOU]:</b> {question}\n\n";
-        ScrollToBottom(true);
-        
-        var (minDelay, maxDelay) = PilotDialogue.GetResponseDelay(currentData.personality);
-        yield return new WaitForSecondsRealtime(Random.Range(minDelay, maxDelay)); // Пауза зависит от личности пилота
-
-        string prefix = $"<b>[{currentData.callsign}]:</b> ";
-        chatHistoryText.text += prefix + answer + "\n\n";
-        
-        ScrollToBottom(true);
-        yield return new WaitForSecondsRealtime(1f); // Ждем пока бумага выедет с ответом
-
-        currentData.chatHistory = chatHistoryText.text;
-
-        if (dataTopicToUpdate == "cargo") 
-        { 
-            askedCargo = true; 
-            currentData.askedCargo = true; 
-
-            SetupDecryptionMachine(true);
-        }
-        else if (dataTopicToUpdate == "origin") { askedOrigin = true; currentData.askedOrigin = true; }
-        else if (dataTopicToUpdate == "weight") { askedWeight = true; currentData.askedWeight = true; }
-        else if (dataTopicToUpdate == "speed") { askedSpeed = true; currentData.askedSpeed = true; }
-
-        UpdatePilotReport();
-        isTyping = false;
-    }
-
-    [Header("Single Scene Return Mode (Optional)")]
-    public Camera returnCamera;
-    public GameObject returnScreenRoot;
-    public GameObject currentCommsRoot;
-    public UnityEvent onReturn;
-
     public void EndInterrogation()
     {
-        if (currentData != null)
+        if (currentState != null)
         {
-            if (manifestDocInstance != null) currentData.manifestPos = manifestDocInstance.GetComponent<RectTransform>().anchoredPosition;
-            if (radarDocInstance != null) currentData.radarPos = radarDocInstance.GetComponent<RectTransform>().anchoredPosition;
-            if (cheatSheetDocInstance != null) currentData.cheatSheetPos = cheatSheetDocInstance.GetComponent<RectTransform>().anchoredPosition;
+            if (uiController.manifestDocInstance != null) currentState.manifestPos = uiController.manifestDocInstance.GetComponent<RectTransform>().anchoredPosition;
+            if (uiController.radarDocInstance != null) currentState.radarPos = uiController.radarDocInstance.GetComponent<RectTransform>().anchoredPosition;
+            if (uiController.cheatSheetDocInstance != null) currentState.cheatSheetPos = uiController.cheatSheetDocInstance.GetComponent<RectTransform>().anchoredPosition;
+            if (uiController.pilotReportDoc != null) currentState.pilotReportPos = uiController.pilotReportDoc.GetComponent<RectTransform>().anchoredPosition;
         }
         if (RadarManager.Instance != null) RadarManager.Instance.SaveToGlobalManager();
         if (ButtonSoundManager.instance != null) ButtonSoundManager.instance.StopAllSounds();
 
         if (returnCamera != null || returnScreenRoot != null)
         {
-            // Single scene return mode
             if (returnScreenRoot != null)
             {
                 returnScreenRoot.SetActive(true);
@@ -774,10 +329,7 @@ public class CommsManager : SingletonMB<CommsManager>
                 UnityEngine.UI.GraphicRaycaster[] grs = returnScreenRoot.GetComponentsInChildren<UnityEngine.UI.GraphicRaycaster>(true);
                 foreach (var gr in grs) gr.enabled = true;
             }
-            if (returnCamera != null)
-            {
-                returnCamera.gameObject.SetActive(true);
-            }
+            if (returnCamera != null) returnCamera.gameObject.SetActive(true);
             if (currentCommsRoot != null) currentCommsRoot.SetActive(false);
 
             ZoomReturnManager zrm = FindAnyObjectByType<ZoomReturnManager>();
@@ -791,115 +343,102 @@ public class CommsManager : SingletonMB<CommsManager>
         onReturn?.Invoke();
     }
 
-    public void OnFolderTorn()
+    void LateUpdate()
     {
-        if (currentData != null) currentData.isFolderTorn = true;
-        
-        // 1. Убираем надпись с названием рейса во время анимации
-        if (folderCallsignText != null) folderCallsignText.gameObject.SetActive(false);
-
-        // 2. Документы появляются как только анимация началась
-        ShowDocuments();
+        if (uiController != null) uiController.LateUpdateUI();
     }
 
-    // Вызывается из OnFolderTorn (в самом начале анимации)
-    public void ShowDocuments()
+    // --- Sound & UI Coroutines Exposed for UIController ---
+
+    public void StartTypewriterSound()
     {
+        if (typewriterSound == null || dedicatedTypewriterSource == null) return;
+        dedicatedTypewriterSource.clip = typewriterSound;
+        dedicatedTypewriterSource.volume = effectsVolume;
+        dedicatedTypewriterSource.loop = true;
+        if (!dedicatedTypewriterSource.isPlaying) dedicatedTypewriterSource.Play();
+    }
 
-        // Сначала поднимаем все документы, которые уже лежат на столе
-        if (radarDocInstance != null) radarDocInstance.transform.SetAsLastSibling();
-        if (cheatSheetDocInstance != null) cheatSheetDocInstance.transform.SetAsLastSibling();
-        if (pilotReportDoc != null) pilotReportDoc.transform.SetAsLastSibling();
+    public void StopTypewriterSound()
+    {
+        if (dedicatedTypewriterSource != null) dedicatedTypewriterSource.Stop();
+    }
 
-        // Затем показываем и поднимаем документы из папки (они будут поверх тех, что на столе)
-        if (manifestDocInstance != null) 
+    public void StartPrinterSound()
+    {
+        if (printerSound == null || dedicatedPrinterSource == null) return;
+        dedicatedPrinterSource.clip = printerSound;
+        dedicatedPrinterSource.volume = effectsVolume;
+        dedicatedPrinterSource.loop = true;
+        if (!dedicatedPrinterSource.isPlaying) dedicatedPrinterSource.Play();
+    }
+
+    public void StopPrinterSound()
+    {
+        if (dedicatedPrinterSource != null) dedicatedPrinterSource.Stop();
+    }
+
+    private IEnumerator ResetColorRoutine(FactScanner s, int i, float d)
+    {
+        yield return new WaitForSecondsRealtime(d);
+        if (s != null && s.gameObject.activeInHierarchy)
         {
-            if (folderUI != null)
+            try
             {
-                manifestDocInstance.transform.position = folderUI.transform.position;
+                Color32 originalColor = s.GetComponent<TextMeshProUGUI>().color;
+                s.HighlightLink(i, originalColor);
             }
-            manifestDocInstance.SetActive(true);
-            manifestDocInstance.transform.SetAsLastSibling();
-        }
-
-        if (decryptionPaperInstance != null)
-        {
-            if (folderUI != null)
-            {
-                // Ставим на ту же позицию, что и папка, но сдвигаем правее и ниже через anchoredPosition
-                decryptionPaperInstance.transform.position = folderUI.transform.position;
-                RectTransform rt = decryptionPaperInstance.GetComponent<RectTransform>();
-                if (rt != null) rt.anchoredPosition += new Vector2(100f, -60f);
-            }
-            decryptionPaperInstance.SetActive(true);
-            decryptionPaperInstance.transform.SetAsLastSibling();
-        }
-        
-        // Важно: теперь мы перемещаем папку поверх всех документов, 
-        // чтобы пока она растворяется, документы были ЗА ней.
-        if (folderUI != null) folderUI.transform.SetAsLastSibling();
-    }
-
-    GameObject SpawnDocument(GameObject prefab, string text, Vector2 pos, bool hiddenInFolder = false)
-    {
-        GameObject doc = Instantiate(prefab != null ? prefab : defaultDocPrefab, deskArea);
-        
-        Vector3 locPos = doc.transform.localPosition;
-        locPos.z = 0f;
-        doc.transform.localPosition = locPos;
-        
-        if (hiddenInFolder && !currentData.isFolderTorn)
-        {
-            doc.SetActive(false); // Hide until torn
-        }
-        else
-        {
-            doc.GetComponent<RectTransform>().anchoredPosition = pos;
-        }
-
-        doc.transform.rotation = Quaternion.Euler(0, 0, Random.Range(-2f, 2f));
-        doc.GetComponent<DocumentUI>().SetContent(text);
-        
-        return doc;
-    }
-
-    /// <summary>
-    /// Настраивает шифровальную машину под текущий рейс (только день 2, сюжетные рейсы).
-    /// Вызывается при открытии папки и при запросе карго.
-    /// </summary>
-    private void SetupDecryptionMachine(bool isCargoAsked)
-    {
-        if (decryptionMachineObj == null) return;
-
-        bool isSpecialForces = currentData.callsign == "TR-11" || currentData.callsign == "TR-88";
-        bool isEquipment     = currentData.callsign == "GE-99" || currentData.callsign == "GE-98";
-
-        if (StoryManager.currentDay == 2 && (isSpecialForces || isEquipment) && isCargoAsked)
-        {
-            decryptionMachineObj.SetActive(true);
-            DecryptionMachine dm = decryptionMachineObj.GetComponentInChildren<DecryptionMachine>(true);
-            if (dm != null)
-            {
-                dm.ResetMachine();
-                if      (currentData.callsign == "TR-11") dm.SetEncryptedWord("MKPW");
-                else if (currentData.callsign == "TR-88") dm.SetEncryptedWord("MKPU");
-                else if (currentData.callsign == "GE-99") dm.SetEncryptedWord("AINM");
-                else if (currentData.callsign == "GE-98") dm.SetEncryptedWord("AIOX");
-            }
-        }
-        else
-        {
-            decryptionMachineObj.SetActive(false);
+            catch (System.Exception) { }
         }
     }
 
-    string GetPlaneClass() => currentData.callsign.StartsWith("TR") ? "Passenger" : (currentData.callsign.StartsWith("GE") ? "Cargo" : "Courier");
-
-    void OnDisable()
+    private IEnumerator Routine_StartChat()
     {
-        if (ButtonSoundManager.instance != null)
+        isTyping = true;
+        uiController.ClearChat();
+
+        string prefix = $"<b>[{currentData.callsign}]:</b> ";
+        string message = PilotDialogue.GetGreeting(currentData.personality, currentData.callsign);
+
+        chatHistoryText.text += prefix + message + "\n\n";
+        uiController.ScrollToBottom(true);
+        yield return new WaitForSecondsRealtime(1f);
+
+        if (currentState != null) currentState.chatHistory = chatHistoryText.text;
+        isTyping = false;
+    }
+
+    private IEnumerator Routine_TypewriterChat(string question, string answer, string dataTopicToUpdate)
+    {
+        isTyping = true;
+
+        chatHistoryText.text += $"<b>[YOU]:</b> {question}\n\n";
+        uiController.ScrollToBottom(true);
+        
+        var (minDelay, maxDelay) = PilotDialogue.GetResponseDelay(currentData.personality);
+        yield return new WaitForSecondsRealtime(Random.Range(minDelay, maxDelay));
+
+        string prefix = $"<b>[{currentData.callsign}]:</b> ";
+        chatHistoryText.text += prefix + answer + "\n\n";
+        
+        uiController.ScrollToBottom(true);
+        yield return new WaitForSecondsRealtime(1f);
+
+        if (currentState != null)
         {
-            ButtonSoundManager.instance.SetVolume(previousButtonVolume);
+            currentState.chatHistory = chatHistoryText.text;
+
+            if (dataTopicToUpdate == "cargo") 
+            { 
+                currentState.askedCargo = true; 
+                uiController.SetupDecryptionMachine(currentData, currentState, decryptionMachineObj);
+            }
+            else if (dataTopicToUpdate == "origin") { currentState.askedOrigin = true; }
+            else if (dataTopicToUpdate == "weight") { currentState.askedWeight = true; }
+            else if (dataTopicToUpdate == "speed") { currentState.askedSpeed = true; }
         }
+
+        uiController.UpdatePilotReport(currentData, currentState, docLogic);
+        isTyping = false;
     }
 }

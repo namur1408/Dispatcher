@@ -73,14 +73,14 @@ public class DynamicStorm : MonoBehaviour
         RectTransform rt = GetComponent<RectTransform>();
         if (rt.rect.width == 0 || rt.rect.height == 0) return false;
 
-        // Точно переводим мировую позицию самолета в локальные координаты картинки шторма
+        // We accurately translate the world position of the aircraft into local coordinates of the storm image
         Vector3 localPos = rt.InverseTransformPoint(planeWorldPos);
 
-        // Высчитываем нормализованные координаты (от 0 до 1) от нижнего левого угла
+        // We calculate normalized coordinates (from 0 to 1) from the lower left corner
         float normalizedX = (localPos.x - rt.rect.xMin) / rt.rect.width;
         float normalizedY = (localPos.y - rt.rect.yMin) / rt.rect.height;
 
-        // Если самолет за пределами картинки шторма, он не в шторме
+        // If the plane is outside the storm picture, it is not in the storm.
         if (normalizedX < 0f || normalizedX > 1f || normalizedY < 0f || normalizedY > 1f) return false;
 
         float finalUvX = normalizedX + currentWindOffsetX;

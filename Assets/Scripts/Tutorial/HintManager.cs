@@ -67,12 +67,12 @@ public class HintManager : MonoBehaviour
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 30000;
 
-        // Добавляем скейлер, чтобы интерфейс масштабировался на разных экранах
+        // Add a scaler to make the interface scale on different screens
         CanvasScaler scaler = hintUI.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = 0.5f; // Среднее между шириной и высотой
+        scaler.matchWidthOrHeight = 0.5f; // Match width/height ratio (0.5 for balanced scaling).
 
         hintUI.AddComponent<UnityEngine.UI.GraphicRaycaster>();
 
@@ -103,7 +103,9 @@ public class HintManager : MonoBehaviour
         hintText.alignment = TextAlignmentOptions.Center;
         hintText.fontSize = 60;
         hintText.color = Color.white;
+#pragma warning disable 0618
         hintText.enableWordWrapping = true;
+#pragma warning restore 0618
         if (customFont != null) hintText.font = customFont;
 
         RectTransform textRT = textObj.GetComponent<RectTransform>();

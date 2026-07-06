@@ -16,7 +16,7 @@ public class GlobalWarningIcon : MonoBehaviour
             warningIconObject = gameObject;
         }
 
-        // Пытаемся найти CanvasGroup или Image, если мы управляем самим собой
+        // Trying to find CanvasGroup or Image if we are managing ourselves
         if (warningIconObject == gameObject)
         {
             canvasGroup = GetComponent<CanvasGroup>();
@@ -32,7 +32,7 @@ public class GlobalWarningIcon : MonoBehaviour
         {
             if (warningIconObject == gameObject)
             {
-                // Если управляем собой, нельзя использовать SetActive(false), иначе Update остановится!
+                // If we control ourselves, we cannot use SetActive(false), otherwise Update will stop!
                 if (canvasGroup != null)
                 {
                     canvasGroup.alpha = isWarning ? 1f : 0f;
@@ -43,7 +43,7 @@ public class GlobalWarningIcon : MonoBehaviour
                 }
                 else
                 {
-                    // Fallback (может выключить дочерние объекты, но лучше так не делать без подготовки)
+                    // Fallback (can turn off child objects, but it's better not to do this without preparation)
                     foreach (Transform child in transform)
                     {
                         child.gameObject.SetActive(isWarning);

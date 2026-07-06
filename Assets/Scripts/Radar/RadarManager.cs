@@ -2,10 +2,8 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
-public class RadarManager : MonoBehaviour
+public class RadarManager : SingletonMB<RadarManager>
 {
-    public static RadarManager Instance;
-
     public Transform listContainer;
     public GameObject entryPrefab;
 
@@ -14,9 +12,10 @@ public class RadarManager : MonoBehaviour
     private float conflictCheckTimer = 0f;
     private const float CONFLICT_CHECK_INTERVAL = 0.15f;
 
-    void Awake()
+    protected override void Awake()
     {
-        Instance = this;
+        base.Awake();
+        if (Instance != this) return;
     }
 
     void Update()
@@ -32,7 +31,7 @@ public class RadarManager : MonoBehaviour
     private void CheckForConflicts()
     {
         bool anyWarning = false;
-        float warningDistanceSq = 125f * 125f;
+        float warningDistanceSq = FlightConstants.ConflictWarningDistance * FlightConstants.ConflictWarningDistance;
 
         int count = activeAirplanes.Count;
         if (count == 0) return;
@@ -58,7 +57,8 @@ public class RadarManager : MonoBehaviour
 
                 // Hysteresis to prevent flickering at the boundary
                 bool currentlyInDanger = activeAirplanes[i].isInDanger || activeAirplanes[j].isInDanger;
-                float thresholdSq = currentlyInDanger ? (135f * 135f) : warningDistanceSq;
+                float hyst = FlightConstants.ConflictHysteresisDistance;
+                float thresholdSq = currentlyInDanger ? (hyst * hyst) : warningDistanceSq;
 
                 if (distSq < thresholdSq)
                 {
@@ -73,25 +73,40 @@ public class RadarManager : MonoBehaviour
         for (int i = 0; i < count; i++)
             if (activeAirplanes[i] != null) activeAirplanes[i].SetWarning(newWarnings[i]);
 
+        // Critical fuel check
+        if (!anyWarning)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var plane = activeAirplanes[i];
+                if (plane == null || plane.isLandingPhase || plane.isTakingOff || plane.isOutOfFuel) continue;
+                if (plane.currentFuel > 0f && plane.currentFuel <= FlightConstants.LowFuelThreshold)
+                {
+                    anyWarning = true;
+                    break;
+                }
+            }
+        }
+
         BigRadarLoader.isGlobalWarningActive = anyWarning;
     }
 
     /// <summary>
-    /// Точно как BigRadarLoader.RebuildAll() — читаем FlightDataManager
-    /// и спавним все самолеты, которые ещё в воздухе.
+    /// Analogue of BigRadarLoader.RebuildAll() - creates a UIAirplane from FlightDataManager
+    /// and spawns planes that were in the air.
     /// </summary>
     public void RebuildFromFlightData()
     {
         if (FlightDataManager.Instance == null) return;
 
-        // Убиваем все текущие визуальные объекты на радаре
+        // Removing current visual objects from the radar
         for (int i = activeAirplanes.Count - 1; i >= 0; i--)
         {
             if (activeAirplanes[i] != null) AirplaneSpawner.Instance.ReturnPlaneToPool(activeAirplanes[i]);
         }
         activeAirplanes.Clear();
 
-        // Читаем прямо из FlightDataManager — так же как это делает BigRadarLoader
+        // Restoring from FlightDataManager - just like BigRadarLoader does
         foreach (var data in FlightDataManager.Instance.savedFlights)
         {
             if (data.hasLanded || data.isReadyToDepart) continue;
@@ -173,9 +188,9 @@ public class RadarManager : MonoBehaviour
 
         data.isReadyToDepart = false;
         data.isDeparting = true;
-        data.hasBeenPinged = true; // Сразу видим
+        data.hasBeenPinged = true;
 
-        // У самолетов с базы speed может быть 0 — ставим дефолт
+        // Airplanes from saves could have speed 0 - set to default
         if (data.speed <= 0f) data.speed = 1f;
 
         Vector2 spawnPos = Vector2.zero;
@@ -189,7 +204,6 @@ public class RadarManager : MonoBehaviour
             }
         }
         data.position = spawnPos;
-        // Сбрасываем старые вейпоинты — маршрут задаст SetAssignedRunway
         data.savedWaypoints.Clear();
 
         UIAirplane planeScript = spawner.GetPlaneFromPool(spawner.radarContent);
@@ -201,9 +215,8 @@ public class RadarManager : MonoBehaviour
             if (!string.IsNullOrEmpty(data.assignedRunway))
             {
                 planeScript.SetAssignedRunway(data.assignedRunway, false);
-                // Сохраняем маршрут обратно в data — чтобы BigRadarLoader синхронизировал тот же путь
-                data.savedWaypoints = planeScript.GetWaypoints();
-                data.isTakingOff = planeScript.isTakingOff;
+                data.savedWaypoints  = planeScript.GetWaypoints();
+                data.isTakingOff     = planeScript.isTakingOff;
                 data.takeoffStartPos = planeScript.takeoffStartPos;
             }
             else

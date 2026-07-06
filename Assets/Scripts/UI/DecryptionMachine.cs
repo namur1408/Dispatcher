@@ -18,7 +18,7 @@ public class DecryptionMachine : MonoBehaviour
 
     void InitializeWheels()
     {
-        // Инициализируем стартовые значения
+        // Initializing the starting values
         UpdateWheels();
     }
 
@@ -57,7 +57,7 @@ public class DecryptionMachine : MonoBehaviour
     {
         if (shiftDisplay != null)
         {
-            // Форматируем дисплей, чтобы показывало + или -
+            // Format the display to show + or -
             shiftDisplay.text = currentShift > 0 ? "+" + currentShift : currentShift.ToString();
         }
 
@@ -75,14 +75,14 @@ public class DecryptionMachine : MonoBehaviour
             
             if (idx >= 0)
             {
-                // Сдвиг Цезаря
+                // Caesar's shift
                 int newIdx = (idx + currentShift) % alphabet.Length;
                 if (newIdx < 0) newIdx += alphabet.Length;
                 
                 wheels[i].currentIndex = newIdx;
             }
             
-            // Задержка перед началом вращения следующего барабана (эффект волны)
+            // Delay before the next reel starts spinning (wave effect)
             yield return new WaitForSeconds(0.1f);
         }
     }

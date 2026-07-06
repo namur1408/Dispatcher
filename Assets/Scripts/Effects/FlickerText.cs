@@ -2,7 +2,7 @@ using UnityEngine;
 using TMPro;
 
 /// <summary>
-/// Добавь на TMP-объект — даёт эффект мерцания как у заголовка AEGIS OS.
+/// Add a TMP object — gives a flickering effect like the AEGIS OS header.
 /// </summary>
 [RequireComponent(typeof(TMP_Text))]
 public class FlickerText : MonoBehaviour

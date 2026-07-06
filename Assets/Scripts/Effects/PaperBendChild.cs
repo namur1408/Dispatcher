@@ -22,17 +22,17 @@ public class PaperBendChild : BaseMeshEffect
 
         bool isPaperBackground = (gameObject == paperBend.gameObject);
 
-        // Если это фон бумаги, мы ВСЕГДА полностью перестраиваем сетку (игнорируя 9-slice или старые тени)
+        // If it's a paper background, we ALWAYS completely rebuild the mesh (ignoring 9-slice or old shadows)
         if (isPaperBackground)
         {
             SubdivideQuad(vh);
         }
 
-        // Вытаскиваем все вершины (текст, иконки или уже нарезанный фон)
+        // We pull out all the vertices (text, icons or already cut background)
         List<UIVertex> verts = new List<UIVertex>();
         vh.GetUIVertexStream(verts);
 
-        // Применяем математику изгиба к каждой вершине
+        // Apply bending math to each vertex
         for (int i = 0; i < verts.Count; i++)
         {
             UIVertex v = verts[i];
@@ -40,23 +40,23 @@ public class PaperBendChild : BaseMeshEffect
             verts[i] = v;
         }
 
-        // Заливаем обратно в меш
+        // Fill it back into the mesh
         vh.Clear();
         vh.AddUIVertexTriangleStream(verts);
     }
 
-    // ── Нарезка квада на мелкую сетку + генерация тени ──
+    // ── Cutting a quad into a fine mesh + shadow generation ──
     private void SubdivideQuad(VertexHelper vh)
     {
-        // 1. Извлекаем цвет и UV из оригинальных вершин (беря первую попавшуюся)
+        // 1. Extract the color and UV from the original vertices (taking the first one available)
         List<UIVertex> origVerts = new List<UIVertex>();
         vh.GetUIVertexStream(origVerts);
         if (origVerts.Count == 0) return;
 
         Color32 color = origVerts[0].color;
 
-        // UV-координаты для стандартного Image обычно от 0 до 1, если это не атлас.
-        // Для простоты берем базовые границы самого RectTransform:
+        // UV coordinates for a standard Image are usually from 0 to 1, unless it is an atlas.
+        // For simplicity, we take the basic boundaries of the RectTransform itself:
         Rect rect = rectTransform.rect;
         Vector2 min = new Vector2(rect.xMin, rect.yMin);
         Vector2 max = new Vector2(rect.xMax, rect.yMax);
@@ -64,8 +64,8 @@ public class PaperBendChild : BaseMeshEffect
         Vector2 uvMin = new Vector2(0, 0);
         Vector2 uvMax = new Vector2(1, 1);
 
-        // Если картинка простая (4 вершины), используем её оригинальные UV
-        if (origVerts.Count == 6) // 6 вершин = 2 треугольника = 1 квад
+        // If the image is simple (4 vertices), use its original UVs
+        if (origVerts.Count == 6) // 6 vertices = 2 triangles = 1 quad
         {
             uvMin = origVerts[0].uv0;
             uvMax = origVerts[0].uv0;
@@ -81,7 +81,7 @@ public class PaperBendChild : BaseMeshEffect
         int segsX = paperBend.segments;
         int segsY = Mathf.Max(2, paperBend.segments / 2);
 
-        // Функция для генерации сетки (со смещением и цветом)
+        // Function to generate mesh (with offset and color)
         void GenerateGrid(Vector2 offset, Color32 gridColor)
         {
             int startIndex = vh.currentVertCount;
@@ -113,14 +113,14 @@ public class PaperBendChild : BaseMeshEffect
             }
         }
 
-        // Если прозрачность тени больше 0, сначала генерируем сетку тени
+        // If the shadow transparency is greater than 0, first generate a shadow mesh
         if (paperBend.dropShadowAlpha > 0.01f)
         {
             Color32 shadowColor = new Color(0, 0, 0, paperBend.dropShadowAlpha);
             GenerateGrid(paperBend.dropShadowDistance, shadowColor);
         }
 
-        // Затем генерируем саму бумагу (без смещения)
+        // Then we generate the paper itself (without offset)
         GenerateGrid(Vector2.zero, color);
     }
 }

@@ -45,8 +45,6 @@ public class StoryManager : SingletonMB<StoryManager>
     public GameObject gameScreenRoot;
     public GameObject currentStoryRoot;
 
-    public enum Day2Outcome { None, Won, Lost_NoSF }
-    public Day2Outcome currentDay2Outcome = Day2Outcome.None;
     public int diseaseDeathsThisShift = 0;
 
     protected override void Awake()
@@ -77,9 +75,9 @@ public class StoryManager : SingletonMB<StoryManager>
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // --- ЗАГРУЗКА СОХРАНЕНИЯ (Continue) ---
-        // StoryManager — DontDestroyOnLoad, Start() вызывается только раз при первой сцене.
-        // Все последующие загрузки сцен попадают сюда в OnSceneLoaded.
+        // --- LOADING A SAVE (Continue) ---
+        // StoryManager - DontDestroyOnLoad, Start() is called only once on the first scene.
+        // All subsequent scene loadings end up here in OnSceneLoaded.
         if (GameSaveManager.loadedData != null)
         {
             isFirstGameLoad = false;
@@ -109,7 +107,7 @@ public class StoryManager : SingletonMB<StoryManager>
             return;
         }
 
-        // --- ПЕРЕХОД МЕЖДУ ДНЯМИ ---
+        // --- TRANSITION BETWEEN DAYS ---
         if (PlayerPrefs.HasKey(SaveKeys.StartDayNumber))
         {
             isFirstGameLoad = false;
@@ -123,12 +121,12 @@ public class StoryManager : SingletonMB<StoryManager>
 
     void Start()
     {
-        // Start() вызывается только при самой первой загрузке сцены.
-        // Последующие загрузки обрабатываются в OnSceneLoaded выше.
+        // Start() is called only the very first time the scene is loaded.
+        // Subsequent loads are handled in OnSceneLoaded above.
 
-        // Если loadedData уже обработан в OnSceneLoaded — выходим
+        // If loadedData has already been processed in OnSceneLoaded, exit
         if (GameSaveManager.loadedData != null)
-            return; // OnSceneLoaded сработает следом
+            return; // OnSceneLoaded will work next
 
         if (skipTutorialAndStartDay1)
         {
@@ -156,10 +154,10 @@ public class StoryManager : SingletonMB<StoryManager>
     {
         LockPlayerInput(true);
         
-        // Ждем, пока RadarManager не будет готов
+        // We wait until RadarManager is ready
         yield return new WaitUntil(() => RadarManager.Instance != null);
         
-        // Точно как BigRadarLoader.RebuildAll() — читаем FlightDataManager и спавним самолёты
+        // Exactly like BigRadarLoader.RebuildAll() - read FlightDataManager and spawn planes
         RadarManager.Instance.RebuildFromFlightData();
         
         yield return new WaitForSeconds(0.5f);
@@ -287,7 +285,7 @@ public class StoryManager : SingletonMB<StoryManager>
             FlightDataManager.Instance.isShiftActive = false;
         }
         
-        // Обязательно сохраняем игру в конце дня, чтобы зафиксировать прогресс
+        // Be sure to save the game at the end of the day to record your progress.
         GameSaveManager.SaveGame();
 
         ForceBlackScreen();
@@ -352,19 +350,7 @@ public class StoryManager : SingletonMB<StoryManager>
             fdmTotalFood = FlightDataManager.Instance.totalFood;
         }
 
-        int shiftXpGained = 0;
-        if (currentDay == 1)
-        {
-            int eng = PlayerPrefs.GetInt(SaveKeys.TriggerEngineer, 0);
-            int econ = PlayerPrefs.GetInt(SaveKeys.BaseEmergencyEconomy, 0);
-            if (eng == 0 && econ == 0) shiftXpGained = 150; 
-            else if (eng == 1) shiftXpGained = 50; 
-            else shiftXpGained = 50; 
-        }
-        else if (currentDay == 2)
-        {
-            shiftXpGained = 150; // Базовый опыт за прохождение второго дня
-        }
+        int shiftXpGained = DayLogicProvider.GetDayLogic(currentDay).GetBaseXP();
 
         int xpPenalty = starvedToDeath + diseaseDeathsThisShift;
         int totalXpGained = shiftXpGained - xpPenalty;
@@ -509,18 +495,20 @@ public class StoryManager : SingletonMB<StoryManager>
         
         if (transitionCanvasGroup != null) transitionCanvasGroup.alpha = 1f;
 
-        if (currentDay2Outcome == Day2Outcome.Lost_NoSF)
+        IDayLogic currentDayLogic = DayLogicProvider.GetDayLogic(currentDay);
+        EndOfDayResult result = currentDayLogic.GetEndOfDayResult();
+
+        if (result == EndOfDayResult.GameOverCaptured)
         {
             TriggerGameOverCaptured();
             yield break;
         }
-        else if (currentDay2Outcome == Day2Outcome.Won)
+        else if (result == EndOfDayResult.GameWon)
         {
             TriggerGameWonTransition();
             yield break;
         }
-
-        if (currentDay == 2)
+        else if (result == EndOfDayResult.DemoEnd)
         {
             TriggerDemoEndTransition();
             yield break;
@@ -564,190 +552,8 @@ public class StoryManager : SingletonMB<StoryManager>
 
     private void EvaluateShiftResults(int shiftDay)
     {
-        if (FlightDataManager.Instance == null) return;
-
-        if (shiftDay == 1)
-        {
-            bool letRefugeesIn = false;
-
-            foreach (var flight in FlightDataManager.Instance.savedFlights)
-            {
-                if (flight.callsign == Callsigns.TR_404 && flight.approved) letRefugeesIn = true;
-            }
-
-            int finalFuel = FlightDataManager.Instance.totalFuel;
-            bool fuelTargetMet = (finalFuel >= 400);
-
-            // Save variables for Day 2 in memory
-            PlayerPrefs.SetInt(SaveKeys.BaseEmergencyEconomy, fuelTargetMet ? 0 : 1);
-            PlayerPrefs.SetInt(SaveKeys.TriggerEngineer, letRefugeesIn ? 1 : 0);
-            PlayerPrefs.Save();
-
-            if (letRefugeesIn)
-            {
-                AegisMailApp.ReceiveNewEmail(new EmailData
-                {
-                    sender = "Chief Engineer Mitchell",
-                    subject = "Thank you from the survivors",
-                    date = "20.08.2038",
-                    body = "Dispatcher, I was on board TR-404. You saved my life and the lives of 64 others when our engines were failing. The Director is furious about the fuel shortage, but I've already set up a workspace in the hangar. I will do everything I can to help you optimize the base systems. We owe you our lives.\n\nI have requested a drop of special equipment to help us. To ensure it's not intercepted by marauders, the pilot will give an encrypted code. Put it in the Decryption Machine (shift -8). The real transport will decrypt to the word SAFE."
-                });
-            }
-            else
-            {
-                AegisMailApp.ReceiveNewEmail(new EmailData
-                {
-                    sender = "Aegis Auto-Alert",
-                    subject = "CRASH REPORT: TR-404",
-                    date = "20.08.2038",
-                    body = "AUTOMATED NOTIFICATION:\n\nFlight TR-404 lost signal 40 miles off the coast of Bastion-7. Presumed destroyed by the storm.\n\nCasualties: 65.\nSurvivors: 0."
-                });
-            }
-        }
-        else if (shiftDay == 2)
-        {
-            bool acceptedEQ = false;
-            bool acceptedMeds = false;
-            bool acceptedFuel = false;
-
-            foreach (var flight in FlightDataManager.Instance.savedFlights)
-            {
-                if (flight.approved)
-                {
-                    if (flight.callsign == Callsigns.GE_99) acceptedEQ = true;
-                    if (flight.callsign == Callsigns.QY_01) acceptedMeds = true;
-                    if (flight.callsign == Callsigns.GE_55) acceptedFuel = true;
-                }
-            }
-
-            int engineerTrigger = PlayerPrefs.GetInt(SaveKeys.TriggerEngineer, 0);
-            int emergencyEcon = PlayerPrefs.GetInt(SaveKeys.BaseEmergencyEconomy, 0);
-            int day3Slots = 3;
-
-            if (engineerTrigger == 1) // Branch B
-            {
-                if (acceptedEQ)
-                {
-                    day3Slots = 4; // Combo
-                }
-                else if (!acceptedMeds && !acceptedFuel)
-                {
-                    day3Slots = 2; // Failed completely
-                }
-
-                int medsNeeded = Mathf.CeilToInt(FlightDataManager.Instance.totalPeople / 15f);
-                int medsUsed = Mathf.Min(medsNeeded, FlightDataManager.Instance.totalMedicines);
-                int peopleSaved = medsUsed * 15;
-                
-                int diseaseDeaths = FlightDataManager.Instance.totalPeople - peopleSaved;
-                if (diseaseDeaths < 0) diseaseDeaths = 0;
-
-                // Потребляем медикаменты на лечение
-                FlightDataManager.Instance.totalMedicines -= medsUsed;
-
-                string emailSubject = "";
-                string emailBody = "";
-
-                if (emergencyEcon == 1) // Branch B-1 (No Fuel on Day 1)
-                {
-                    if (acceptedFuel)
-                    {
-                        if (diseaseDeaths == 0)
-                        {
-                            PlayerPrefs.SetInt(SaveKeys.BaseEmergencyEconomy, 0);
-                            emailSubject = "Good job";
-                            emailBody = "Good job, Dispatcher. You managed to secure both fuel and medical supplies. The pathogen is suppressed. We are entering open mode without interference since the power grid is stable. Keep up the good work.";
-                        }
-                        else
-                        {
-                            PlayerPrefs.SetInt("BaseEmergencyEconomy", 0);
-                            emailSubject = "Tragic losses";
-                            emailBody = $"We lost people today because we didn't have enough medical supplies to save everyone. We lost {diseaseDeaths} people to the pathogen. At least you secured the fuel, so the power grid is stable and the interference is gone.";
-                        }
-                    }
-                    else
-                    {
-                        if (diseaseDeaths == 0)
-                        {
-                            PlayerPrefs.SetInt(SaveKeys.BaseEmergencyEconomy, 1);
-                            emailSubject = "CRITICAL FUEL SHORTAGE";
-                            emailBody = "You idiot! We had enough meds to save lives from the pathogen, but we have a critical fuel shortage! The generators are dying, the radar is going black, and the interference will only get worse. How are we supposed to survive in the dark?";
-                        }
-                        else
-                        {
-                            PlayerPrefs.SetInt(SaveKeys.BaseEmergencyEconomy, 1);
-                            emailSubject = "DISASTER";
-                            emailBody = $"You are an absolute failure. You failed to bring enough fuel, and we didn't have enough medicines. We lost {diseaseDeaths} people to the pathogen, and the generators are completely dead. You are officially relieved of duty... though there is no one left to take your place.";
-                        }
-                    }
-                }
-                else // Branch B-2 (Fuel secured on Day 1)
-                {
-                    if (diseaseDeaths == 0)
-                    {
-                        emailSubject = "Crisis Averted";
-                        emailBody = "Excellent work. We had enough medical supplies to treat all the infected. Everyone survived the quarantine. Keep the skies clear, open mode begins.";
-                    }
-                    else if (diseaseDeaths < FlightDataManager.Instance.totalPeople * 0.5f)
-                    {
-                        emailSubject = "Partial Success";
-                        emailBody = $"We didn't have enough medicine to save everyone. We lost {diseaseDeaths} people to the pathogen. It could have been worse, but it's still a tragedy.";
-                    }
-                    else
-                    {
-                        emailSubject = "YOU ARE FIRED";
-                        emailBody = $"You idiot. A massive part of the base died because we lacked medical supplies. We lost {diseaseDeaths} people today. You are officially relieved of your duties as Dispatcher. Do not return to the control tower.";
-                    }
-                }
-
-                if (diseaseDeaths > 0)
-                {
-                    diseaseDeathsThisShift = diseaseDeaths;
-                    FlightDataManager.Instance.totalPeople -= diseaseDeaths;
-                    if (FlightDataManager.Instance.totalPeople < 0) FlightDataManager.Instance.totalPeople = 0;
-                }
-
-                AegisMailApp.ReceiveNewEmail(new EmailData {
-                    sender = "Director Reed",
-                    subject = emailSubject,
-                    date = "21.08.2038",
-                    body = emailBody
-                });
-            }
-            else // Branch A
-            {
-                bool acceptedFriendSF = false;
-                bool acceptedEnemySF = false;
-                foreach (var flight in FlightDataManager.Instance.savedFlights)
-                {
-                    if (flight.approved)
-                    {
-                        if (flight.callsign == Callsigns.TR_11) acceptedFriendSF = true;
-                        if (flight.callsign == Callsigns.TR_88) acceptedEnemySF = true;
-                    }
-                }
-
-                if (!acceptedFriendSF && !acceptedEnemySF)
-                {
-                    currentDay2Outcome = Day2Outcome.Lost_NoSF;
-                }
-                else if (acceptedFriendSF)
-                {
-                    currentDay2Outcome = Day2Outcome.Won;
-                    
-                    AegisMailApp.ReceiveNewEmail(new EmailData
-                    {
-                        sender = "Director Reed",
-                        subject = "Well done, you protected us",
-                        date = "21.08.2038",
-                        body = "Dispatcher. The reinforcements you let in secured the perimeter just in time. The marauders have been repelled. You saved the base. Great job."
-                    });
-                }
-            }
-
-            PlayerPrefs.SetInt(SaveKeys.Day3Slots, day3Slots);
-            PlayerPrefs.Save();
-        }
+        IDayLogic dayLogic = DayLogicProvider.GetDayLogic(shiftDay);
+        diseaseDeathsThisShift = dayLogic.EvaluateShift();
     }
 
     private IEnumerator DayTransitionSequence(int dayNumber, bool isScreenAlreadyBlack)
@@ -767,9 +573,9 @@ public class StoryManager : SingletonMB<StoryManager>
                 int randomFuel = UnityEngine.Random.Range(250, 381);   // 250 to 380 inclusive
                 int randomMeds = UnityEngine.Random.Range(0, 3);       // 0 to 2 inclusive
                 
-                // Чтобы на 2-й день без дополнительных поставок еды умерло 3-4 человека (нехватка 6-8 еды).
-                // Считаем, что игрок примет беженцев (+65 человек). 
-                // Суммарное потребление за 2 дня примерно равно количеству людей.
+                // So that on the 2nd day, without additional food supplies, 3-4 people would die (shortage of 6-8 food).
+                // We believe that the player will accept refugees (+65 people). 
+                // The total consumption over 2 days is approximately equal to the number of people.
                 int calculatedFood = (randomPeople + 65) - 7;
 
                 FlightDataManager.Instance.ResetForNewShift(randomFuel, calculatedFood, randomPeople, randomMeds);
@@ -811,8 +617,8 @@ public class StoryManager : SingletonMB<StoryManager>
 
         yield return StartCoroutine(builder.PlaySequence(dayText.transform.parent, dayText.font, dayNumber, displayDate));
 
-        if (dayNumber == 1) SendDay1Directives();
-        else if (dayNumber == 2) SendDay2Directives();
+        IDayLogic dayLogic = DayLogicProvider.GetDayLogic(dayNumber);
+        dayLogic.SendMorningDirectives();
 
         yield return StartCoroutine(Fade(1f, 0f, 1.5f));
 
@@ -823,11 +629,11 @@ public class StoryManager : SingletonMB<StoryManager>
 
         if (FlightDataManager.Instance != null)
         {
-            // Убедимся, что очистили очередь, если вдруг был перезапуск или накладка
+            // Let's make sure we clear the queue in case there was a restart or a problem
             FlightDataManager.Instance.scriptedFlightsQueue.Clear();
             FlightDataManager.Instance.scriptedDelaysQueue.Clear();
 
-            // Убираем все самолёты прошлого дня с радара (маркеры и маршруты исчезнут вместе с ними)
+            // We remove all planes of the previous day from the radar (markers and routes will disappear along with them)
             ClearAllRadarPlanes();
 
             FlightDataManager.Instance.StartDaySpawning(dayNumber);
@@ -893,64 +699,7 @@ public class StoryManager : SingletonMB<StoryManager>
         // Clearing here would destroy all data about planes waiting to depart on the next day.
     }
 
-    private void SendDay1Directives()
-    {
-        EmailData day1Email = new EmailData
-        {
-            sender = "Director Reed",
-            subject = "DIRECTIVE #1 - URGENT",
-            date = "19.08.2038",
-            body = "Listen carefully, Dispatcher. Night storm damaged the runways. You only have THREE landing slots available today.\n\nA magnetic storm hit us last night. The base's generators are running at their limit. Your main task for today is to collect Fuel. If we do not collect a critical volume of at least 400 liters of fuel by the end of the shift, tomorrow the base will transition to EMERGENCY ECONOMY MODE.\n\nAnd one more thing. Civilian refugees have been spotted in the sector. We have neither food nor beds for them.\n\nDIRECTIVE #1: Aircraft with civilians (Prefix TR) are STRICTLY FORBIDDEN from landing. Turn them back into the storm."
-        };
 
-        try { AegisMailApp.ReceiveNewEmail(day1Email); } catch { }
-    }
-
-    private void SendDay2Directives()
-    {
-        bool letRefugeesIn = PlayerPrefs.GetInt(SaveKeys.TriggerEngineer, 0) == 1;
-        bool fuelTargetMet = PlayerPrefs.GetInt(SaveKeys.BaseEmergencyEconomy, 0) == 0;
-
-        EmailData day2Email = new EmailData();
-        day2Email.date = "20.08.2038";
-
-        if (!letRefugeesIn && fuelTargetMet)
-        {
-            // Branch A: Marauders
-            if (crashedPlaneRadarIcon != null) crashedPlaneRadarIcon.SetActive(true);
-            if (marauderAmbienceRoot != null) marauderAmbienceRoot.SetActive(true);
-            
-            day2Email.sender = "Director Reed";
-            day2Email.subject = "SECURITY ALERT — PERIMETER BREACH";
-            day2Email.body = "ATS, listen carefully. That passenger plane you turned away yesterday crashed five miles outside the perimeter. The burning wreckage served as a beacon for local looters. Now these looters have spotted our gates and are actively trying to breach the outer fence. Our fighters will fight with all their might, but they’re unlikely to hold out for long—there are too many of them.\n\nUsing my old connections, I convinced one of our friendly bases to send us reinforcements; a heavy transport carrying a special forces unit is on its way. You MUST immediately clear a landing zone for them. If they don’t secure the perimeter before nightfall, we’ll all be killed.\n\nATTENTION: The enemy might try to send a fake transport. When asked about their cargo, the REAL transport will say the password 'ECHO'. The enemy will say something similar. Do NOT let the enemy land!";
-        }
-        else if (!letRefugeesIn && !fuelTargetMet)
-        {
-            // Branch A-2: Marauders + Blackout
-            if (crashedPlaneRadarIcon != null) crashedPlaneRadarIcon.SetActive(true);
-            if (marauderAmbienceRoot != null) marauderAmbienceRoot.SetActive(true);
-            
-            day2Email.sender = "Director Reed";
-            day2Email.subject = "PERIMETER BREACH & POWER FAILURE";
-            day2Email.body = "You failed the simplest task yesterday. The grid is dying, and we are sitting in the dark.\n\nTo make matters worse, that passenger plane you turned away crashed five miles outside the perimeter. The burning wreckage acted like a beacon for local scavengers. Now, marauders are using our blackout to their advantage and are actively breaching the external gates.\n\nYOUR DIRECTIVE:\n> You have two critical jobs today. First, using my old connections, I convinced one of our friendly bases to send us reinforcements; a heavy transport carrying a special forces unit is on its way. You MUST immediately clear a landing zone for them. Second, get a Fuel transport down here before your radar shuts off completely.\n\nDo not waste time on anything else. If you fail to bring in the ops team or the fuel, we are all dead.\n\nATTENTION: The enemy might try to send a fake transport. When asked about their cargo, the REAL transport will say the password 'ECHO'. The enemy will say something similar. Do NOT let the enemy land!";
-        }
-        else if (letRefugeesIn && !fuelTargetMet)
-        {
-            // Branch B-1: Epidemic + Power Outage
-            day2Email.sender = "Director Reed";
-            day2Email.subject = "QUARANTINE PROTOCOL AND POWER OUTAGE";
-            day2Email.body = "You’re an idiot.\n\nNot only are we sitting in the dark because you failed to secure the fuel quota yesterday, but those “civilians” you let in also brought a pathogen with them. It’s absolute hell on the lower levels right now.\n\nYOUR TASK:\n> Today you have two critical tasks to fix the mess you’ve made. First, receive a fuel shipment so your radar doesn’t go completely offline. Second, immediately deliver medical supplies so we don’t rot from the inside out.\n\nADDITIONAL NOTE:\n> Control tower reports that an engineering cargo plane is approaching; by a lucky coincidence, there is an engineer among these refugees who can help us. If you have any room left, take him on board. But fuel and medical supplies are the priority.";
-        }
-        else if (letRefugeesIn && fuelTargetMet)
-        {
-            // Branch B-2: Epidemic (No Blackout)
-            day2Email.sender = "Director Reed";
-            day2Email.subject = "QUARANTINE PROTOCOL";
-            day2Email.body = "You met the fuel quota yesterday, so at least the grid is stable. But you just couldn't follow simple orders, could you?\n\nThose \"civilians\" you let in brought a pathogen with them. It is an absolute hellzone on the lower levels right now. Your charity has consequences.\n\nYOUR DIRECTIVE:\n> We need Medical supplies immediately so we don't rot from the inside out. Clear a landing slot for a medical transport.\n\nSECONDARY NOTE:\n> Dispatch reports an engineering cargo plane is inbound. Since our power grid is stable, you don't need to waste a slot on fuel today. Bring the engineers in, but prioritize the meds first.\n\nADDITIONAL NOTE:\n> Control tower reports that an engineering cargo plane is approaching; by a lucky coincidence, there is an engineer among these refugees who can help us. If you have any room left, take him on board. But fuel and medical supplies are the priority.";
-        }
-
-        try { AegisMailApp.ReceiveNewEmail(day2Email); } catch { }
-    }
 
     private IEnumerator Fade(float startAlpha, float targetAlpha, float duration)
     {

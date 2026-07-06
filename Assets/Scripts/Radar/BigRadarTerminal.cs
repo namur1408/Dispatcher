@@ -76,7 +76,7 @@ public class BigRadarTerminal : MonoBehaviour
 
     public void SelectPlane(UIAirplane plane)
     {
-        // Убрали блокировку выбора во время загрузки (!isStartupSequenceDone)
+        // Removed selection blocking during loading (!isStartupSequenceDone)
         if (plane == null) return;
         if (currentSelectedPlane == plane) return;
 
@@ -91,7 +91,7 @@ public class BigRadarTerminal : MonoBehaviour
 
         bool isTransit = currentSelectedPlane.targetPosition != Vector2.zero && string.IsNullOrEmpty(currentSelectedPlane.assignedRunway);
 
-        // Блокируем рацию для транзитных самолетов
+        // Blocking the radio for transit aircraft
         if (isTransit)
         {
             if (RadioManager.activeCallsign == currentSelectedPlane.callsignText.text)
@@ -108,9 +108,13 @@ public class BigRadarTerminal : MonoBehaviour
                 if (FlightDataManager.Instance != null)
                 {
                     var fData = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == currentSelectedPlane.callsignText.text);
-                    if (fData != null && !fData.isCargoKnown)
+                    if (fData != null)
                     {
-                        RadioManager.isNewCall = true;
+                        var state = FlightDataManager.Instance.GetOrCreateInterrogationState(fData.callsign);
+                        if (!state.isCargoKnown)
+                        {
+                            RadioManager.isNewCall = true;
+                        }
                     }
                 }
             }
@@ -143,7 +147,8 @@ public class BigRadarTerminal : MonoBehaviour
                 var flightData = FlightDataManager.Instance.savedFlights.Find(f => f.callsign == currentSelectedPlane.callsignText.text);
                 if (flightData != null)
                 {
-                    if (!flightData.isCargoKnown)
+                    var state = FlightDataManager.Instance.GetOrCreateInterrogationState(flightData.callsign);
+                    if (!state.isCargoKnown)
                     {
                         cargoInfo = "<color=#FF0000>UNKNOWN</color>";
                     }

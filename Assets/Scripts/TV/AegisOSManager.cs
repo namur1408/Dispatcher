@@ -30,7 +30,7 @@ public class AegisOSManager : MonoBehaviour
     void OnEnable()
     {
         originalListenerVolume = AudioListener.volume;
-        AudioListener.volume = originalListenerVolume * 0.3f; // Слегка приглушаем остальные звуки
+        AudioListener.volume = originalListenerVolume * 0.3f; // Slightly muffle other sounds
         if (tvBackgroundSound != null && tvAudioSource != null)
         {
             tvAudioSource.clip = tvBackgroundSound;
@@ -41,7 +41,7 @@ public class AegisOSManager : MonoBehaviour
 
     void OnDisable()
     {
-        AudioListener.volume = originalListenerVolume; // Восстанавливаем громкость
+        AudioListener.volume = originalListenerVolume; // Restoring the volume
         if (tvAudioSource != null) tvAudioSource.Stop();
     }
 

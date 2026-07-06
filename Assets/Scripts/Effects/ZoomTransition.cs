@@ -65,7 +65,7 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         var evSys = Object.FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>();
         if (evSys != null) evSys.enabled = false;
 
-        // 1. Запускаем звук
+        // 1. Start the sound
         AudioSource localSource = GetComponent<AudioSource>();
         if (localSource == null) localSource = gameObject.AddComponent<AudioSource>();
         localSource.ignoreListenerVolume = true;
@@ -79,7 +79,7 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
             localSource.volume = soundVolume;
             localSource.Play();
 
-            // Если задан customSoundDuration, ждем его (иначе ждем только зум)
+            // If customSoundDuration is specified, wait for it (otherwise we wait only for zoom)
             totalWaitTime = customSoundDuration > 0f ? customSoundDuration : zoomDuration;
         }
         else if (ButtonSoundManager.instance != null)
@@ -94,7 +94,7 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         Transform targetTransform = zoomTarget != null ? zoomTarget : transform;
         ZoomReturnManager.pendingReturnTargetName = targetTransform.name;
 
-        // Начинаем загрузку новой сцены заранее, если указана
+        // We start loading a new scene in advance, if specified
         AsyncOperation asyncLoad = null;
         if (!string.IsNullOrEmpty(sceneToLoad))
         {
@@ -102,10 +102,10 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
             asyncLoad.allowSceneActivation = false;
         }
 
-        // Задержка перед началом зума (дает время сцене подгрузиться)
+        // Delay before zoom starts (gives time for the scene to load)
         yield return new WaitForSecondsRealtime(0.1f);
 
-        // 2. Анимация Зума (она задает темп)
+        // 2. Zoom animation (it sets the pace)
         Vector3 startScale = rootContainer.localScale;
         Vector3 targetScale = startScale * zoomMultiplier;
         Vector2 startPos = rootContainer.anchoredPosition;
@@ -145,13 +145,13 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
         rootContainer.localScale = targetScale;
         rootContainer.anchoredPosition = targetPos;
 
-        // Ждем оставшееся время, пока звук не доиграет
+        // We wait the remaining time until the sound finishes playing
         if (totalWaitTime > zoomDuration)
         {
             yield return new WaitForSecondsRealtime(totalWaitTime - zoomDuration);
         }
 
-        // Останавливаем звук ровно в момент окончания ожидания ТОЛЬКО при загрузке новой сцены (чтобы избежать треска)
+        // Stop the sound exactly at the end of the wait ONLY when loading a new scene (to avoid crashing)
         if (asyncLoad != null)
         {
             if (transitionSound != null && localSource.isPlaying)
@@ -182,13 +182,13 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
                 }
             }
 
-            // Активируем новую сцену
+            // Activating a new scene
             if (evSys != null) evSys.enabled = true;
             asyncLoad.allowSceneActivation = true;
         }
         else
         {
-            // Переход внутри одной сцены (Single Scene)
+            // Transition within one scene (Single Scene)
             if (targetScreenRoot != null) targetScreenRoot.SetActive(true);
             
             if (targetCamera != null)
@@ -221,7 +221,7 @@ public class ZoomTransition : MonoBehaviour, IPointerClickHandler
                 }
             }
 
-            // Сбрасываем зум, чтобы при возвращении на этот экран он был в нормальном виде
+            // Reset the zoom so that when you return to this screen it will be in normal form
             rootContainer.localScale = startScale;
             rootContainer.anchoredPosition = startPos;
             for (int i = 0; i < lights.Length; i++)

@@ -1,21 +1,31 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class RunwayManager : MonoBehaviour
+public class RunwayManager : SingletonMB<RunwayManager>
 {
-    public static RunwayManager Instance;
-
     public List<Runway> runways = new List<Runway>();
 
-    private void Awake()
+    protected override void Awake()
     {
-        if (Instance == null)
+        base.Awake();
+        if (Instance != this) return;
+    }
+
+    private void OnEnable()
+    {
+        GameEvents.OnFlightLanded += HandleFlightLanded;
+    }
+
+    private void OnDisable()
+    {
+        GameEvents.OnFlightLanded -= HandleFlightLanded;
+    }
+
+    private void HandleFlightLanded(FlightData flight)
+    {
+        if (flight != null && !string.IsNullOrEmpty(flight.assignedRunway))
         {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
+            OccupyRunway(flight.assignedRunway, FlightConstants.UnloadTime);
         }
     }
 

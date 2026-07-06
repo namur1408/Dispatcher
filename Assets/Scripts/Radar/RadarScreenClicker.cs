@@ -55,18 +55,18 @@ public class RadarScreenClicker : MonoBehaviour, IPointerDownHandler, IPointerUp
         Canvas canvas = zoneRect.GetComponentInParent<Canvas>();
         Camera clickCamera = (canvas != null && canvas.renderMode == RenderMode.ScreenSpaceOverlay) ? null : eventData.pressEventCamera;
 
-        // Раз теперь всё в одном UI канвасе, мы можем получить мировые координаты UI напрямую!
+        // Since everything is now in one UI canvas, we can get the UI world coordinates directly!
         if (RectTransformUtility.ScreenPointToWorldPointInRectangle(zoneRect, eventData.position, clickCamera, out Vector3 worldClickPos))
         {
-            // Если нужна старая калибровка (обычно в одном канвасе она не нужна, но на всякий случай оставим)
+            // If you need the old calibration (usually it is not needed in one canvas, but we’ll leave it just in case)
             if (uvCalibration != Vector2.zero)
             {
-                // Сдвигаем мировые координаты на основе размеров зоны
+                // Shifting world coordinates based on zone sizes
                 worldClickPos.x += zoneRect.rect.width * uvCalibration.x * zoneRect.lossyScale.x;
                 worldClickPos.y += zoneRect.rect.height * uvCalibration.y * zoneRect.lossyScale.y;
             }
 
-            worldClickPos.z = 0f; // Убеждаемся, что мы в 2D плоскости
+            worldClickPos.z = 0f; // Making sure we are in a 2D plane
             Debug.Log($"[RadarClicker] ScreenPos: {eventData.position}, WorldClickPos: {worldClickPos}");
 
             Vector2 finalPosInsideContent = Vector2.zero;
@@ -86,7 +86,7 @@ public class RadarScreenClicker : MonoBehaviour, IPointerDownHandler, IPointerUp
                 }
             }
 
-            // Поиск самолёта через UI Raycast
+            // Aircraft Search via Raycast UI
             UIAirplane clickedPlane = null;
             foreach (var result in results)
             {
@@ -98,7 +98,7 @@ public class RadarScreenClicker : MonoBehaviour, IPointerDownHandler, IPointerUp
                 }
             }
 
-            // Эффект клика
+            // Click effect
             if (RadarClickVisualizer.Instance != null)
             {
                 Transform clickParent = zoneRect;
@@ -124,7 +124,7 @@ public class RadarScreenClicker : MonoBehaviour, IPointerDownHandler, IPointerUp
                 return; 
             }
 
-            // Если не попали по самолету, добавляем путевую точку
+            // If we didn't hit the plane, add a waypoint
             if (selectedPlane != null)
             {
                 selectedPlane.AddWaypoint(finalPosInsideContent);

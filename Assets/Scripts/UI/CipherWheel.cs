@@ -5,16 +5,16 @@ using System.Collections.Generic;
 public class CipherWheel : MonoBehaviour
 {
     [Header("UI References")]
-    public RectTransform container;   // Пустой RectTransform, куда будут спавниться буквы
-    public GameObject textPrefab;     // Префаб TextMeshProUGUI
+    public RectTransform container;   // An empty RectTransform where the letters will spawn
+    public GameObject textPrefab;     // Prefab TextMeshProUGUI
 
     [Header("Cylinder Settings")]
-    public float radius = 250f;             // Радиус виртуального цилиндра (высота барабана)
-    public float spacingMultiplier = 1f;    // Расстояние между буквами
+    public float radius = 250f;             // Virtual cylinder radius (drum height)
+    public float spacingMultiplier = 1f;    // Letter spacing
 
     [Header("Letter Colors")]
-    public Color centerColor  = new Color(0.95f, 0.85f, 0.55f, 1f);  // Центральная буква — золотая
-    public Color normalColor  = new Color(0.40f, 0.35f, 0.25f, 1f);  // Боковые — тёмные
+    public Color centerColor  = new Color(0.95f, 0.85f, 0.55f, 1f);  // The central letter is gold
+    public Color normalColor  = new Color(0.40f, 0.35f, 0.25f, 1f);  // Sides - dark
     [Tooltip("How far from center (in angle steps) the color fully transitions to normalColor. 1 = immediate, 3 = gradual")]
     public float colorFalloffSteps = 2.0f;
 

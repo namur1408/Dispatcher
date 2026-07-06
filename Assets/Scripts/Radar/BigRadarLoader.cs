@@ -78,7 +78,7 @@ public class BigRadarLoader : MonoBehaviour
         var savedFlights = FlightDataManager.Instance.savedFlights;
 
         // 1. Add planes that are in FlightDataManager but not on big radar yet.
-        // Показываем самолеты которые: ещё не сели ИЛИ уже вылетают (isDeparting).
+        // We show planes that: have not yet landed OR are already taking off (isDeparting).
         foreach (var data in savedFlights)
         {
             bool shouldShow = (!data.hasLanded || data.isDeparting) && !data.isReadyToDepart;
@@ -97,7 +97,7 @@ public class BigRadarLoader : MonoBehaviour
             if (kv.Value == null) { toRemove.Add(kv.Key); continue; }
 
             var fd = savedFlights.Find(f => f.callsign == kv.Key);
-            // Удаляем только если рейс вообще исчез ИЛИ сел и НЕ вылетает
+            // We delete only if the flight has completely disappeared OR landed and does NOT take off
             if (fd == null || (fd.hasLanded && !fd.isDeparting))
                 toRemove.Add(kv.Key);
         }
@@ -225,6 +225,21 @@ public class BigRadarLoader : MonoBehaviour
         // Apply — SetWarning skips UpdateHitboxColor if state unchanged
         for (int i = 0; i < count; i++)
             if (activePlanes[i] != null) activePlanes[i].SetWarning(newWarnings[i]);
+
+        // Critical fuel check — same threshold (≤30f) as the blinking in UIAirplane.HandleLowFuelWarning
+        if (!anyWarning)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var plane = activePlanes[i];
+                if (plane == null || plane.isLandingPhase || plane.isTakingOff || plane.isOutOfFuel) continue;
+                if (plane.currentFuel > 0f && plane.currentFuel <= 30f)
+                {
+                    anyWarning = true;
+                    break;
+                }
+            }
+        }
 
         isGlobalWarningActive = anyWarning;
     }

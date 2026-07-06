@@ -19,7 +19,7 @@ public class FlightData
     public Vector2 targetPosition;
     public List<Vector2> savedWaypoints = new List<Vector2>();
 
-    // Для сериализации JsonUtility, так как List<Vector2> не сериализуется корректно
+    // For JsonUtility serialization since List<Vector2> is not serializing correctly
     public List<float> waypointXs = new List<float>();
     public List<float> waypointYs = new List<float>();
 
@@ -52,66 +52,51 @@ public class FlightData
     public string explanationWeight = "";
     public string explanationSpeed = "";
 
-    // Кастомные ответы на конкретные вопросы (если пусто — используется авто-фраза)
+    // Custom answers to specific questions (if empty, an auto-phrase is used)
     public string customAnswerCargo = "";
     public string customAnswerOrigin = "";
     public string customAnswerWeight = "";
     public string customAnswerSpeed = "";
 
-    // Кастомные вопросы диспетчера (если пусто — используется авто-фраза)
+    // Custom dispatcher questions (if empty, an auto-phrase is used)
     public string customQuestionCargo = "";
     public string customQuestionOrigin = "";
     public string customQuestionWeight = "";
     public string customQuestionSpeed = "";
 
-    public bool isCargoKnown = false;
     public bool decisionMade = false;
     public bool approved = false;
     public bool hasLanded = false;
     public bool hasBeenPinged = false;
-    public string chatHistory = "";
 
     public bool isInStorm = false;
 
-    public bool askedCargo;
-    public bool askedOrigin;
-    public bool askedWeight;
-    public bool askedSpeed;
+    // ──────────────────────────────────────────────────────────
+    // Ground maintenance processes (unloading / refueling / repairs)
+    // Each process is encapsulated in a TimedProcess.
+    // Wrapper properties are retained for compatibility with existing code.
+    // ──────────────────────────────────────────────────────────
+    public TimedProcess unloading = new TimedProcess();
+    public TimedProcess refueling = new TimedProcess();
+    public TimedProcess repairing = new TimedProcess();
 
-    public bool isFolderTorn = false;
-    public Vector2 manifestPos = new Vector2(-380, 80);
-    public Vector2 radarPos = new Vector2(-150, -20);
-    public Vector2 cheatSheetPos = new Vector2(210, 140);
-    public Vector2 pilotReportPos = new Vector2(100, -120);
+    // Wrappers for convenience (use where you just need to read the state)
+    public bool isUnloading  => unloading.isActive;
+    public bool isUnloaded   => unloading.isComplete;
+    public bool isRefueling  => refueling.isActive;
+    public bool isRefueled   => refueling.isComplete;
+    public bool isRepairing  => repairing.isActive;
+    public bool isRepaired   => repairing.isComplete;
 
-    public bool isUnloading = false;
-    public bool isUnloaded = false;
-    public float unloadTimer = 0f;
+    // Wrapper methods - preserve the same public API
+    public void StartUnloading(float duration)  => unloading.Start(duration);
+    public void StartRefueling(float duration)  => refueling.Start(duration);
+    public void StartRepairing(float duration)  => repairing.Start(duration);
+    public void SkipRefuel()                    => refueling.Skip();
+    public void SkipRepair()                    => repairing.Skip();
 
-    public void StartUnloading(float duration) { if (!isUnloaded) { isUnloading = true; unloadTimer = duration; } }
-    public void UpdateUnloadTimer(float dt) { unloadTimer -= dt; }
-    public void CompleteUnload() { isUnloading = false; isUnloaded = true; }
-
-    public bool isRefueling = false;
-    public bool isRefueled = false;
-    public float refuelTimer = 0f;
-
-    public void StartRefueling(float duration) { if (!isRefueled) { isRefueling = true; refuelTimer = duration; } }
-    public void UpdateRefuelTimer(float dt) { refuelTimer -= dt; }
-    public void CompleteRefuel() { isRefueling = false; isRefueled = true; }
-    public void SkipRefuel() { isRefueled = true; isRefueling = false; }
-
-    public bool isRepairing = false;
-    public bool isRepaired = false;
-    public float repairTimer = 0f;
-
-    public void StartRepairing(float duration) { if (!isRepaired) { isRepairing = true; repairTimer = duration; } }
-    public void UpdateRepairTimer(float dt) { repairTimer -= dt; }
-    public void CompleteRepair() { isRepairing = false; isRepaired = true; }
-    public void SkipRepair() { isRepaired = true; isRepairing = false; }
-
-    // Самолёт обслужен и ожидает назначения полосы вылета через панель Departures.
-    // При isReadyToDepart=true самолёт отображается в Departures, но НЕ спавнится автоматически.
+    // The aircraft has been serviced and is awaiting departure runway assignment through the Departures panel.
+    // When isReadyToDepart=true, the aircraft is displayed in Departures, but will NOT spawn automatically.
     public bool isReadyToDepart = false;
 
     public int arrivalDay = 0;
@@ -188,7 +173,7 @@ public class FlightData
         }
     }
 
-    // Для загрузки уже существующих
+    // To download existing ones
     public FlightData() 
     { 
         savedWaypoints = new List<Vector2>();

@@ -71,13 +71,13 @@ public class AdvancedStormLightning : MonoBehaviour
     [Tooltip("Продолжительность тряски камеры.")]
     public float shakeDuration = 0.6f;
 
-    // Внутренние переменные
+    // Internal Variables
     private float strikeTimer;
     private bool isLightningActive = false;
 
     private void Start()
     {
-        // Инициализируем свет базовыми значениями
+        // Initializing the light with basic values
         if (lightningLights != null)
         {
             foreach (var light in lightningLights)
@@ -86,7 +86,7 @@ public class AdvancedStormLightning : MonoBehaviour
             }
         }
 
-        // Выключаем спрайты
+        // Turn off the sprites
         if (lightningSprites != null)
         {
             foreach (var sprite in lightningSprites)
@@ -95,26 +95,26 @@ public class AdvancedStormLightning : MonoBehaviour
             }
         }
 
-        // Выключаем картинку видео-плеера
+        // Turn off the video player image
         if (videoDisplayImage != null)
         {
             videoDisplayImage.enabled = false;
         }
 
-        // Выключаем спрайт видео-плеера
+        // Turn off the video player sprite
         if (videoDisplaySprite != null)
         {
             videoDisplaySprite.enabled = false;
         }
 
-        // Настраиваем видео-плеер
+        // Setting up a video player
         if (videoPlayer != null)
         {
             videoPlayer.playOnAwake = false;
             videoPlayer.loopPointReached += OnVideoFinished;
         }
 
-        // Задаем первый интервал ожидания молнии
+        // Set the first lightning waiting interval
         ResetStrikeTimer();
     }
 
@@ -130,25 +130,25 @@ public class AdvancedStormLightning : MonoBehaviour
         }
         else if (DynamicStorm.Instance != null)
         {
-            // Берем центр радара или позицию самого шторма
+            // We take the center of the radar or the position of the storm itself
             Vector3 checkPos = radarCenter != null ? radarCenter.position : DynamicStorm.Instance.transform.position;
             isStormOverCenter = DynamicStorm.Instance.IsInStorm(checkPos);
         }
 
-        // Таймер идет только если шторм находится над центром
+        // The timer only runs if the storm is above the center
         if (isStormOverCenter)
         {
             strikeTimer -= Time.deltaTime;
             if (strikeTimer <= 0f)
             {
-                // Таймер истек, проверяем вероятность
+                // The timer has expired, check the probability
                 if (Random.value < strikeProbability)
                 {
                     StartCoroutine(TriggerLightningSequence());
                 }
                 else
                 {
-                    // Если не повезло, пересчитываем таймер и пробуем снова позже
+                    // If you are unlucky, recalculate the timer and try again later
                     ResetStrikeTimer();
                 }
             }
@@ -164,21 +164,21 @@ public class AdvancedStormLightning : MonoBehaviour
     {
         isLightningActive = true;
 
-        // Выбираем случайный спрайт, если они заданы
+        // Select a random sprite if they are given
         GameObject activeSprite = null;
         if (lightningSprites != null && lightningSprites.Length > 0)
         {
             activeSprite = lightningSprites[Random.Range(0, lightningSprites.Length)];
         }
 
-        // Рассчитываем физическую задержку звука грома (имитируем расстояние от центра удара)
-        // Задержка от 0.1 секунды (очень близко) до 2.5 секунд (далеко)
+        // We calculate the physical delay of the thunder sound (simulate the distance from the center of the impact)
+        // Delay from 0.1 seconds (very close) to 2.5 seconds (far)
         float soundDelay = Random.Range(0.1f, 2.5f);
         
-        // Чем ближе удар (меньше задержка звука), тем сильнее трясется экран
+        // The closer the impact (less sound delay), the more the screen shakes
         float currentShakeIntensity = Mathf.Lerp(shakeIntensity, shakeIntensity * 0.15f, soundDelay / 2.5f);
 
-        // Запускаем воспроизведение видео
+        // Start video playback
         if (videoPlayer != null)
         {
             if (videoDisplayImage != null) videoDisplayImage.enabled = true;
@@ -186,29 +186,29 @@ public class AdvancedStormLightning : MonoBehaviour
             videoPlayer.Play();
         }
 
-        // Моделируем серию коротких вспышек (как настоящая молния)
-        int flashCount = Random.Range(2, 5); // 2-4 вспышки в одном разряде
+        // We simulate a series of short flashes (like real lightning)
+        int flashCount = Random.Range(2, 5); // 2-4 flashes in one discharge
         for (int i = 0; i < flashCount; i++)
         {
-            // Вспышка (пиковая яркость)
+            // Flash (peak brightness)
             float flashIntensity = Random.Range(maxLightIntensity * 0.7f, maxLightIntensity);
             SetVisualsState(flashIntensity, activeSprite, true);
             
-            // Длительность пика вспышки (очень быстро)
+            // Flash peak duration (very fast)
             yield return new WaitForSeconds(Random.Range(0.02f, 0.07f));
 
-            // Затухание между микро-вспышками
+            // Attenuation between micro-flashes
             SetVisualsState(baseLightIntensity, activeSprite, false);
             
-            // Время темноты между вспышками
+            // Time of darkness between flashes
             yield return new WaitForSeconds(Random.Range(0.04f, 0.12f));
         }
 
-        // Финальное плавное затухание света
+        // Final smooth fading of light
         float fadeDuration = Random.Range(0.2f, 0.5f);
         float elapsed = 0f;
 
-        // Если играет видео, даем ему время завершиться
+        // If a video is playing, give it time to end
         if (videoPlayer != null && videoPlayer.isPlaying)
         {
             StartCoroutine(EnsureVideoTurnsOff(1.5f));
@@ -230,7 +230,7 @@ public class AdvancedStormLightning : MonoBehaviour
             yield return null;
         }
 
-        // Гарантируем, что свет выключен
+        // We guarantee that the lights are off
         if (lightningLights != null)
         {
             foreach (var light in lightningLights)
@@ -239,17 +239,17 @@ public class AdvancedStormLightning : MonoBehaviour
             }
         }
 
-        // Воспроизводим звук грома и тряску с рассчитанной задержкой (скорость звука)
+        // We reproduce the sound of thunder and shaking with a calculated delay (speed of sound)
         StartCoroutine(PlayThunderAndShake(soundDelay, currentShakeIntensity));
 
-        // Сбрасываем таймер для следующего удара
+        // Reset the timer for the next strike
         ResetStrikeTimer();
         isLightningActive = false;
     }
 
     private void SetVisualsState(float lightIntensity, GameObject spriteObj, bool isVisible)
     {
-        // Управляем светом
+        // Controlling the light
         if (lightningLights != null)
         {
             foreach (var light in lightningLights)
@@ -258,13 +258,13 @@ public class AdvancedStormLightning : MonoBehaviour
             }
         }
 
-        // Управляем спрайтом
+        // Controlling the sprite
         if (spriteObj != null)
         {
             spriteObj.SetActive(isVisible);
         }
 
-        // Если видео-плеера нет, но картинка/спрайт заданы, переключаем их видимость
+        // If there is no video player, but the image/sprite is specified, switch their visibility
         if (videoPlayer == null)
         {
             if (videoDisplayImage != null) videoDisplayImage.enabled = isVisible;
@@ -276,7 +276,7 @@ public class AdvancedStormLightning : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
 
-        // Воспроизводим звук грома
+        // Playing the sound of thunder
         if (thunderAudioSource != null && thunderClips != null && thunderClips.Length > 0)
         {
             AudioClip clip = thunderClips[Random.Range(0, thunderClips.Length)];
@@ -285,7 +285,7 @@ public class AdvancedStormLightning : MonoBehaviour
             thunderAudioSource.PlayOneShot(clip);
         }
 
-        // Трясем камеру
+        // Shaking the camera
         if (currentShakeMagnitude > 0f)
         {
             Transform cam = cameraTransform != null ? cameraTransform : Camera.main?.transform;
@@ -305,7 +305,7 @@ public class AdvancedStormLightning : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             
-            // Плавное затухание тряски со временем
+            // Smooth attenuation of shaking over time
             float percentComplete = elapsed / duration;
             float damper = 1.0f - percentComplete;
 
@@ -317,7 +317,7 @@ public class AdvancedStormLightning : MonoBehaviour
             yield return null;
         }
 
-        // Возвращаем камеру в исходное положение
+        // Returning the camera to its original position
         target.localPosition = originalPos;
     }
 
